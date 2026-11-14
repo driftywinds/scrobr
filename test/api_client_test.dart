@@ -38,4 +38,22 @@ void main() {
     expect(seen.headers['Authorization'], 'Bearer jwt-token');
     expect(seen.headers['X-Api-Key'], ApiClient.proxyGateKey);
   });
+
+  test('binary downloads keep their bytes and gate headers', () async {
+    late http.BaseRequest seen;
+    final client = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      token: 'jwt-token',
+      client: MockClient((request) async {
+        seen = request;
+        return http.Response.bytes([80, 75, 3, 4], 200);
+      }),
+    );
+
+    final bytes = await client.getBytes('/export/data');
+
+    expect(bytes, [80, 75, 3, 4]);
+    expect(seen.headers['Authorization'], 'Bearer jwt-token');
+    expect(seen.headers['X-Api-Key'], ApiClient.proxyGateKey);
+  });
 }

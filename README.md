@@ -36,8 +36,9 @@ and the main browsing, tracking, social and settings flows of the web UI.
 - Calendar, progress, dropped, existing connection management and sync controls.
 - About screen with app/server version and source/web links.
 - Settings: preferences, API-key regeneration, password/email/2FA, connected
-  apps, manage-on-web links for providers/integrations and an admin panel for
-  settings, users, requests and maintenance. Data export/import opens the web UI.
+  apps, native data export (ZIP share), manage-on-web links for
+  providers/integrations and an admin panel for settings, users, requests and
+  maintenance. Data import opens the web UI.
 - Release APK workflow for manual dispatch or `v*` tags.
 
 ## Run

@@ -1,5 +1,8 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
@@ -19,6 +22,36 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _showKey = false;
+  bool _exporting = false;
+
+  Future<void> _exportData() async {
+    setState(() => _exporting = true);
+    try {
+      final app = ScrobScope.of(context);
+      final bytes = await app.client.getBytes('/export/data');
+      final dir = await getTemporaryDirectory();
+      final stamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(RegExp(r'[:.]'), '-');
+      final file = File('${dir.path}/scrob-export-$stamp.zip');
+      await file.writeAsBytes(bytes, flush: true);
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/zip')],
+          subject: 'Scrob data export',
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not export data: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   Future<void> _set(String key, dynamic value) async {
     final app = ScrobScope.of(context);
@@ -623,6 +656,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Change email'),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: _changeEmail,
+            ),
+            ListTile(
+              leading: const Icon(Icons.archive_outlined),
+              title: const Text('Export my data'),
+              subtitle: const Text(
+                'ZIP of history, ratings, collection, lists and comments',
+              ),
+              trailing: _exporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.ios_share_rounded),
+              onTap: _exporting ? null : _exportData,
             ),
             ListTile(
               leading: const Icon(Icons.security_rounded),

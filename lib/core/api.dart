@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -91,6 +92,30 @@ class ApiClient {
 
   Future<dynamic> delete(String path, [Map<String, dynamic>? query]) =>
       _send('DELETE', _uri(path, query));
+
+  Future<Uint8List> getBytes(String path, [Map<String, dynamic>? query]) async {
+    final request = http.Request('GET', _uri(path, query))
+      ..headers.addAll(_headers);
+    final streamed = await _http.send(request);
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.bodyBytes;
+    }
+    var detail = response.body;
+    try {
+      final parsed = jsonDecode(response.body);
+      if (parsed is Map && parsed['detail'] != null) {
+        detail = '${parsed['detail']}';
+      }
+    } catch (_) {
+      // keep the raw body
+    }
+    throw ApiException(
+      response.statusCode,
+      detail.isEmpty ? (response.reasonPhrase ?? 'Request failed') : detail,
+      request.url.path,
+    );
+  }
 
   Future<dynamic> _send(
     String method,
