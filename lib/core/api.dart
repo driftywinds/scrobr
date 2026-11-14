@@ -117,6 +117,49 @@ class ApiClient {
     );
   }
 
+  Future<dynamic> postMultipart(
+    String path, {
+    required String field,
+    required Uint8List bytes,
+    required String filename,
+    Map<String, String> fields = const {},
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path))
+      ..headers.addAll(_headers)
+      ..fields.addAll(fields)
+      ..files.add(http.MultipartFile.fromBytes(field, bytes, filename: filename));
+
+    final streamed = await _http.send(request);
+    final response = await http.Response.fromStream(streamed);
+    dynamic parsed;
+    if (response.body.isNotEmpty) {
+      try {
+        parsed = jsonDecode(response.body);
+      } catch (_) {
+        parsed = response.body;
+      }
+    }
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return parsed;
+    }
+    var detail = parsed;
+    if (parsed is Map && parsed['detail'] != null) {
+      detail = parsed['detail'];
+    }
+    if (detail is List) {
+      detail = detail
+          .map((e) => e is Map ? (e['msg'] ?? e.toString()) : '$e')
+          .join('\n');
+    }
+    throw ApiException(
+      response.statusCode,
+      detail == null || '$detail'.isEmpty
+          ? (response.reasonPhrase ?? 'Request failed')
+          : '$detail',
+      request.url.path,
+    );
+  }
+
   Future<dynamic> _send(
     String method,
     Uri uri, {

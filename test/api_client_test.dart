@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -55,5 +56,32 @@ void main() {
     expect(bytes, [80, 75, 3, 4]);
     expect(seen.headers['Authorization'], 'Bearer jwt-token');
     expect(seen.headers['X-Api-Key'], ApiClient.proxyGateKey);
+  });
+
+  test('multipart uploads keep auth, gate header and fields', () async {
+    late http.Request seen;
+    final client = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      token: 'jwt-token',
+      client: MockClient((request) async {
+        seen = request;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await client.postMultipart(
+      '/export/import',
+      field: 'file',
+      bytes: Uint8List.fromList([1, 2, 3]),
+      filename: 'export.zip',
+      fields: const {'watched': 'true'},
+    );
+
+    expect(seen.method, 'POST');
+    expect(seen.url.path, '/api/proxy/export/import');
+    expect(seen.headers['Authorization'], 'Bearer jwt-token');
+    expect(seen.headers['X-Api-Key'], ApiClient.proxyGateKey);
+    expect(seen.body, contains('name="watched"'));
+    expect(seen.body, contains('export.zip'));
   });
 }

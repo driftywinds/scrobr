@@ -1,8 +1,11 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:io';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
@@ -23,6 +26,57 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _showKey = false;
   bool _exporting = false;
+  bool _importing = false;
+
+  Future<void> _importData() async {
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+    if (picked == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await picked.readAsBytes();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not read the selected file: $e')),
+        );
+      }
+      return;
+    }
+    setState(() => _importing = true);
+    try {
+      final response = asMap(await ScrobScope.of(context).client.postMultipart(
+        '/export/import',
+        field: 'file',
+        bytes: bytes,
+        filename: picked.name.isEmpty ? 'scrob-export.zip' : picked.name,
+        fields: const {
+          'watched': 'true',
+          'ratings': 'true',
+          'collection': 'true',
+          'lists': 'true',
+          'comments': 'true',
+        },
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.s('message') ?? 'Import started'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not import data: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
 
   Future<void> _exportData() async {
     setState(() => _exporting = true);
@@ -671,6 +725,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     )
                   : const Icon(Icons.ios_share_rounded),
               onTap: _exporting ? null : _exportData,
+            ),
+            ListTile(
+              leading: const Icon(Icons.unarchive_outlined),
+              title: const Text('Import data'),
+              subtitle: const Text('Restore a Scrob ZIP export'),
+              trailing: _importing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.file_open_outlined),
+              onTap: _importing ? null : _importData,
             ),
             ListTile(
               leading: const Icon(Icons.security_rounded),

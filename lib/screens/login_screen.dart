@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
@@ -69,6 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _password.text,
           remember: _remember,
         );
+        TextInput.finishAutofillContext();
         if (result['requires_2fa'] == true) {
           final temp = result.s('temp_token');
           if (temp == null || temp.isEmpty) {
@@ -306,9 +308,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: const Color(0xFF27272A)),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                    child: AutofillGroup(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                         SegmentedButton<bool>(
                           segments: const [
                             ButtonSegment(value: false, label: Text('Password')),
@@ -342,6 +345,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextField(
                             controller: _username,
                             textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.username],
                             decoration: const InputDecoration(
                               labelText: 'Username',
                               prefixIcon: Icon(Icons.person_outline_rounded),
@@ -351,6 +355,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextField(
                             controller: _password,
                             obscureText: _obscure,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
                             onSubmitted: (_) => _submit(),
                             decoration: InputDecoration(
                               labelText: 'Password',
@@ -419,7 +425,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(fontSize: 11),
                             ),
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),

@@ -151,7 +151,11 @@ class _ShowBody extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (backdrop != null)
-                  Image.network(backdrop, fit: BoxFit.cover)
+                  Image.network(
+                    backdrop,
+                    headers: ScrobScope.of(context).imageHeaders(backdrop),
+                    fit: BoxFit.cover,
+                  )
                 else
                   Container(color: kCard),
                 DecoratedBox(

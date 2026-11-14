@@ -235,6 +235,13 @@ class AppState extends ChangeNotifier {
   String? imageUrl(String? path, {String size = 'w500'}) {
     if (path == null || path.isEmpty) return null;
     if (path.startsWith('/')) return '$proxyUrl$path';
+    // The image proxy accepts a JWT, not an API key. In API-key mode use the
+    // public TMDB/TVDB URL directly so covers still render.
+    if (apiKey != null && apiKey!.isNotEmpty && token == null) {
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+      }
+    }
     final tmdb =
         RegExp(r'image\.tmdb\.org/t/p/[^/]+(/.*)$').firstMatch(path);
     if (tmdb != null) return '$proxyUrl/media/image/$size${tmdb.group(1)}';
@@ -243,15 +250,12 @@ class AppState extends ChangeNotifier {
     return path;
   }
 
-  /// Headers for avatar image requests to our own proxy. Media artwork is
-  /// public/static and the proxy may 302 to TMDB, so never attach the session
-  /// to those requests.
+  /// Headers for own-proxy images. The media-image endpoint requires a JWT
+  /// even though posters contain no private data. Dart's HttpClient strips
+  /// Authorization/Cookie on cross-origin redirects, so the header cannot leak
+  /// when the proxy 302s to image.tmdb.org.
   Map<String, String>? imageHeaders(String? url) {
-    if (url == null ||
-        !url.startsWith(proxyUrl) ||
-        !url.contains('/profile/avatar/')) {
-      return null;
-    }
+    if (url == null || !url.startsWith(proxyUrl)) return null;
     return {
       if (token != null) 'Authorization': 'Bearer $token',
       'X-Api-Key': (apiKey != null && apiKey!.isNotEmpty)
