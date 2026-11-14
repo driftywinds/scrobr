@@ -1,0 +1,38 @@
+# Local toolchain, cloned source, API snapshots
+.tmp/
+openapi.json
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+coverage/
+**/doc/api/
+app.*.symbols
+app.*.map.json
+.flutter-plugins
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Android
+.gradle/
+local.properties
+/android/.gradle/
+/android/app/debug
+/android/app/profile
+/android/app/release
+*.jks
+*.keystore
+key.properties
+
+# OS
+.DS_Store
+Thumbs.db
