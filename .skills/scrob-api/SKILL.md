@@ -7,6 +7,11 @@ web origin's proxy: `https://<host>/api/proxy/<backend-path>`.
 
 - `Authorization: Bearer <JWT>` for a normal login (`POST /auth/login`,
   form-urlencoded `username`, `password`, optional `remember`).
+- **Native clients must also send a non-secret `X-Api-Key` header** (the app
+  uses `scrob-native-client`) on every `/api/proxy/...` request. The web
+  middleware skips its cookie gate when that header is present; the backend
+  still enforces the JWT/API key. Without it, login and all JWT calls get a
+  302 to `/login`.
 - `X-Api-Key: <key>` (or `?api_key=`) works only on endpoints that use
   `get_current_user_or_api_key`: media, history, lists, ratings, comments,
   calendar, profile reads, export, etc. Account/security and `/admin/*`

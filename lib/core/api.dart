@@ -24,6 +24,11 @@ class ApiClient {
   })  : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
         _http = client ?? http.Client();
 
+  /// The web app's `/api/proxy` middleware only skips its cookie gate when an
+  /// `X-Api-Key` header is present; the backend still enforces the real JWT or
+  /// API key. Sending a non-secret marker lets native JWT requests reach it.
+  static const proxyGateKey = 'scrob-native-client';
+
   final String baseUrl;
   final String? token;
   final String? apiKey;
@@ -32,7 +37,9 @@ class ApiClient {
   Map<String, String> get _headers => {
         'Accept': 'application/json',
         if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
-        if (apiKey != null && apiKey!.isNotEmpty) 'X-Api-Key': apiKey!,
+        'X-Api-Key': (apiKey != null && apiKey!.isNotEmpty)
+            ? apiKey!
+            : proxyGateKey,
       };
 
   Uri _uri(String path, [Map<String, dynamic>? query]) {

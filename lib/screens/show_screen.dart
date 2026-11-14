@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
+import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 import 'season_screen.dart';
 
@@ -464,6 +465,12 @@ class _ShowBody extends StatelessWidget {
             mediaType: 'series',
             tmdbId: show.i('tmdb_id'),
             title: 'Comments',
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: TraktCommentsSection(
+            mediaType: 'series',
+            tmdbId: show.i('tmdb_id'),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 30)),

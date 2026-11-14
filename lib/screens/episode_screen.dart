@@ -7,6 +7,7 @@ import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
 import '../widgets/session.dart';
+import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 
 class EpisodeScreen extends StatefulWidget {
@@ -301,6 +302,14 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                   seasonNumber: widget.seasonNumber,
                   episodeNumber: widget.episodeNumber,
                   title: 'Episode comments',
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: TraktCommentsSection(
+                  mediaType: 'episode',
+                  tmdbId: detail.i('tmdb_id'),
+                  seasonNumber: widget.seasonNumber,
+                  episodeNumber: widget.episodeNumber,
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 30)),

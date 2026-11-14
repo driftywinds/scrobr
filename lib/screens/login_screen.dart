@@ -70,11 +70,12 @@ class _LoginScreenState extends State<LoginScreen> {
           remember: _remember,
         );
         if (result['requires_2fa'] == true) {
-          final code = await _askTwoFactor();
-          if (code == null || code.trim().isEmpty) {
-            throw ApiException(0, 'Two-factor code is required');
+          final temp = result.s('temp_token');
+          if (temp == null || temp.isEmpty) {
+            throw ApiException(0, 'Server did not return a 2FA challenge token');
           }
-          await app.completeTwoFactor(result.s('temp_token')!, code);
+          final ok = await _promptTwoFactor(temp);
+          if (!ok) return;
         }
       }
     } on ApiException catch (e) {
@@ -86,32 +87,15 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<String?> _askTwoFactor() {
-    final controller = TextEditingController();
-    return showDialog<String>(
+  Future<bool> _promptTwoFactor(String tempToken) async {
+    if (!mounted) return false;
+    final app = ScrobScope.of(context);
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Two-factor authentication'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: '6-digit code or backup code',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Verify'),
-          ),
-        ],
-      ),
-    ).whenComplete(controller.dispose);
+      barrierDismissible: false,
+      builder: (_) => _TwoFactorDialog(app: app, tempToken: tempToken),
+    );
+    return result == true;
   }
 
   Future<void> _changeServer() async {
@@ -453,6 +437,114 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TwoFactorDialog extends StatefulWidget {
+  const _TwoFactorDialog({required this.app, required this.tempToken});
+
+  final AppState app;
+  final String tempToken;
+
+  @override
+  State<_TwoFactorDialog> createState() => _TwoFactorDialogState();
+}
+
+class _TwoFactorDialogState extends State<_TwoFactorDialog> {
+  final _code = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    final code = _code.text.trim();
+    if (code.isEmpty) {
+      setState(() => _error = 'Enter your authenticator code');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.app.completeTwoFactor(widget.tempToken, code);
+      if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _error = e.message);
+        _code.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _code.text.length,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Two-factor authentication'),
+      content: AutofillGroup(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter the 6-digit code from your authenticator app. A backup code also works.',
+              style: TextStyle(fontSize: 12, color: kMuted, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _code,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              onSubmitted: (_) => _verify(),
+              decoration: const InputDecoration(
+                labelText: 'Authenticator code',
+                hintText: '123456',
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(color: kDanger, fontSize: 11),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _busy ? null : _verify,
+          child: _busy
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Verify'),
+        ),
+      ],
     );
   }
 }

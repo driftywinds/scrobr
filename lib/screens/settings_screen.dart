@@ -415,6 +415,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _openWebSettings() async {
+    final app = ScrobScope.of(context);
+    final uri = Uri.parse('${app.server}/settings');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the web settings')),
+        );
+      }
+    }
+  }
+
   Future<void> _syncStatus() async {
     try {
       final data = await ScrobScope.of(context).get('/sync/status');
@@ -649,6 +661,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Sync status'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: _syncStatus,
+          ),
+          ListTile(
+            leading: const Icon(Icons.import_export_rounded),
+            title: const Text('Export / import data'),
+            subtitle: const Text('Opens the Scrob web settings'),
+            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+            onTap: _openWebSettings,
           ),
           const _Section('Integrations'),
           ListTile(

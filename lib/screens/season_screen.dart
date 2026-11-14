@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
+import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 import 'episode_screen.dart';
 
@@ -319,6 +320,11 @@ class _SeasonScreenState extends State<SeasonScreen> {
                 tmdbId: widget.showTmdbId,
                 seasonNumber: widget.seasonNumber,
                 title: 'Season comments',
+              ),
+              TraktCommentsSection(
+                mediaType: 'series',
+                tmdbId: widget.showTmdbId,
+                seasonNumber: widget.seasonNumber,
               ),
             ],
           );

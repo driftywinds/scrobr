@@ -22,8 +22,9 @@ and the main browsing, tracking, social and settings flows of the web UI.
   with cast, crew, recommendations, release dates and where-to-watch.
 - Trending trailer row on Discover.
 - Actions: mark watched/unwatched (item, season or show), 1–10 ratings,
-  comments with spoilers, add to list, collect/request, drop/undrop, rewatch,
-  trailer launch and timed manual watching sessions.
+  comments with spoilers, Trakt community comments (when enabled), add to list,
+  collect/request, drop/undrop, rewatch, trailer launch and timed manual
+  watching sessions.
 - Watch history with date grouping, filters, per-entry delete and unwatch.
 - Lists (watchlist, private/friends/public), create/edit/delete and item
   management.
@@ -32,7 +33,7 @@ and the main browsing, tracking, social and settings flows of the web UI.
 - Calendar, progress, dropped, existing connection management and sync controls.
 - Settings: preferences, API-key regeneration, password/email/2FA, connected
   apps, manage-on-web links for providers/integrations and an admin panel for
-  settings, users, requests and maintenance.
+  settings, users, requests and maintenance. Data export/import opens the web UI.
 - Release APK workflow for manual dispatch or `v*` tags.
 
 ## Run

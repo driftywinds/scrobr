@@ -8,6 +8,7 @@ import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
 import '../widgets/session.dart';
+import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
 
@@ -535,6 +536,12 @@ class _MovieBody extends StatelessWidget {
             mediaType: 'movie',
             tmdbId: media.i('tmdb_id'),
             title: 'Comments',
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: TraktCommentsSection(
+            mediaType: 'movie',
+            tmdbId: media.i('tmdb_id'),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 30)),

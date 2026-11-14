@@ -254,7 +254,9 @@ class AppState extends ChangeNotifier {
     }
     return {
       if (token != null) 'Authorization': 'Bearer $token',
-      if (apiKey != null) 'X-Api-Key': apiKey!,
+      'X-Api-Key': (apiKey != null && apiKey!.isNotEmpty)
+          ? apiKey!
+          : ApiClient.proxyGateKey,
     };
   }
 }
