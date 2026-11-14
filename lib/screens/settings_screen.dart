@@ -798,6 +798,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (v) => _set('time_format_24h', v),
             ),
             SwitchListTile(
+              title: const Text('Prompt to rate movies after watching'),
+              value: settings.b('rate_prompt_movies'),
+              onChanged: (v) => _set('rate_prompt_movies', v),
+            ),
+            SwitchListTile(
+              title: const Text('Prompt to rate episodes after watching'),
+              value: settings.b('rate_prompt_episodes'),
+              onChanged: (v) => _set('rate_prompt_episodes', v),
+            ),
+            SwitchListTile(
               title: const Text('Show play button'),
               value: settings.b('show_play_button'),
               onChanged: (v) => _set('show_play_button', v),

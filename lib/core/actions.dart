@@ -47,6 +47,18 @@ Future<bool> toggleWatched(
       });
     }
     showSnack(context, watched ? 'Marked as watched' : 'Marked as unwatched');
+    if (watched) {
+      final promptKey = type == 'episode'
+          ? 'rate_prompt_episodes'
+          : type == 'movie'
+              ? 'rate_prompt_movies'
+              : null;
+      if (promptKey != null &&
+          (app.settings?.b(promptKey) ?? false) &&
+          (media.d('user_rating') ?? 0) <= 0) {
+        await openRatingDialog(context, media);
+      }
+    }
     return true;
   } catch (e) {
     showSnack(context, 'Could not update watch state: $e');
