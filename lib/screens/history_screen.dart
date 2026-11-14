@@ -281,12 +281,15 @@ class _HistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
     final media = asMap(event['media']);
+    final isEpisode = media.s('type') == 'episode';
     final poster = app.imageUrl(
-      media.s('poster_path') ?? media.s('show_poster_path'),
+      isEpisode
+          ? (media.s('show_poster_path') ?? media.s('poster_path'))
+          : (media.s('poster_path') ?? media.s('show_poster_path')),
       size: 'w185',
     );
     final title = media.s('show_title') ?? media.s('title') ?? '';
-    final episode = media.s('type') == 'episode'
+    final episode = isEpisode
         ? 'S${media.i('season_number')}E${media.i('episode_number')} · ${media.s('title') ?? ''}'
         : yearOf(media.s('release_date'));
     final time = event.s('watched_at') != null

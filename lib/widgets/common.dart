@@ -95,7 +95,9 @@ class MediaCard extends StatelessWidget {
     final type = item.s('type');
     final isEpisode = type == 'episode';
     final isPerson = type == 'person';
-    final posterPath = item.s('poster_path') ?? item.s('show_poster_path');
+    final posterPath = isEpisode
+        ? (item.s('show_poster_path') ?? item.s('poster_path'))
+        : (item.s('poster_path') ?? item.s('show_poster_path'));
     final url = app.imageUrl(posterPath, size: 'w342');
     final title = item.s('title') ?? item.s('name') ?? '';
     final year = yearOf(item.s('release_date') ?? item.s('first_air_date'));
