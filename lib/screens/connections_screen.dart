@@ -95,6 +95,81 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     }
   }
 
+  Future<void> _schedule(Map<String, dynamic> connection) async {
+    final id = connection.i('id');
+    if (id == null) return;
+    final sync = TextEditingController(
+      text: connection.d('auto_sync_interval')?.toString() ?? '',
+    );
+    final push = TextEditingController(
+      text: connection.d('auto_push_interval')?.toString() ?? '',
+    );
+    final scrobble = TextEditingController(
+      text: connection.i('scrobble_percent')?.toString() ?? '',
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync schedule'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: sync,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Auto sync interval',
+                  hintText: 'minutes, empty = off',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: push,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Auto push interval',
+                  hintText: 'minutes, empty = off',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: scrobble,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Scrobble at % watched',
+                  hintText: '1–100',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      if (!mounted) return;
+      await _patch(id, {
+        'auto_sync_interval': double.tryParse(sync.text.trim()),
+        'auto_push_interval': double.tryParse(push.text.trim()),
+        'scrobble_percent': int.tryParse(scrobble.text.trim()),
+      });
+      _reload();
+    }
+    sync.dispose();
+    push.dispose();
+    scrobble.dispose();
+  }
+
   Future<void> _libraries(int id) async {
     final app = ScrobScope.of(context);
     try {
@@ -384,6 +459,29 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                               ? null
                               : (v) => _patch(id, {'push_ratings': v}),
                         ),
+                        _Toggle(
+                          label: 'Watchlist → Radarr',
+                          value: connection.b('watchlist_to_radarr'),
+                          onChanged: id == null
+                              ? null
+                              : (v) => _patch(id, {'watchlist_to_radarr': v}),
+                        ),
+                        _Toggle(
+                          label: 'Watchlist → Sonarr',
+                          value: connection.b('watchlist_to_sonarr'),
+                          onChanged: id == null
+                              ? null
+                              : (v) => _patch(id, {'watchlist_to_sonarr': v}),
+                        ),
+                        if (id != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: () => _schedule(connection),
+                              icon: const Icon(Icons.schedule_rounded, size: 16),
+                              label: const Text('Sync schedule'),
+                            ),
+                          ),
                       ],
                     ),
                   ],

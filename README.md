@@ -33,8 +33,8 @@ and the main browsing, tracking, social and settings flows of the web UI.
 - Profiles with follow/unfollow, top rated and recently watched rows with
   paginated “see all” pages, stats charts (watch time, activity, ratings,
   weekdays, genres) and public profiles.
-- Calendar, progress, dropped, existing connection management and sync controls.
-- About screen with app/server version and source/web links.
+- Calendar, progress, dropped, existing connection management (toggles,
+  schedules, push/sync controls) and About.
 - Settings: preferences, API-key regeneration, password/email/2FA, connected
   apps, native ZIP data export/import, manage-on-web links for
   providers/integrations and an admin panel for settings, users, requests and
