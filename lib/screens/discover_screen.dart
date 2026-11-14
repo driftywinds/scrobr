@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_state.dart';
 import '../core/format.dart';
@@ -35,6 +36,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       app.tryGet('/media/hidden-gems', {'type': _type}),
       app.tryGet('/media/for-you'),
       app.tryGet('/media/streaming', {'type': _type}),
+      app.tryGet('/media/trending/trailers'),
     ]);
     return _DiscoverData(
       trending: asMaps(asMap(results[0])['results']),
@@ -44,6 +46,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       hiddenGems: asMaps(asMap(results[4])['results']),
       forYou: asMaps(asMap(results[5])['results']),
       streaming: asMaps(asMap(results[6])['results']),
+      trailers: asMaps(asMap(results[7])['results']),
     );
   }
 
@@ -143,6 +146,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           BrowseScreen.trending(type: _type),
                         ),
                       ),
+                      if (_type == 'movie')
+                        _TrailerRow(items: data.trailers),
                       MediaRow(
                         title: _type == 'movie' ? 'Now Playing' : 'On Air This Week',
                         items: data.nowPlaying,
@@ -217,6 +222,7 @@ class _DiscoverData {
     required this.hiddenGems,
     required this.forYou,
     required this.streaming,
+    required this.trailers,
   });
 
   final List<Map<String, dynamic>> trending;
@@ -226,4 +232,84 @@ class _DiscoverData {
   final List<Map<String, dynamic>> hiddenGems;
   final List<Map<String, dynamic>> forYou;
   final List<Map<String, dynamic>> streaming;
+  final List<Map<String, dynamic>> trailers;
+}
+
+
+class _TrailerRow extends StatelessWidget {
+  const _TrailerRow({required this.items});
+
+  final List<Map<String, dynamic>> items;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 18, 16, 10),
+          child: SectionHeader(title: 'Trending trailers'),
+        ),
+        SizedBox(
+          height: 150,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final url = ScrobScope.of(context)
+                  .imageUrl(item.s('backdrop_path'), size: 'w300');
+              return SizedBox(
+                width: 210,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () async {
+                    final key = item.s('trailer_key');
+                    if (key == null) return;
+                    await launchUrl(
+                      Uri.parse('https://www.youtube.com/watch?v=$key'),
+                      mode: LaunchMode.externalApplication,
+                    );
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Poster(url: url, radius: 8),
+                            const Center(
+                              child: Icon(
+                                Icons.play_circle_fill_rounded,
+                                size: 38,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.s('title') ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }

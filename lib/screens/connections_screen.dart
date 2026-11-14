@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_state.dart';
 import '../core/format.dart';
@@ -29,102 +30,16 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
   void _reload() => setState(() => _future = _load());
 
-  Future<void> _add() async {
-    var type = 'jellyfin';
-    final name = TextEditingController();
-    final url = TextEditingController();
-    final token = TextEditingController();
-    final userId = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add connection'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'jellyfin',
-                      child: Text('Jellyfin'),
-                    ),
-                    DropdownMenuItem(value: 'emby', child: Text('Emby')),
-                    DropdownMenuItem(value: 'plex', child: Text('Plex')),
-                    DropdownMenuItem(value: 'nuvio', child: Text('Nuvio')),
-                    DropdownMenuItem(value: 'stremio', child: Text('Stremio')),
-                    DropdownMenuItem(value: 'arvio', child: Text('Arvio')),
-                  ],
-                  onChanged: (v) => setState(() => type = v ?? 'jellyfin'),
-                  decoration: const InputDecoration(labelText: 'Type'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: url,
-                  keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(labelText: 'Server URL'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: token,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'API key / token',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: userId,
-                  decoration: const InputDecoration(
-                    labelText: 'Server user id (optional)',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (ok == true) {
-      try {
-        await ScrobScope.of(context).post('/auth/connections', {
-          'type': type,
-          'name': name.text.trim(),
-          'url': url.text.trim(),
-          'token': token.text.trim(),
-          if (userId.text.trim().isNotEmpty)
-            'server_user_id': userId.text.trim(),
-        });
-        _reload();
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not add connection: $e')),
-          );
-        }
+  Future<void> _openWeb() async {
+    final app = ScrobScope.of(context);
+    final uri = Uri.parse('${app.server}/connections');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the web connections page')),
+        );
       }
     }
-    name.dispose();
-    url.dispose();
-    token.dispose();
-    userId.dispose();
   }
 
   Future<void> _patch(int id, Map<String, dynamic> patch) async {
@@ -258,8 +173,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
         title: const Text('Connections'),
         actions: [
           IconButton(
-            onPressed: _add,
-            icon: const Icon(Icons.add_rounded),
+            onPressed: _openWeb,
+            icon: const Icon(Icons.open_in_new_rounded),
           ),
         ],
       ),
@@ -277,11 +192,21 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
           }
           final connections = snapshot.data ?? const [];
           if (connections.isEmpty) {
-            return const EmptyState(
-              title: 'No media servers connected',
-              body:
-                  'Add Jellyfin, Emby, Plex, Nuvio, Stremio or Arvio to sync your library.',
-              icon: Icons.dns_outlined,
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const EmptyState(
+                  title: 'No media servers connected',
+                  body:
+                      'Link Jellyfin, Emby, Plex, Nuvio, Stremio or Arvio on the Scrob web UI.',
+                  icon: Icons.dns_outlined,
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _openWeb,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                  label: const Text('Open web connections'),
+                ),
+              ],
             );
           }
           return ListView.builder(

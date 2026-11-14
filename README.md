@@ -16,10 +16,11 @@ and the main browsing, tracking, social and settings flows of the web UI.
 - Discover: trending, now playing / on air, upcoming / new episodes, top rated,
   for you, hidden gems and streaming rows for movies and shows.
 - Library for movies and shows with sort, watched/rating/list/year/genre
-  filters and infinite scrolling.
+  filters, saved filter presets and infinite scrolling.
 - Search across TMDB movies, shows and people, plus Scrob user search.
-- Movie, show, season, episode, person and collection pages with cast, crew,
-  recommendations, release dates and where-to-watch.
+- Movie, show, season, episode, person, collection and studio/company pages
+  with cast, crew, recommendations, release dates and where-to-watch.
+- Trending trailer row on Discover.
 - Actions: mark watched/unwatched (item, season or show), 1–10 ratings,
   comments with spoilers, add to list, collect/request, drop/undrop, rewatch,
   trailer launch and timed manual watching sessions.
@@ -28,10 +29,10 @@ and the main browsing, tracking, social and settings flows of the web UI.
   management.
 - Profiles with follow/unfollow, top rated and recently watched rows, stats
   charts (watch time, activity, ratings, weekdays, genres) and public profiles.
-- Calendar, progress, dropped, connection management and sync controls.
-- Settings: preferences, API-key regeneration, password/2FA, connections,
-  Trakt/Simkl/MDBList/Bingebase entry points and an admin panel for settings,
-  users, requests and maintenance.
+- Calendar, progress, dropped, existing connection management and sync controls.
+- Settings: preferences, API-key regeneration, password/email/2FA, connected
+  apps, manage-on-web links for providers/integrations and an admin panel for
+  settings, users, requests and maintenance.
 - Release APK workflow for manual dispatch or `v*` tags.
 
 ## Run
@@ -72,3 +73,7 @@ the API workflow and `.skills/flutter-android/SKILL.md` for the local toolchain.
 API keys can read/write data endpoints, but account, comments, connections and
 `/admin/*` need a real JWT session. The app shows an API-key session as such and
 opens the password-only screens when you sign in normally.
+
+Deliberately out of scope: OIDC/SSO login and in-app video playback. Provider
+linking (Jellyfin/Plex/Emby/Nuvio/Stremio/ARVIO and the cloud trackers) is done
+in the Scrob web UI; the app opens that page and manages existing connections.

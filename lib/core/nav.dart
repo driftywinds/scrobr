@@ -14,6 +14,7 @@ import '../screens/search_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/show_screen.dart';
 import '../screens/stats_screen.dart';
+import '../screens/studio_screen.dart';
 import 'format.dart';
 
 Future<T?> pushScreen<T>(BuildContext context, Widget screen) {
@@ -83,6 +84,16 @@ void openHistory(BuildContext context) =>
 
 void openCalendar(BuildContext context) =>
     pushScreen(context, const CalendarScreen());
+
+void openStudio(
+  BuildContext context,
+  int id, {
+  required bool isNetwork,
+}) =>
+    pushScreen(
+      context,
+      StudioScreen(id: id, isNetwork: isNetwork),
+    );
 
 void openSearch(BuildContext context) =>
     pushScreen(context, const SearchScreen());

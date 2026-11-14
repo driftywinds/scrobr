@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_state.dart';
 import '../core/format.dart';
@@ -70,6 +71,17 @@ class _AdminScreenState extends State<AdminScreen>
       appBar: AppBar(
         title: const Text('Admin'),
         actions: [
+          IconButton(
+            tooltip: 'Open web admin',
+            onPressed: () async {
+              final app = ScrobScope.of(context);
+              await launchUrl(
+                Uri.parse('${app.server}/admin'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+            icon: const Icon(Icons.public_rounded),
+          ),
           IconButton(
             tooltip: 'Requests',
             onPressed: () => Navigator.of(context).push(

@@ -342,126 +342,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
     code.dispose();
   }
 
-  Future<void> _traktConnect() async {
+  Future<void> _deviceGrants() async {
     final app = ScrobScope.of(context);
     try {
-      final data = asMap(await app.post('/trakt/auth/device/start'));
-      final code = data.s('user_code') ?? '';
-      final url = data.s('verification_url');
-      if (url != null) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      }
+      final grants = asMaps(await app.get('/auth/device/grants'));
       if (!mounted) return;
-      final confirmed = await showDialog<bool>(
+      await showModalBottomSheet<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Connect Trakt'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Approve this code on Trakt:'),
-              const SizedBox(height: 8),
-              SelectableText(
-                code,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+        builder: (context) => SafeArea(
+          child: grants.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('No connected apps.'),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: grants.length,
+                  itemBuilder: (context, index) {
+                    final grant = grants[index];
+                    final id = grant.i('id');
+                    return ListTile(
+                      leading: const Icon(Icons.phonelink_lock_outlined),
+                      title: Text(grant.s('client_name') ?? ''),
+                      subtitle: Text(
+                        '${grant.s('scope') ?? ''} · approved ${fmtDate(grant.s('approved_at') ?? grant.s('created_at'))}',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      trailing: TextButton(
+                        onPressed: id == null
+                            ? null
+                            : () async {
+                                await app.delete('/auth/device/grants/$id');
+                                if (context.mounted) Navigator.pop(context);
+                              },
+                        child: const Text('Revoke'),
+                      ),
+                    );
+                  },
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Tap "I approved" once you have authorised Scrob.',
-                style: TextStyle(fontSize: 11, color: kMuted),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('I approved'),
-            ),
-          ],
         ),
       );
-      if (confirmed == true) {
-        final result = asMap(await app.post('/trakt/auth/device/poll'));
-        if (result.s('status') == 'connected') {
-          await app.refresh();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Trakt connected')),
-            );
-          }
-        } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Not approved yet; try again.')),
-          );
-        }
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Trakt connection failed: $e')),
+          SnackBar(content: Text('Could not load connected apps: $e')),
         );
       }
     }
   }
 
-  Future<void> _simklConnect() async {
+  Future<void> _openWebConnections() async {
     final app = ScrobScope.of(context);
-    try {
-      final data = asMap(await app.post('/simkl/auth/pin/start'));
-      final code = data.s('user_code') ?? '';
-      final url = data.s('url');
-      if (url != null) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      }
-      if (!mounted) return;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Connect Simkl'),
-          content: SelectableText(
-            code,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('I approved'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed == true) {
-        final result = asMap(await app.post('/simkl/auth/pin/poll'));
-        if (result.s('status') == 'connected') {
-          await app.refresh();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Simkl connected')),
-            );
-          }
-        }
-      }
-    } catch (e) {
+    final uri = Uri.parse('${app.server}/connections');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Simkl connection failed: $e')),
+          const SnackBar(content: Text('Could not open the web settings')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openWebUi() async {
+    final app = ScrobScope.of(context);
+    final uri = Uri.parse(app.server);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the web UI')),
         );
       }
     }
@@ -514,35 +462,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
-  }
-
-  Future<void> _editKey(String setting, String label, {bool secret = false}) async {
-    final controller = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(label),
-        content: TextField(
-          controller: controller,
-          obscureText: secret,
-          decoration: InputDecoration(labelText: label),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await _set(setting, controller.text.trim());
-    }
-    controller.dispose();
   }
 
   Future<void> _sync(String path) async {
@@ -649,6 +568,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.phonelink_lock_outlined),
+              title: const Text('Connected apps'),
+              subtitle: const Text('Device grants with access to your data'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: _deviceGrants,
+            ),
+            ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: const Text('Sign out'),
               onTap: () async {
@@ -737,8 +663,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: const Icon(Icons.sync_rounded),
                   )
                 : TextButton(
-                    onPressed: _traktConnect,
-                    child: const Text('Connect'),
+                    onPressed: _openWebConnections,
+                    child: const Text('Manage on web'),
                   ),
           ),
           ListTile(
@@ -753,8 +679,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: const Icon(Icons.sync_rounded),
                   )
                 : TextButton(
-                    onPressed: _simklConnect,
-                    child: const Text('Connect'),
+                    onPressed: _openWebConnections,
+                    child: const Text('Manage on web'),
                   ),
           ),
           ListTile(
@@ -764,17 +690,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               settings.b('mdblist_connected') ? 'Connected' : 'Not connected',
             ),
             trailing: TextButton(
-              onPressed: () => _editKey('mdblist_api_key', 'MDBList API key',
-                  secret: true),
-              child: Text(settings.b('mdblist_connected') ? 'Update' : 'Connect'),
+              onPressed: _openWebConnections,
+              child: Text(settings.b('mdblist_connected') ? 'Manage' : 'Connect'),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.webhook_rounded),
             title: const Text('Bingebase webhook'),
             trailing: TextButton(
-              onPressed: () =>
-                  _editKey('bingebase_webhook_url', 'Bingebase webhook URL'),
+              onPressed: _openWebConnections,
               child: const Text('Set'),
             ),
           ),
@@ -794,6 +718,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
           const _Section('About'),
+          ListTile(
+            leading: const Icon(Icons.public_rounded),
+            title: const Text('Open Scrob web UI'),
+            subtitle: Text(app.server),
+            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+            onTap: _openWebUi,
+          ),
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
             title: const Text('Scrob for Android'),

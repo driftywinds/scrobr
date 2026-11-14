@@ -106,6 +106,7 @@ class _MovieBody extends StatelessWidget {
     final collection = asMap(media['collection']);
     final releaseDates = asMap(media['release_dates']);
     final whereToWatch = media.maps('where_to_watch');
+    final companies = media.maps('production_companies');
     final watched = media.b('watched');
     final userRating = media.d('user_rating');
     final playCount = media.i('play_count') ?? 0;
@@ -481,6 +482,42 @@ class _MovieBody extends StatelessWidget {
                           ),
                         )
                         .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (companies.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Production companies',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: companies.map((company) {
+                      final id = company.i('id');
+                      return ActionChip(
+                        label: Text(
+                          company.s('name') ?? '',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        onPressed: id == null
+                            ? null
+                            : () => openStudio(
+                                  context,
+                                  id,
+                                  isNetwork: false,
+                                ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),

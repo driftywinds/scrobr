@@ -328,9 +328,121 @@ class _FilterSheetState extends State<_FilterSheet> {
   late final _year = TextEditingController(
     text: widget.initial.year?.toString() ?? '',
   );
+  List<Map<String, dynamic>> _saved = [];
+  bool _savedLoaded = false;
 
   List<String> get _genres =>
       widget.type == 'movie' ? movieGenres : showGenres;
+
+  String get _scope => widget.type == 'movie' ? '/movies' : '/shows';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_savedLoaded) {
+      _savedLoaded = true;
+      _loadSaved();
+    }
+  }
+
+  Future<void> _loadSaved() async {
+    try {
+      final data =
+          await ScrobScope.of(context).get('/saved-filters', {'scope': _scope});
+      if (!mounted) return;
+      setState(() => _saved = asMaps(data));
+    } catch (_) {
+      // Saved filters are optional and JWT-only; API-key mode hides them.
+    }
+  }
+
+  String? _firstParam(Map<String, dynamic> params, String key) {
+    final values = asStrings(params[key]);
+    return values.isEmpty ? null : values.first;
+  }
+
+  _Filters _valueFromParams(Map<String, dynamic> params) {
+    return _Filters(
+      sort: _value.sort,
+      watched: _firstParam(params, 'watched'),
+      rating: int.tryParse(_firstParam(params, 'my_rating') ?? ''),
+      inList: _firstParam(params, 'in_list'),
+      year: int.tryParse(_firstParam(params, 'year') ?? ''),
+      genres: asStrings(params['genre']).toSet(),
+    );
+  }
+
+  Map<String, List<String>> _currentParams() {
+    final year = int.tryParse(_year.text.trim()) ?? _value.year;
+    return {
+      if (_value.watched != null) 'watched': [_value.watched!],
+      if (_value.rating != null) 'my_rating': ['${_value.rating}'],
+      if (_value.inList != null) 'in_list': [_value.inList!],
+      if (year != null) 'year': ['$year'],
+      if (_value.genres.isNotEmpty) 'genre': _value.genres.toList(),
+    };
+  }
+
+  Future<void> _saveCurrent() async {
+    final params = _currentParams();
+    if (params.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one filter first')),
+      );
+      return;
+    }
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save filters'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.isEmpty) return;
+    try {
+      await ScrobScope.of(context).post('/saved-filters', {
+        'scope': _scope,
+        'name': name,
+        'params': params,
+      });
+      await _loadSaved();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save filters: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteSaved(int id) async {
+    try {
+      await ScrobScope.of(context).delete('/saved-filters/$id');
+      await _loadSaved();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not delete filter: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -364,6 +476,50 @@ class _FilterSheetState extends State<_FilterSheet> {
                   child: const Text('Reset'),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            if (_saved.isNotEmpty) ...[
+              const Text(
+                'Saved filters',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 2,
+                children: _saved.map((saved) {
+                  return InputChip(
+                    label: Text(
+                      saved.s('name') ?? '',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    onPressed: () {
+                      final next =
+                          _valueFromParams(asMap(saved['params']));
+                      setState(() {
+                        _value = next;
+                        _year.text = next.year?.toString() ?? '';
+                      });
+                    },
+                    onDeleted: () {
+                      final id = saved.i('id');
+                      if (id != null) _deleteSaved(id);
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 6),
+            ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _saveCurrent,
+                icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                label: const Text(
+                  'Save current filters',
+                  style: TextStyle(fontSize: 11),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             const Text('Sort', style: TextStyle(fontWeight: FontWeight.w700)),
