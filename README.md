@@ -66,6 +66,27 @@ installable. Add a keystore and signing config before publishing.
 The tag version is passed to Flutter as `--build-name`; the workflow uploads the
 APK as a build artifact and attaches it to a GitHub release for tag pushes.
 
+### Signing
+
+The workflow signs with a keystore supplied as repository secrets; without
+them it falls back to the debug key so the build still succeeds.
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | base64 of the `.jks`/`.keystore` file |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | key alias |
+| `ANDROID_KEY_PASSWORD` | key password |
+
+On Windows, produce the base64 value with:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.jks"))
+```
+
+The workflow decodes it to `android/app/release.keystore`, writes the ignored
+`android/key.properties`, builds, and signs the release APK with it.
+
 ## API notes
 
 The backend OpenAPI document is admin-only (`GET /openapi.json`). It is kept
