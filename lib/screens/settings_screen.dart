@@ -92,6 +92,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
     next.dispose();
   }
 
+  Future<void> _changeEmail() async {
+    final app = ScrobScope.of(context);
+    final email = TextEditingController();
+    final password = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: email,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'New email'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: password,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Current password'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      try {
+        final result = asMap(await app.post('/auth/change-email', {
+          'new_email': email.text.trim(),
+          'current_password': password.text,
+        }));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result.s('message') ?? 'Check your inbox to confirm the change.',
+              ),
+            ),
+          );
+        }
+      } on ApiException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message)),
+          );
+        }
+      }
+    }
+    email.dispose();
+    password.dispose();
+  }
+
   Future<void> _regenerateKey() async {
     final app = ScrobScope.of(context);
     final ok = await showDialog<bool>(
@@ -563,6 +626,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Change password'),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: _changePassword,
+            ),
+            ListTile(
+              leading: const Icon(Icons.mail_outline_rounded),
+              title: const Text('Change email'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: _changeEmail,
             ),
             ListTile(
               leading: const Icon(Icons.security_rounded),

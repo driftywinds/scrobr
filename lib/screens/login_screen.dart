@@ -154,6 +154,51 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final app = ScrobScope.of(context);
+    final email = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset password'),
+        content: TextField(
+          controller: email,
+          keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Account email'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      try {
+        final result = asMap(await ApiClient(baseUrl: app.proxyUrl).post(
+          '/auth/forgot-password',
+          {'email': email.text.trim()},
+        ));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.s('message') ?? 'Check your email'),
+            ),
+          );
+        }
+      } on ApiException catch (e) {
+        if (mounted) setState(() => _error = e.message);
+      }
+    }
+    email.dispose();
+  }
+
   Future<void> _register() async {
     final app = ScrobScope.of(context);
     final email = TextEditingController();
@@ -382,6 +427,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: const Text('Create an account'),
                           ),
                         ],
+                        if (!_apiKeyMode)
+                          TextButton(
+                            onPressed: _busy ? null : _forgotPassword,
+                            child: const Text(
+                              'Forgot password?',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                          ),
                       ],
                     ),
                   ),

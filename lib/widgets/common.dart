@@ -21,6 +21,7 @@ class Poster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
     final placeholder = Container(
       color: kCard,
       alignment: Alignment.center,
@@ -46,6 +47,7 @@ class Poster extends StatelessWidget {
           ? placeholder
           : Image.network(
               url!,
+              headers: app.imageHeaders(url),
               fit: fit,
               errorBuilder: (_, __, ___) => placeholder,
               loadingBuilder: (context, child, progress) {
@@ -439,6 +441,7 @@ class UserAvatar extends StatelessWidget {
     return ClipOval(
       child: Image.network(
         url!,
+        headers: ScrobScope.of(context).imageHeaders(url),
         width: size,
         height: size,
         fit: BoxFit.cover,

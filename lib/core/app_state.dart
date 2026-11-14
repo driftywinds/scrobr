@@ -242,6 +242,16 @@ class AppState extends ChangeNotifier {
     if (tvdb != null) return '$proxyUrl/media/image/tvdb${tvdb.group(1)}';
     return path;
   }
+
+  /// Headers for image requests to our own proxy (avatars are not public
+  /// static assets and need the session). Never sent to third-party hosts.
+  Map<String, String>? imageHeaders(String? url) {
+    if (url == null || !url.startsWith(proxyUrl)) return null;
+    return {
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (apiKey != null) 'X-Api-Key': apiKey!,
+    };
+  }
 }
 
 class ScrobScope extends InheritedNotifier<AppState> {

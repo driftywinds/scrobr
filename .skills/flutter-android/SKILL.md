@@ -22,11 +22,16 @@ $env:ANDROID_HOME='W:\repos\scrobbler\.tmp\android-sdk'
 $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
 $env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot'
 $env:GRADLE_USER_HOME='W:\repos\scrobbler\.tmp\gradle'
+$env:ANDROID_USER_HOME='W:\repos\scrobbler\.tmp\android-user'
+$env:JAVA_TOOL_OPTIONS='-Duser.home=W:\repos\scrobbler\.tmp\home'
 .tmp\flutter\bin\flutter.bat <command>
 ```
 
 `GRADLE_USER_HOME` is required: otherwise Gradle writes to
 `C:\Users\<user>\.gradle`, which this sandbox cannot create.
+`ANDROID_USER_HOME` + `user.home` keep the debug keystore out of
+`C:\Users\<user>\.android`. Do not also set `ANDROID_PREFS_ROOT` — AGP rejects
+the duplicate preference path.
 
 Flutter 3.50 moved Material out of the framework: import
 `package:material_ui/material_ui.dart`, not `package:flutter/material.dart`.
@@ -51,6 +56,11 @@ flutter analyze
 flutter build apk --release --dart-define=SCROB_SERVER=https://scrob.003274.xyz
 # output: build/app/outputs/flutter-apk/app-release.apk
 ```
+
+The first release build auto-installs the Flutter NDK (`28.2.13676358`) and
+platform 35 through Gradle; this is a multi-GB one-time download. Release lint
+is disabled in `android/app/build.gradle.kts` because AGP's lint crashes on this
+toolchain; app code still passes `flutter analyze` (only style infos remain).
 
 If any command fails opening `%TEMP%` or `%APPDATA%`, the env block above was
 not applied. Git clones need `git -c http.sslBackend=openssl`.
