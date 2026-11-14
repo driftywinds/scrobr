@@ -201,7 +201,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildGrid() {
     if (_items.isEmpty && _loading) {
-      return const LoadingView();
+      return const PosterGridSkeleton();
     }
     if (_items.isEmpty && _error != null) {
       return ListView(

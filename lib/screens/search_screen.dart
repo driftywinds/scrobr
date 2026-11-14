@@ -186,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
     if (_loading && _results.isEmpty && _users.isEmpty) {
-      return const LoadingView(label: 'Searching');
+      return const PosterGridSkeleton();
     }
     if (_error != null && _results.isEmpty && _users.isEmpty) {
       return ErrorView(message: _error!, onRetry: () => _search(reset: true));
@@ -199,24 +199,14 @@ class _SearchScreenState extends State<SearchScreen> {
       return ListView.separated(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         itemCount: _users.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final user = _users[index];
           final avatar = ScrobScope.of(context).imageUrl(user.s('avatar_url'));
-          return ListTile(
-            leading: UserAvatar(
-              url: avatar,
-              name: user.s('display_name') ?? user.s('username'),
-              size: 42,
-            ),
-            title: Text(
-              user.s('display_name') ?? user.s('username') ?? '',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              '@${user.s('username') ?? ''}',
-              style: const TextStyle(color: kMuted, fontSize: 11),
-            ),
+          return PersonTile(
+            avatarUrl: avatar,
+            name: user.s('display_name') ?? user.s('username') ?? '',
+            subtitle: '@${user.s('username') ?? ''}',
             onTap: () {
               final id = user.i('id');
               if (id != null) openProfile(context, id);
@@ -233,25 +223,15 @@ class _SearchScreenState extends State<SearchScreen> {
       return ListView.separated(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         itemCount: _results.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final person = _results[index];
           final avatar = ScrobScope.of(context)
               .imageUrl(person.s('poster_path'), size: 'w185');
-          return ListTile(
-            leading: UserAvatar(
-              url: avatar,
-              name: person.s('title'),
-              size: 48,
-            ),
-            title: Text(
-              person.s('title') ?? '',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              person.s('known_for_department') ?? 'Person',
-              style: const TextStyle(color: kMuted, fontSize: 11),
-            ),
+          return PersonTile(
+            avatarUrl: avatar,
+            name: person.s('title') ?? '',
+            subtitle: person.s('known_for_department') ?? 'Person',
             onTap: () {
               final id = person.i('tmdb_id');
               if (id != null) openPerson(context, id);

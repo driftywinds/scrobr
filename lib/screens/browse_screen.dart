@@ -145,7 +145,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
   Widget _buildBody() {
     if (_items.isEmpty && _loading) {
-      return const LoadingView();
+      return const PosterGridSkeleton();
     }
     if (_items.isEmpty && _error != null) {
       return ListView(

@@ -51,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isOwn ? 'Profile' : 'Profile'),
+        title: const Text('Profile'),
         actions: [
           IconButton(
             tooltip: 'Search users',
@@ -395,99 +395,128 @@ class _ProfileBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 28),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        SizedBox(
+          height: 150,
+          child: Stack(
             children: [
-              UserAvatar(
-                url: avatar,
-                name: profile.s('display_name'),
-                size: 76,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile.s('display_name') ?? profile.s('username') ?? '',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      '@${profile.s('username') ?? ''}',
-                      style: const TextStyle(fontSize: 12, color: kMuted),
-                    ),
-                    if (profile.s('bio') != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        profile.s('bio')!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: Color(0xFFD4D4D8),
-                        ),
-                      ),
+              Container(
+                height: 100,
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      kAccent.withValues(alpha: 0.55),
+                      const Color(0xFF6366F1).withValues(alpha: 0.35),
+                      kSurface,
                     ],
-                    const SizedBox(height: 4),
-                    Text(
-                      'Joined ${fmtDate(profile.s('created_at'))}',
-                      style: const TextStyle(fontSize: 10, color: kMuted),
-                    ),
-                  ],
+                  ),
+                  border: Border.all(color: kBorder),
+                ),
+              ),
+              Positioned(
+                left: 32,
+                top: 58,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: kBg,
+                  ),
+                  child: UserAvatar(
+                    url: avatar,
+                    name: profile.s('display_name'),
+                    size: 84,
+                  ),
                 ),
               ),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                profile.s('display_name') ?? profile.s('username') ?? '',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '@${profile.s('username') ?? ''} · Joined ${fmtDate(profile.s('created_at'))}',
+                style: const TextStyle(fontSize: 12, color: kMuted),
+              ),
+              if (profile.s('bio') != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  profile.s('bio')!,
+                  style: const TextStyle(fontSize: 13, height: 1.45, color: kBody),
+                ),
+              ],
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
             children: [
-              if (isOwn)
-                Expanded(
-                  child: _ProfileAction(
-                    onPressed: onEdit,
-                    label: 'Edit profile',
-                  ),
-                ),
-              if (!isOwn)
-                Expanded(
-                  child: _ProfileAction(
-                    onPressed: () => _follow(context),
-                    label: profile.b('is_following') ? 'Unfollow' : 'Follow',
-                  ),
-                ),
+              Expanded(
+                child: isOwn
+                    ? ActionPill(
+                        icon: Icons.edit_outlined,
+                        label: 'Edit',
+                        onTap: onEdit,
+                      )
+                    : ActionPill(
+                        icon: profile.b('is_following')
+                            ? Icons.person_remove_alt_1_outlined
+                            : Icons.person_add_alt_1_outlined,
+                        label: profile.b('is_following') ? 'Unfollow' : 'Follow',
+                        active: profile.b('is_following'),
+                        onTap: () => _follow(context),
+                      ),
+              ),
               const SizedBox(width: 8),
               Expanded(
-                child: _ProfileAction(
-                  onPressed: () {
+                child: ActionPill(
+                  icon: Icons.insights_rounded,
+                  label: 'Stats',
+                  onTap: () {
                     final id = profile.i('id');
                     if (id != null) openStats(context, id);
                   },
-                  label: 'Stats',
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _ProfileAction(
-                  onPressed: () => openLists(context),
+                child: ActionPill(
+                  icon: Icons.view_list_rounded,
                   label: 'Lists',
+                  onTap: () => openLists(context),
                 ),
               ),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: panelDecoration(),
           child: Row(
             children: [
               _Stat(label: 'Watched', value: profile.i('total_watched') ?? 0),
+              const _StatDivider(),
               _Stat(label: 'Movies', value: profile.i('movies_watched') ?? 0),
+              const _StatDivider(),
               _Stat(label: 'Shows', value: profile.i('shows_watched') ?? 0),
+              const _StatDivider(),
               _Stat(label: 'Rated', value: profile.i('total_rated') ?? 0),
             ],
           ),
@@ -552,32 +581,80 @@ class _ProfileBody extends StatelessWidget {
           ),
         if (lists.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Lists',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 6),
+                const SectionHeader(title: 'Lists'),
+                const SizedBox(height: 10),
                 ...lists.map(
-                  (list) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      list.b('is_watchlist')
-                          ? Icons.bookmark_rounded
-                          : Icons.list_alt_rounded,
+                  (list) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: kSurface,
+                      borderRadius: BorderRadius.circular(kRadius),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(kRadius),
+                        onTap: () {
+                          final id = list.i('id');
+                          if (id != null) openList(context, id);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(kRadius),
+                            border: Border.all(color: kBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: kAccent.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  list.b('is_watchlist')
+                                      ? Icons.bookmark_rounded
+                                      : Icons.list_alt_rounded,
+                                  size: 20,
+                                  color: kAccentSoft,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      list.s('name') ?? '',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${list.i('item_count') ?? 0} items · ${list.s('privacy_level') ?? ''}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: kMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: kMuted,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                    title: Text(list.s('name') ?? ''),
-                    subtitle: Text(
-                      '${list.i('item_count') ?? 0} items · ${list.s('privacy_level') ?? ''}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    onTap: () {
-                      final id = list.i('id');
-                      if (id != null) openList(context, id);
-                    },
                   ),
                 ),
               ],
@@ -610,11 +687,16 @@ class _Stat extends StatelessWidget {
         children: [
           Text(
             fmtCount(value),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.4,
+            ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 9, color: kMuted),
+            style: const TextStyle(fontSize: 11, color: kMuted),
           ),
         ],
       ),
@@ -622,28 +704,12 @@ class _Stat extends StatelessWidget {
   }
 }
 
-class _ProfileAction extends StatelessWidget {
-  const _ProfileAction({required this.onPressed, required this.label});
-
-  final VoidCallback onPressed;
-  final String label;
+class _StatDivider extends StatelessWidget {
+  const _StatDivider();
 
   @override
-  Widget build(BuildContext context) {
-    return FilledButton.tonal(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 30, color: kBorder);
 }
 
 class _PeopleStrip extends StatelessWidget {
@@ -665,9 +731,9 @@ class _PeopleStrip extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 10,
           runSpacing: 6,
@@ -682,7 +748,7 @@ class _PeopleStrip extends StatelessWidget {
                   UserAvatar(
                     url: app.imageUrl(person.s('avatar_url')),
                     name: person.s('display_name') ?? person.s('username'),
-                    size: 44,
+                    size: 48,
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -690,7 +756,7 @@ class _PeopleStrip extends StatelessWidget {
                       person.s('display_name') ?? person.s('username') ?? '',
                       12,
                     ),
-                    style: const TextStyle(fontSize: 9, color: kMuted),
+                    style: const TextStyle(fontSize: 10, color: kMuted),
                   ),
                 ],
               ),

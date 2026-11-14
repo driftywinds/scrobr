@@ -880,3 +880,100 @@ class _SegmentCell extends StatelessWidget {
     );
   }
 }
+
+
+/// Skeleton matching the poster grids used by Library, Explore, Search, Browse.
+class PosterGridSkeleton extends StatelessWidget {
+  const PosterGridSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 150,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.50,
+      ),
+      itemCount: 12,
+      itemBuilder: (_, __) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          AspectRatio(aspectRatio: 2 / 3, child: SkeletonBox()),
+          SizedBox(height: 8),
+          SkeletonBox(width: 90, height: 11, radius: 4),
+        ],
+      ),
+    );
+  }
+}
+
+/// Card-style row for a person or user: avatar, name, subtitle, chevron.
+class PersonTile extends StatelessWidget {
+  const PersonTile({
+    super.key,
+    required this.name,
+    this.subtitle,
+    this.avatarUrl,
+    this.onTap,
+  });
+
+  final String name;
+  final String? subtitle;
+  final String? avatarUrl;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: kSurface,
+      borderRadius: BorderRadius.circular(kRadius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(kRadius),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kRadius),
+            border: Border.all(color: kBorder),
+          ),
+          child: Row(
+            children: [
+              UserAvatar(url: avatarUrl, name: name, size: 46),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (subtitle != null && subtitle!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: kMuted, fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: kMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

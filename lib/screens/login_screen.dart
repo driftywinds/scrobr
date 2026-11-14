@@ -313,41 +313,22 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(
-                    child: SvgPicture.asset(
-                      'assets/scrobr.svg',
-                      width: 88,
-                      height: 88,
-                      placeholderBuilder: (_) => const Icon(
-                        Icons.movie_filter_rounded,
-                        size: 80,
-                        color: kAccent,
-                      ),
-                    ),
+                  const _BrandHeader(
+                    subtitle: 'Connect to your own Scrob server to get started.',
                   ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Scrobr',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Connect to your own Scrob server to get started.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: kMuted, fontSize: 13),
-                  ),
-                  const SizedBox(height: 28),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: kSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFF27272A)),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: kBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -387,19 +368,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         if (_error != null) ...[
                           const SizedBox(height: 10),
-                          Text(
-                            _error!,
-                            style: const TextStyle(
-                              color: kDanger,
-                              fontSize: 12,
-                            ),
-                          ),
+                          _ErrorBanner(_error!),
                         ],
                         const SizedBox(height: 14),
                         FilledButton(
                           onPressed: _busy ? null : _connectServer,
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
+                            minimumSize: const Size.fromHeight(52),
                           ),
                           child: _busy
                               ? const SizedBox(
@@ -438,41 +413,22 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(
-                    child: SvgPicture.asset(
-                      'assets/scrobr.svg',
-                      width: 88,
-                      height: 88,
-                      placeholderBuilder: (_) => const Icon(
-                        Icons.movie_filter_rounded,
-                        size: 80,
-                        color: kAccent,
-                      ),
-                    ),
+                  const _BrandHeader(
+                    subtitle: 'Your library, watch history and lists.',
                   ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Scrobr',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Your library, watch history and lists.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: kMuted, fontSize: 13),
-                  ),
-                  const SizedBox(height: 28),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: kSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFF27272A)),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: kBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
                     ),
                     child: AutofillGroup(
                       child: Column(
@@ -553,16 +509,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                         if (_error != null) ...[
                           const SizedBox(height: 10),
-                          Text(
-                            _error!,
-                            style: const TextStyle(color: kDanger, fontSize: 12),
-                          ),
+                          _ErrorBanner(_error!),
                         ],
                         const SizedBox(height: 14),
                         FilledButton(
                           onPressed: _busy ? null : _submit,
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
+                            minimumSize: const Size.fromHeight(52),
                           ),
                           child: _busy
                               ? const SizedBox(
@@ -717,6 +670,97 @@ class _TwoFactorDialogState extends State<_TwoFactorDialog> {
               : const Text('Verify'),
         ),
       ],
+    );
+  }
+}
+
+/// Logo with a soft accent glow, app name and a one-line subtitle.
+class _BrandHeader extends StatelessWidget {
+  const _BrandHeader({required this.subtitle});
+
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    kAccent.withValues(alpha: 0.28),
+                    kAccent.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+            SvgPicture.asset(
+              'assets/scrobr.svg',
+              width: 84,
+              height: 84,
+              placeholderBuilder: (_) => const Icon(
+                Icons.movie_filter_rounded,
+                size: 76,
+                color: kAccent,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Scrobr',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 34,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: kMuted, fontSize: 13.5),
+        ),
+        const SizedBox(height: 28),
+      ],
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kDanger.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kDanger.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded, size: 16, color: kDanger),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 12.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

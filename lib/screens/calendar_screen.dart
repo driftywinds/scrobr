@@ -67,7 +67,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView(label: 'Building your schedule');
+            return const DashboardSkeleton();
           }
           if (snapshot.hasError) {
             return ErrorView(
@@ -104,7 +104,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Text(
                     'Next 21 days · ${entries.length} episodes',
-                    style: const TextStyle(fontSize: 11, color: kMuted),
+                    style: const TextStyle(fontSize: 12, color: kMuted),
                   ),
                 ),
                 ...dates.map((date) {
@@ -113,19 +113,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-                        child: Text(
-                          parsed == null
-                              ? date
-                              : '${fmtDay(parsed)}${date == calendar.s('today') ? ' · Today' : ''}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: kMuted,
-                          ),
-                        ),
+                      _DateHeader(
+                        raw: date,
+                        parsed: parsed,
+                        isToday: date == calendar.s('today'),
+                        count: items.length,
                       ),
                       ..._groupByShow(items).map(
                         (episodes) => _CalendarShowGroup(episodes: episodes),
@@ -163,8 +155,10 @@ class _CalendarShowGroup extends StatelessWidget {
     final app = ScrobScope.of(context);
     final first = episodes.first;
     final poster = app.imageUrl(first.s('poster_path'), size: 'w185');
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: panelDecoration(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -187,10 +181,11 @@ class _CalendarShowGroup extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
+                const SizedBox(height: 2),
                 ...episodes.map((entry) {
                   final showId = entry.i('show_tmdb_id');
                   final season = entry.i('season_number');
@@ -219,7 +214,7 @@ class _CalendarShowGroup extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: kMuted,
                               ),
                             ),
@@ -233,6 +228,97 @@ class _CalendarShowGroup extends StatelessWidget {
                     ),
                   );
                 }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateHeader extends StatelessWidget {
+  const _DateHeader({
+    required this.raw,
+    required this.parsed,
+    required this.isToday,
+    required this.count,
+  });
+
+  final String raw;
+  final DateTime? parsed;
+  final bool isToday;
+  final int count;
+
+  static const _weekdays = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday', 'Sunday',
+  ];
+  static const _months = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final d = parsed;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              gradient: isToday ? kAccentGradient : null,
+              color: isToday ? null : kSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: isToday ? null : Border.all(color: kBorder),
+            ),
+            child: d == null
+                ? const Icon(Icons.help_outline_rounded, color: kMuted)
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${d.day}',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        _months[d.month - 1],
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: isToday ? Colors.white : kMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  d == null
+                      ? raw
+                      : (isToday ? 'Today' : _weekdays[d.weekday - 1]),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: isToday ? kAccentSoft : Colors.white,
+                  ),
+                ),
+                Text(
+                  '$count ${count == 1 ? 'episode' : 'episodes'}',
+                  style: const TextStyle(fontSize: 11, color: kMuted),
+                ),
               ],
             ),
           ),

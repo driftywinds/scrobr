@@ -176,7 +176,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildList() {
     if (_events.isEmpty && _loading) {
-      return const LoadingView(label: 'Loading history');
+      return ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        children: [
+          for (var i = 0; i < 6; i++)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: SkeletonBox(height: 99, radius: 12),
+            ),
+        ],
+      );
     }
     if (_events.isEmpty && _error != null) {
       return ListView(
@@ -211,15 +221,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (date != lastDate) {
         children.add(
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Text(
-              date,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-                color: kMuted,
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+            child: Row(
+              children: [
+                if (date == 'Today')
+                  Container(
+                    width: 7,
+                    height: 7,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: const BoxDecoration(
+                      color: kAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                Text(
+                  date.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: date == 'Today' ? kAccentSoft : kMuted,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(child: Divider()),
+              ],
             ),
           ),
         );
@@ -292,10 +318,20 @@ class _HistoryTile extends StatelessWidget {
     final source = event.s('source');
     final progress = event.d('progress_percent');
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(kRadius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(kRadius),
+          onTap: onTap,
+          child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 8, 2, 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(kRadius),
+          border: Border.all(color: kBorder),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,9 +364,11 @@ class _HistoryTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
+                      const Icon(Icons.schedule_rounded, size: 12, color: kMuted),
+                      const SizedBox(width: 4),
                       Text(
                         time,
-                        style: const TextStyle(fontSize: 10, color: kMuted),
+                        style: const TextStyle(fontSize: 11, color: kMuted),
                       ),
                       if (source != null &&
                           source.isNotEmpty &&
@@ -367,6 +405,8 @@ class _HistoryTile extends StatelessWidget {
               ],
             ),
           ],
+        ),
+          ),
         ),
       ),
     );

@@ -657,7 +657,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 28),
-        children: [
+        children: groupSettingsTiles(context, [
           if (app.isApiKeyMode)
             Container(
               margin: const EdgeInsets.all(16),
@@ -965,7 +965,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => openAbout(context),
           ),
-        ],
+        ]),
       ),
     );
   }
@@ -979,18 +979,81 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
-          color: kMuted,
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 22, 16, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 12,
+            decoration: BoxDecoration(
+              gradient: kAccentGradient,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.3,
+              color: kMuted,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// Packs consecutive ListTile / SwitchListTile widgets into one rounded card
+/// with hairline dividers. Any other widget passes through untouched and ends
+/// the current card, so section headers and banners keep their own layout.
+List<Widget> groupSettingsTiles(BuildContext context, List<Widget> items) {
+  final out = <Widget>[];
+  final buffer = <Widget>[];
 
+  void flush() {
+    if (buffer.isEmpty) return;
+    final rows = <Widget>[];
+    for (var i = 0; i < buffer.length; i++) {
+      if (i > 0) rows.add(const Divider(height: 1, indent: 56));
+      rows.add(buffer[i]);
+    }
+    out.add(
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(kRadiusLg),
+          border: Border.all(color: kBorder),
+        ),
+        child: Material(
+          color: kSurface,
+          borderRadius: BorderRadius.circular(kRadiusLg),
+          clipBehavior: Clip.antiAlias,
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              listTileTheme: const ListTileThemeData(
+                iconColor: kAccentSoft,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+            child: Column(children: List<Widget>.of(rows)),
+          ),
+        ),
+      ),
+    );
+    buffer.clear();
+  }
+
+  for (final w in items) {
+    if (w is ListTile || w is SwitchListTile) {
+      buffer.add(w);
+    } else {
+      flush();
+      out.add(w);
+    }
+  }
+  flush();
+  return out;
+}

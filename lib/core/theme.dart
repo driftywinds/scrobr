@@ -104,6 +104,15 @@ ThemeData buildTheme() {
     ),
     dividerColor: kBorderStrong,
     dividerTheme: const DividerThemeData(color: kBorder, thickness: 1, space: 1),
+    tabBarTheme: const TabBarThemeData(
+      labelColor: Colors.white,
+      unselectedLabelColor: kMuted,
+      indicatorColor: kAccent,
+      indicatorSize: TabBarIndicatorSize.label,
+      dividerColor: kBorder,
+      labelStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+      unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+    ),
     listTileTheme: const ListTileThemeData(
       iconColor: kMuted,
       contentPadding: EdgeInsets.symmetric(horizontal: 16),

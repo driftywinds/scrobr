@@ -399,11 +399,16 @@ class _AdminScreenState extends State<AdminScreen>
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
           itemCount: users.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final user = users[index];
             final id = user.i('id');
             return ListTile(
+              tileColor: kSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadius),
+                side: const BorderSide(color: kBorder),
+              ),
               leading: UserAvatar(
                 url: ScrobScope.of(context).imageUrl(user.s('avatar_url')),
                 name: user.s('username'),
@@ -499,10 +504,7 @@ class _AdminScreenState extends State<AdminScreen>
           children: [
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: kSurface,
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: panelDecoration(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -719,10 +721,7 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
           decoration: const InputDecoration(labelText: 'MDBList API key'),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Radarr / Sonarr requests',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        const SectionHeader(title: 'Radarr / Sonarr requests'),
         const SizedBox(height: 8),
         TextField(
           controller: _radarrUrl,

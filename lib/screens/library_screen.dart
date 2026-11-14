@@ -156,18 +156,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ),
           if (_filters.count > 0 || _filters.sort != 'created_at')
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
+              decoration: BoxDecoration(
+                color: kAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kAccent.withValues(alpha: 0.3)),
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.filter_alt_outlined, size: 14, color: kMuted),
-                  const SizedBox(width: 5),
+                  const Icon(Icons.filter_alt_rounded, size: 15, color: kAccentSoft),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _filters.summary,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11, color: kMuted),
+                      style: const TextStyle(fontSize: 12, color: kBody),
                     ),
                   ),
                   TextButton(
@@ -175,7 +181,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       setState(() => _filters = const _Filters());
                       _load(reset: true);
                     },
-                    child: const Text('Clear', style: TextStyle(fontSize: 11)),
+                    child: const Text('Clear', style: TextStyle(fontSize: 12)),
                   ),
                 ],
               ),
@@ -193,7 +199,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _buildBody() {
     if (_items.isEmpty && _loading) {
-      return const LoadingView(label: 'Loading your library');
+      return const PosterGridSkeleton();
     }
     if (_items.isEmpty && _error != null) {
       return ListView(
