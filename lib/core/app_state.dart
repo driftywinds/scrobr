@@ -243,10 +243,15 @@ class AppState extends ChangeNotifier {
     return path;
   }
 
-  /// Headers for image requests to our own proxy (avatars are not public
-  /// static assets and need the session). Never sent to third-party hosts.
+  /// Headers for avatar image requests to our own proxy. Media artwork is
+  /// public/static and the proxy may 302 to TMDB, so never attach the session
+  /// to those requests.
   Map<String, String>? imageHeaders(String? url) {
-    if (url == null || !url.startsWith(proxyUrl)) return null;
+    if (url == null ||
+        !url.startsWith(proxyUrl) ||
+        !url.contains('/profile/avatar/')) {
+      return null;
+    }
     return {
       if (token != null) 'Authorization': 'Bearer $token',
       if (apiKey != null) 'X-Api-Key': apiKey!,
