@@ -21,8 +21,12 @@ $env:TEMP='W:\repos\scrobbler\.tmp\temp'; $env:TMP=$env:TEMP
 $env:ANDROID_HOME='W:\repos\scrobbler\.tmp\android-sdk'
 $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
 $env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot'
+$env:GRADLE_USER_HOME='W:\repos\scrobbler\.tmp\gradle'
 .tmp\flutter\bin\flutter.bat <command>
 ```
+
+`GRADLE_USER_HOME` is required: otherwise Gradle writes to
+`C:\Users\<user>\.gradle`, which this sandbox cannot create.
 
 Flutter 3.50 moved Material out of the framework: import
 `package:material_ui/material_ui.dart`, not `package:flutter/material.dart`.
