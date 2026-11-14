@@ -6,6 +6,7 @@ import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
+import '../widgets/common.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -477,9 +478,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                        SegmentedButton<bool>(showSelectedIcon: false, 
-                          
-                          segments: const [
+                        SegmentedTabs<bool>(segments: const [
                             ButtonSegment(value: false, label: Text('Password')),
                             ButtonSegment(value: true, label: Text('API key')),
                           ],

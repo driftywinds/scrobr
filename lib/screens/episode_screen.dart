@@ -165,9 +165,7 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  child: ActionGrid(
                     children: [
                       _EpisodeAction(
                         icon: watched

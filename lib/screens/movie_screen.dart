@@ -235,9 +235,7 @@ class _MovieBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            child: ActionGrid(
               children: [
                 _ActionPill(
                   icon: watched ? Icons.check_circle : Icons.check_circle_outline,

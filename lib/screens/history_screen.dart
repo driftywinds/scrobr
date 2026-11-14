@@ -156,8 +156,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: SegmentedButton<String>(showSelectedIcon: false, 
-              segments: const [
+            child: SegmentedTabs<String>(segments: const [
                 ButtonSegment(value: '', label: Text('All')),
                 ButtonSegment(value: 'movie', label: Text('Movies')),
                 ButtonSegment(value: 'episode', label: Text('Episodes')),

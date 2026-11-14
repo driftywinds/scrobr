@@ -160,8 +160,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SegmentedButton<String>(showSelectedIcon: false, 
-              segments: const [
+            child: SegmentedTabs<String>(segments: const [
                 ButtonSegment(value: 'movie', label: Text('Movies')),
                 ButtonSegment(value: 'series', label: Text('Shows')),
               ],

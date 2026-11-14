@@ -138,8 +138,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
-            child: SegmentedButton<String>(showSelectedIcon: false, 
-              segments: const [
+            child: SegmentedTabs<String>(segments: const [
                 ButtonSegment(value: 'movie', label: Text('Movies')),
                 ButtonSegment(value: 'series', label: Text('Shows')),
               ],

@@ -704,8 +704,9 @@ class DashboardSkeleton extends StatelessWidget {
 }
 
 
-/// Pill-shaped action button used on detail pages (watched, rate, add to list…).
-/// [active] fills it with the accent colour so state reads at a glance.
+/// Action button used on detail pages (watched, rate, add to list…). It fills
+/// whatever width it is given, so place it inside [ActionGrid].
+/// [active] tints it with the accent colour so state reads at a glance.
 class ActionPill extends StatelessWidget {
   const ActionPill({
     super.key,
@@ -723,31 +724,156 @@ class ActionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: active ? kAccent.withValues(alpha: 0.18) : kSurface,
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: active ? kAccent.withValues(alpha: 0.65) : kBorderStrong,
-        ),
-      ),
+      color: active ? kAccent.withValues(alpha: 0.16) : kSurface,
+      borderRadius: BorderRadius.circular(kRadius),
       child: InkWell(
-        customBorder: const StadiumBorder(),
+        borderRadius: BorderRadius.circular(kRadius),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+        child: Container(
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kRadius),
+            border: Border.all(
+              color: active ? kAccent.withValues(alpha: 0.6) : kBorder,
+            ),
+          ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: active ? kAccentSoft : kMuted),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: active ? Colors.white : kBody,
+              Icon(icon, size: 18, color: active ? kAccentSoft : kMuted),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: active ? Colors.white : kBody,
+                  ),
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lays actions out in an even grid (equal widths and heights). A trailing
+/// odd item spans the full row so nothing looks orphaned.
+class ActionGrid extends StatelessWidget {
+  const ActionGrid({super.key, required this.children, this.columns = 2});
+
+  final List<Widget> children;
+  final int columns;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i += columns) {
+      final chunk = children.skip(i).take(columns).toList();
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
+      rows.add(
+        Row(
+          children: [
+            for (var k = 0; k < chunk.length; k++) ...[
+              if (k > 0) const SizedBox(width: 8),
+              Expanded(child: chunk[k]),
+            ],
+          ],
+        ),
+      );
+    }
+    return Column(children: rows);
+  }
+}
+
+/// Full-width segmented control. Segments share the width equally and labels
+/// shrink to fit, so it never overflows or hugs the left edge.
+/// API-compatible with the bits of [SegmentedButton] this app uses.
+class SegmentedTabs<T> extends StatelessWidget {
+  const SegmentedTabs({
+    super.key,
+    required this.segments,
+    required this.selected,
+    required this.onSelectionChanged,
+  });
+
+  final List<ButtonSegment<T>> segments;
+  final Set<T> selected;
+  final ValueChanged<Set<T>> onSelectionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorder),
+      ),
+      child: Row(
+        children: [
+          for (final seg in segments)
+            Expanded(
+              child: _SegmentCell(
+                active: selected.contains(seg.value),
+                onTap: () => onSelectionChanged({seg.value}),
+                icon: seg.icon,
+                label: seg.label,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentCell extends StatelessWidget {
+  const _SegmentCell({
+    required this.active,
+    required this.onTap,
+    this.icon,
+    this.label,
+  });
+
+  final bool active;
+  final VoidCallback onTap;
+  final Widget? icon;
+  final Widget? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: active ? kAccent : Colors.transparent,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(11),
+        onTap: onTap,
+        child: Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: DefaultTextStyle(
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: active ? Colors.white : kMuted,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[icon!, const SizedBox(width: 6)],
+                  if (label != null) label!,
+                ],
+              ),
+            ),
           ),
         ),
       ),

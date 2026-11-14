@@ -55,14 +55,11 @@ class _StatsScreenState extends State<StatsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SegmentedButton<String>(showSelectedIcon: false, 
-                segments: const [
+            child: SegmentedTabs<String>(segments: const [
                   ButtonSegment(value: 'all', label: Text('All time')),
-                  ButtonSegment(value: 'year', label: Text('This year')),
-                  ButtonSegment(value: 'month', label: Text('This month')),
-                  ButtonSegment(value: 'week', label: Text('Last 7 days')),
+                  ButtonSegment(value: 'year', label: Text('Year')),
+                  ButtonSegment(value: 'month', label: Text('Month')),
+                  ButtonSegment(value: 'week', label: Text('7 days')),
                 ],
                 selected: {_range},
                 onSelectionChanged: (value) {
@@ -70,7 +67,6 @@ class _StatsScreenState extends State<StatsScreen> {
                   _reload();
                 },
               ),
-            ),
           ),
           Expanded(
             child: FutureBuilder<Map<String, dynamic>>(
@@ -107,6 +103,31 @@ class _StatsBody extends StatelessWidget {
         'release_date': item.s('release_date'),
         'poster_path': item.s('poster_path'),
       };
+
+  /// Long histories collapse to one bar per year so the chart stays readable;
+  /// shorter ranges show one bar per month.
+  Widget _activityChart(List<Map<String, dynamic>> activity) {
+    double count(Map<String, dynamic> e) =>
+        (e.i('movies') ?? 0) + (e.i('episodes') ?? 0) + 0.0;
+    if (activity.length > 18) {
+      final byYear = <String, double>{};
+      for (final e in activity) {
+        final month = e.s('month') ?? '';
+        if (month.length < 4) continue;
+        final year = month.substring(0, 4);
+        byYear[year] = (byYear[year] ?? 0) + count(e);
+      }
+      final years = byYear.keys.toList()..sort();
+      return _BarChart(
+        values: [for (final y in years) byYear[y]!],
+        labels: [for (final y in years) y.length == 4 ? "'${y.substring(2)}" : y],
+      );
+    }
+    return _BarChart(
+      values: activity.map(count).toList(),
+      labels: activity.map((e) => fmtMonthShort(e.s('month'))).toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,26 +177,20 @@ class _StatsBody extends StatelessWidget {
         ),
         if (activity.isNotEmpty)
           _ChartSection(
-            title: 'Activity',
-            child: _BarChart(
-              values: activity
-                  .map((e) =>
-                      (e.i('movies') ?? 0) + (e.i('episodes') ?? 0) + 0.0)
-                  .toList(),
-              labels: activity
-                  .map((e) => fmtMonthShort(e.s('month')))
-                  .toList(),
-              maxLabels: 8,
-            ),
+            title: activity.length > 18 ? 'Activity by year' : 'Activity',
+            child: _activityChart(activity),
           ),
         if (ratings.isNotEmpty)
           _ChartSection(
             title: 'Ratings',
             child: _BarChart(
               values: ratings.map((e) => (e.i('count') ?? 0) + 0.0).toList(),
-              labels: ratings
-                  .map((e) => (e.d('rating') ?? 0).toStringAsFixed(0))
-                  .toList(),
+              labels: ratings.map((e) {
+                final r = e.d('rating') ?? 0;
+                return r == r.roundToDouble()
+                    ? r.toStringAsFixed(0)
+                    : r.toStringAsFixed(1);
+              }).toList(),
               color: kAmber,
             ),
           ),
@@ -234,8 +249,8 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 104,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      width: (MediaQuery.sizeOf(context).width - 48) / 3,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: kSurface,
         borderRadius: BorderRadius.circular(12),
@@ -304,27 +319,50 @@ class _BarChart extends StatelessWidget {
   final Color color;
   final int maxLabels;
 
+  static String _fmt(double v) {
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
+    return v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final showValues = values.length <= 14;
     final step = maxLabels > 0 && values.length > maxLabels
         ? (values.length / maxLabels).ceil()
         : 1;
+    final gap = values.length > 14 ? 1.0 : 3.0;
     return SizedBox(
-      height: 120,
+      height: 150,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: List.generate(values.length, (i) {
           final ratio = maxValue <= 0 ? 0.0 : values[i] / maxValue;
+          final isPeak = values[i] == maxValue && maxValue > 0;
           final showLabel = step <= 1 || i % step == 0 || i == values.length - 1;
           final label = showLabel ? labels[i] : '';
           return Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1),
+              padding: EdgeInsets.symmetric(horizontal: gap),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  if (showValues)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          values[i] > 0 ? _fmt(values[i]) : '',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: isPeak ? Colors.white : kMuted,
+                          ),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: Align(
                       alignment: Alignment.bottomCenter,
@@ -332,21 +370,33 @@ class _BarChart extends StatelessWidget {
                         heightFactor: ratio == 0 ? 0.01 : ratio,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.75),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                color,
+                                color.withValues(alpha: 0.45),
+                              ],
+                            ),
                             borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(2),
+                              top: Radius.circular(4),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
-                    style: const TextStyle(fontSize: 7, color: kMuted),
+                  const SizedBox(height: 5),
+                  SizedBox(
+                    height: 14,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        style: const TextStyle(fontSize: 10, color: kMuted),
+                      ),
+                    ),
                   ),
                 ],
               ),

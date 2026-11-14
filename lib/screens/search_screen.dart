@@ -161,10 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SegmentedButton<String>(showSelectedIcon: false, 
-                segments: const [
+            child: SegmentedTabs<String>(segments: const [
                   ButtonSegment(value: 'movie', label: Text('Movies')),
                   ButtonSegment(value: 'series', label: Text('Shows')),
                   ButtonSegment(value: 'person', label: Text('People')),
@@ -173,7 +170,6 @@ class _SearchScreenState extends State<SearchScreen> {
                 selected: {_type},
                 onSelectionChanged: (value) => _setType(value.first),
               ),
-            ),
           ),
           Expanded(child: _buildResults()),
         ],

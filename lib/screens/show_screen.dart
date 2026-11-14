@@ -303,9 +303,7 @@ class _ShowBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            child: ActionGrid(
               children: [
                 _ShowAction(
                   icon: Icons.done_all_rounded,
