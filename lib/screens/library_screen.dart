@@ -125,6 +125,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         title: const Text('Library'),
         actions: [
           IconButton(
+            tooltip: 'Explore',
+            onPressed: () => openExplore(context, type: _type),
+            icon: const Icon(Icons.explore_outlined),
+          ),
+          IconButton(
             onPressed: () => openSearch(context),
             icon: const Icon(Icons.search_rounded),
           ),

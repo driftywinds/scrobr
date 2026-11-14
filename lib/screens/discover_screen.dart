@@ -92,6 +92,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         title: const Text('Discover'),
         actions: [
           IconButton(
+            tooltip: 'Explore',
+            onPressed: () => openExplore(context, type: _type),
+            icon: const Icon(Icons.grid_view_rounded),
+          ),
+          IconButton(
             tooltip: 'Pick something for me',
             onPressed: _pick,
             icon: const Icon(Icons.casino_outlined),

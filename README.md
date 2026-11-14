@@ -15,6 +15,8 @@ and the main browsing, tracking, social and settings flows of the web UI.
   added and trending rows.
 - Discover: trending, now playing / on air, upcoming / new episodes, top rated,
   for you, hidden gems and streaming rows for movies and shows.
+- Explore screen for movies/shows: popular, top rated and trending categories
+  with genre, year, rating, watch-state and list filters.
 - Library for movies and shows with sort, watched/rating/list/year/genre
   filters, saved filter presets and infinite scrolling.
 - Search across TMDB movies, shows and people, plus Scrob user search.

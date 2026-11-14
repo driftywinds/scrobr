@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../screens/browse_screen.dart';
 import '../screens/calendar_screen.dart';
 import '../screens/episode_screen.dart';
+import '../screens/explore_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/list_detail_screen.dart';
 import '../screens/lists_screen.dart';
@@ -97,6 +98,9 @@ void openStudio(
 
 void openSearch(BuildContext context) =>
     pushScreen(context, const SearchScreen());
+
+void openExplore(BuildContext context, {String type = 'movie'}) =>
+    pushScreen(context, ExploreScreen(initialType: type));
 
 void openSettings(BuildContext context) =>
     pushScreen(context, const SettingsScreen());
