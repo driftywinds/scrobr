@@ -1,4 +1,9 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_state.dart';
@@ -20,6 +25,8 @@ class _AdminScreenState extends State<AdminScreen>
   Future<Map<String, dynamic>>? _settings;
   Future<List<Map<String, dynamic>>>? _users;
   Future<Map<String, dynamic>>? _cache;
+  bool _backingUp = false;
+  bool _restoring = false;
 
   @override
   void didChangeDependencies() {
@@ -138,6 +145,91 @@ class _AdminScreenState extends State<AdminScreen>
         );
       },
     );
+  }
+
+  Future<void> _backupDatabase() async {
+    setState(() => _backingUp = true);
+    try {
+      final app = ScrobScope.of(context);
+      final bytes = await app.client.getBytes('/admin/backup');
+      final dir = await getTemporaryDirectory();
+      final stamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(RegExp(r'[:.]'), '-');
+      final file = File('${dir.path}/scrob_backup_$stamp.bak');
+      await file.writeAsBytes(bytes, flush: true);
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/octet-stream')],
+          subject: 'Scrob database backup',
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not back up database: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+    }
+  }
+
+  Future<void> _restoreDatabase() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore database?'),
+        content: const Text(
+          'This replaces all server data with the selected .bak backup. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Choose file'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['bak'],
+    );
+    if (picked == null) return;
+    setState(() => _restoring = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final response = asMap(await ScrobScope.of(context).client.postMultipart(
+        '/admin/restore',
+        field: 'file',
+        bytes: bytes,
+        filename: picked.name.isEmpty ? 'scrob-backup.bak' : picked.name,
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.s('status') == 'restored'
+                ? 'Database restored'
+                : (response.s('message') ?? 'Restore finished')),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not restore database: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _restoring = false);
+    }
   }
 
   Future<void> _createUser() async {
@@ -466,6 +558,32 @@ class _AdminScreenState extends State<AdminScreen>
                 }
               },
               child: const Text('Heal metadata'),
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: _backingUp ? null : _backupDatabase,
+              icon: _backingUp
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_rounded, size: 18),
+              label: const Text('Download database backup'),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: _restoring ? null : _restoreDatabase,
+              icon: _restoring
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file_rounded, size: 18),
+              label: const Text('Restore database backup'),
             ),
           ],
         );

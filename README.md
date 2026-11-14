@@ -37,8 +37,8 @@ and the main browsing, tracking, social and settings flows of the web UI.
   schedules, push/sync controls) and About.
 - Settings: preferences, API-key regeneration, password/email/2FA, connected
   apps, native ZIP data export/import, manage-on-web links for
-  providers/integrations and an admin panel for settings, users, requests and
-  maintenance.
+  providers/integrations and an admin panel for settings, users, requests,
+  maintenance and database backup/restore.
 - Release APK workflow for manual dispatch or `v*` tags.
 
 ## Run
