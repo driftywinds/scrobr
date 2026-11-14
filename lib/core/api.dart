@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class ApiException implements Exception {
   ApiException(this.status, this.message, [this.path = '']);
@@ -123,11 +124,19 @@ class ApiClient {
     required Uint8List bytes,
     required String filename,
     Map<String, String> fields = const {},
+    String? mimeType,
   }) async {
     final request = http.MultipartRequest('POST', _uri(path))
       ..headers.addAll(_headers)
       ..fields.addAll(fields)
-      ..files.add(http.MultipartFile.fromBytes(field, bytes, filename: filename));
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          field,
+          bytes,
+          filename: filename,
+          contentType: mimeType == null ? null : MediaType.parse(mimeType),
+        ),
+      );
 
     final streamed = await _http.send(request);
     final response = await http.Response.fromStream(streamed);

@@ -16,7 +16,7 @@ Flutter client over `/api/proxy`; it does not embed the web UI.
 | `/next-up` | Native, hidden Next Up toggle |
 | `/calendar` | Native day range |
 | `/lists`, `/list/{id}` | Native CRUD, add/remove, reorder, privacy |
-| `/profile`, `/profile/{id}` | Native stats, follow, top-rated/recent “see all”, language/genre profile fields |
+| `/profile`, `/profile/{id}` | Native stats, follow, avatar upload/removal, top-rated/recent “see all”, language/genre profile fields |
 | `/stats` | Native watch time, activity, ratings, weekdays, genres |
 | `/progress`, `/dropped` | Native |
 | movie/episode/show/season/person/network/studio/collection pages | Native detail, cast, recommendations, comments, Trakt comments, ratings, watch state, lists, requests |

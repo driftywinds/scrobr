@@ -75,6 +75,7 @@ void main() {
       bytes: Uint8List.fromList([1, 2, 3]),
       filename: 'export.zip',
       fields: const {'watched': 'true'},
+      mimeType: 'image/png',
     );
 
     expect(seen.method, 'POST');
@@ -83,5 +84,6 @@ void main() {
     expect(seen.headers['X-Api-Key'], ApiClient.proxyGateKey);
     expect(seen.body, contains('name="watched"'));
     expect(seen.body, contains('export.zip'));
+    expect(seen.body, contains('content-type: image/png'));
   });
 }

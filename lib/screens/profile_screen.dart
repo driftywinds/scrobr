@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
@@ -66,10 +67,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onSelected: (value) {
               if (value == 'logout') _logout();
               if (value == 'edit' && isOwn) _edit();
+              if (value == 'avatar' && isOwn) _changeAvatar();
+              if (value == 'removeAvatar' && isOwn) _removeAvatar();
             },
             itemBuilder: (_) => [
-              if (isOwn)
+              if (isOwn) ...[
                 const PopupMenuItem(value: 'edit', child: Text('Edit profile')),
+                const PopupMenuItem(
+                  value: 'avatar',
+                  child: Text('Change avatar'),
+                ),
+                const PopupMenuItem(
+                  value: 'removeAvatar',
+                  child: Text('Remove avatar'),
+                ),
+              ],
               const PopupMenuItem(value: 'logout', child: Text('Sign out')),
             ],
           ),
@@ -122,6 +134,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok == true) await app.logout();
+  }
+
+  String? _avatarMime(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return null;
+  }
+
+  Future<void> _changeAvatar() async {
+    final picked = await FilePicker.pickFile(type: FileType.image);
+    if (picked == null) return;
+    final mime = _avatarMime(picked.name);
+    if (mime == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Use a JPEG, PNG or WebP image')),
+        );
+      }
+      return;
+    }
+    final app = ScrobScope.of(context);
+    try {
+      final bytes = await picked.readAsBytes();
+      await app.client.postMultipart(
+        '/profile/me/avatar',
+        field: 'file',
+        bytes: bytes,
+        filename: picked.name.isEmpty ? 'avatar.jpg' : picked.name,
+        mimeType: mime,
+      );
+      await app.refresh();
+      if (!mounted) return;
+      _reload();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avatar updated')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update avatar: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeAvatar() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove avatar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final app = ScrobScope.of(context);
+    try {
+      await app.delete('/profile/me/avatar');
+      await app.refresh();
+      if (!mounted) return;
+      _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not remove avatar: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _edit() async {
