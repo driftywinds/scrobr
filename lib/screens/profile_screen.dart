@@ -445,41 +445,38 @@ class _ProfileBody extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          child: Row(
             children: [
               if (isOwn)
-                FilledButton.tonalIcon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit profile'),
+                Expanded(
+                  child: _ProfileAction(
+                    onPressed: onEdit,
+                    label: 'Edit profile',
+                  ),
                 ),
               if (!isOwn)
-                FilledButton.tonalIcon(
-                  onPressed: () => _follow(context),
-                  icon: Icon(
-                    profile.b('is_following')
-                        ? Icons.person_remove_outlined
-                        : Icons.person_add_alt_1_outlined,
-                    size: 16,
-                  ),
-                  label: Text(
-                    profile.b('is_following') ? 'Unfollow' : 'Follow',
+                Expanded(
+                  child: _ProfileAction(
+                    onPressed: () => _follow(context),
+                    label: profile.b('is_following') ? 'Unfollow' : 'Follow',
                   ),
                 ),
-              FilledButton.tonalIcon(
-                onPressed: () {
-                  final id = profile.i('id');
-                  if (id != null) openStats(context, id);
-                },
-                icon: const Icon(Icons.insights_rounded, size: 16),
-                label: const Text('Stats'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ProfileAction(
+                  onPressed: () {
+                    final id = profile.i('id');
+                    if (id != null) openStats(context, id);
+                  },
+                  label: 'Stats',
+                ),
               ),
-              FilledButton.tonalIcon(
-                onPressed: () => openLists(context),
-                icon: const Icon(Icons.list_alt_rounded, size: 16),
-                label: const Text('Lists'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ProfileAction(
+                  onPressed: () => openLists(context),
+                  label: 'Lists',
+                ),
               ),
             ],
           ),
@@ -620,6 +617,30 @@ class _Stat extends StatelessWidget {
             style: const TextStyle(fontSize: 9, color: kMuted),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileAction extends StatelessWidget {
+  const _ProfileAction({required this.onPressed, required this.label});
+
+  final VoidCallback onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.tonal(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        visualDensity: VisualDensity.compact,
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

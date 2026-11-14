@@ -197,16 +197,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           BrowseScreen.trending(type: _type),
                         ),
                       ),
-                      if (_type == 'movie')
-                        _TrailerRow(items: data.trailers),
-                      MediaRow(
-                        title: _type == 'movie' ? 'Now Playing' : 'On Air This Week',
-                        items: data.nowPlaying,
-                      ),
-                      MediaRow(
-                        title: _type == 'movie' ? 'Upcoming' : 'New Episodes',
-                        items: data.upcoming,
-                      ),
                       MediaRow(
                         title: 'Top Rated',
                         items: data.topRated,
@@ -214,6 +204,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           context,
                           BrowseScreen.topRated(type: _type),
                         ),
+                      ),
+                      MediaRow(
+                        title: _type == 'movie' ? 'Now Playing' : 'On Air This Week',
+                        items: data.nowPlaying,
+                      ),
+                      MediaRow(
+                        title: _type == 'movie' ? 'Upcoming' : 'New Episodes',
+                        items: data.upcoming,
                       ),
                       MediaRow(title: 'For You', items: data.forYou),
                       MediaRow(
@@ -224,6 +222,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         title: 'On Your Services',
                         items: data.streaming,
                       ),
+                      if (_type == 'movie')
+                        _TrailerRow(items: data.trailers),
                       if (data.trending.isEmpty &&
                           data.nowPlaying.isEmpty &&
                           data.upcoming.isEmpty &&
