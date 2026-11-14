@@ -130,6 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final name = TextEditingController(text: profile.s('display_name'));
     final bio = TextEditingController(text: profile.s('bio'));
     final country = TextEditingController(text: profile.s('country'));
+    final metadataLanguage =
+        TextEditingController(text: profile.s('metadata_language'));
+    final contentLanguage =
+        TextEditingController(text: profile.s('content_language'));
     var privacy = profile.s('privacy_level') ?? 'private';
     final ok = await showDialog<bool>(
       context: context,
@@ -154,6 +158,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 TextField(
                   controller: country,
                   decoration: const InputDecoration(labelText: 'Country'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: metadataLanguage,
+                  decoration: const InputDecoration(
+                    labelText: 'Metadata language',
+                    hintText: 'e.g. en-US',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: contentLanguage,
+                  decoration: const InputDecoration(
+                    labelText: 'Content language',
+                    hintText: 'e.g. en',
+                  ),
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -190,6 +210,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'display_name': name.text.trim(),
         'bio': bio.text.trim().isEmpty ? null : bio.text.trim(),
         'country': country.text.trim().isEmpty ? null : country.text.trim(),
+        'metadata_language': metadataLanguage.text.trim().isEmpty
+            ? null
+            : metadataLanguage.text.trim(),
+        'content_language': contentLanguage.text.trim().isEmpty
+            ? null
+            : contentLanguage.text.trim(),
         'privacy_level': privacy,
       });
       _reload();
@@ -197,6 +223,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     name.dispose();
     bio.dispose();
     country.dispose();
+    metadataLanguage.dispose();
+    contentLanguage.dispose();
   }
 }
 

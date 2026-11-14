@@ -72,6 +72,11 @@ class _AdminScreenState extends State<AdminScreen>
         title: const Text('Admin'),
         actions: [
           IconButton(
+            tooltip: 'Create user',
+            onPressed: _createUser,
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+          ),
+          IconButton(
             tooltip: 'Open web admin',
             onPressed: () async {
               final app = ScrobScope.of(context);
@@ -135,6 +140,156 @@ class _AdminScreenState extends State<AdminScreen>
     );
   }
 
+  Future<void> _createUser() async {
+    final username = TextEditingController();
+    final email = TextEditingController();
+    final password = TextEditingController();
+    var isAdmin = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Create user'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: username,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: password,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Administrator'),
+                  value: isAdmin,
+                  onChanged: (v) => setState(() => isAdmin = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok == true) {
+      try {
+        await ScrobScope.of(context).post('/admin/users', {
+          'username': username.text.trim(),
+          'email': email.text.trim(),
+          'password': password.text,
+          'is_admin': isAdmin,
+        });
+        _reload();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create user: $e')),
+          );
+        }
+      }
+    }
+    username.dispose();
+    email.dispose();
+    password.dispose();
+  }
+
+  Future<void> _resetPassword(Map<String, dynamic> user) async {
+    final id = user.i('id');
+    if (id == null) return;
+    final password = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reset password for ${user.s('username') ?? ''}'),
+        content: TextField(
+          controller: password,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'New password'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      try {
+        await ScrobScope.of(context)
+            .post('/admin/users/$id/reset-password', {'password': password.text});
+        _reload();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not reset password: $e')),
+          );
+        }
+      }
+    }
+    password.dispose();
+  }
+
+  Future<void> _disable2fa(Map<String, dynamic> user) async {
+    final id = user.i('id');
+    if (id == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Disable 2FA?'),
+        content: Text(user.s('username') ?? ''),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Disable'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ScrobScope.of(context)
+          .post('/admin/users/$id/disable-2fa');
+      _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not disable 2FA: $e')),
+        );
+      }
+    }
+  }
+
   Widget _usersTab() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _users,
@@ -177,6 +332,12 @@ class _AdminScreenState extends State<AdminScreen>
                   try {
                     if (value == 'admin') {
                       await app.patch('/admin/users/$id/toggle-admin');
+                    } else if (value == 'reset') {
+                      await _resetPassword(user);
+                      return;
+                    } else if (value == 'disable2fa') {
+                      await _disable2fa(user);
+                      return;
                     } else if (value == 'delete') {
                       final ok = await showDialog<bool>(
                         context: context,
@@ -213,6 +374,15 @@ class _AdminScreenState extends State<AdminScreen>
                     child: Text(
                       user.b('is_admin') ? 'Remove admin' : 'Make admin',
                     ),
+                  ),
+                  if (user.b('totp_enabled'))
+                    const PopupMenuItem(
+                      value: 'disable2fa',
+                      child: Text('Disable 2FA'),
+                    ),
+                  const PopupMenuItem(
+                    value: 'reset',
+                    child: Text('Reset password'),
                   ),
                   const PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
