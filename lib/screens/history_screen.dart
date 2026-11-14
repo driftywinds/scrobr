@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/skeleton.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -78,7 +80,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _page += 1;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = describeError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -88,16 +90,47 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _load(reset: true);
   }
 
+  /// Removes the entry from the list immediately and only tells the server
+  /// once the "Undo" snackbar closes without being tapped, so a mis-tap never
+  /// costs a watch record.
   Future<void> _deleteEvent(int id) async {
+    final index = _events.indexWhere((e) => e.i('id') == id);
+    if (index < 0) return;
+    final app = ScrobScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final removed = _events[index];
+    setState(() => _events.removeAt(index));
+
+    messenger.hideCurrentSnackBar();
+    final reason = await messenger
+        .showSnackBar(
+          SnackBar(
+            content: const Text('Entry removed'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(label: 'Undo', onPressed: () {}),
+          ),
+        )
+        .closed;
+
+    if (reason == SnackBarClosedReason.action) {
+      if (!mounted) return;
+      setState(() {
+        final at = index > _events.length ? _events.length : index;
+        _events.insert(at, removed);
+      });
+      return;
+    }
     try {
-      await ScrobScope.of(context).delete('/history/event/$id');
-      _reload();
+      await app.delete('/history/event/$id');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete entry: $e')),
-        );
-      }
+      if (!mounted) return;
+      setState(() {
+        final at = index > _events.length ? _events.length : index;
+        _events.insert(at, removed);
+      });
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete entry: ${describeError(e)}')),
+      );
     }
   }
 
@@ -157,6 +190,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: SegmentedButton<String>(
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: '', label: Text('All')),
                 ButtonSegment(value: 'movie', label: Text('Movies')),
@@ -177,7 +211,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildList() {
     if (_events.isEmpty && _loading) {
-      return const LoadingView(label: 'Loading history');
+      return const SkeletonList();
     }
     if (_events.isEmpty && _error != null) {
       return ListView(
@@ -290,7 +324,14 @@ class _HistoryTile extends StatelessWidget {
     final time = event.s('watched_at') != null
         ? fmtDateTime(event.s('watched_at')).split(', ').last
         : '';
-    final source = event.s('source');
+    // "import" / "manual" describe nearly every row, so showing them is just
+    // noise. Only surface sources that tell you something (plex, jellyfin..).
+    final rawSource = event.s('source');
+    final source = rawSource != null &&
+            !const {'import', 'manual', 'scrob'}
+                .contains(rawSource.toLowerCase())
+        ? rawSource
+        : null;
     final progress = event.d('progress_percent');
 
     return InkWell(
@@ -315,7 +356,7 @@ class _HistoryTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -324,14 +365,14 @@ class _HistoryTile extends StatelessWidget {
                       episode,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, color: kMuted),
+                      style: const TextStyle(fontSize: 12.5, color: kMuted),
                     ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         time,
-                        style: const TextStyle(fontSize: 9, color: kMuted),
+                        style: const TextStyle(fontSize: 12, color: kMuted),
                       ),
                       if (source != null && source.isNotEmpty) ...[
                         const SizedBox(width: 6),
@@ -343,7 +384,7 @@ class _HistoryTile extends StatelessWidget {
                           child: Text(
                             '${progress.round()}%',
                             style: const TextStyle(
-                              fontSize: 9,
+                              fontSize: 12,
                               color: kMuted,
                             ),
                           ),

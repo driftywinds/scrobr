@@ -161,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final app = ScrobScope.of(context);
     try {
       final bytes = await picked.readAsBytes();
-      await app.client.postMultipart(
+      await app.postMultipart(
         '/profile/me/avatar',
         field: 'file',
         bytes: bytes,

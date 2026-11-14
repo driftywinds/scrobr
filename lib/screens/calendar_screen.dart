@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/skeleton.dart';
 import 'episode_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -67,11 +69,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView(label: 'Building your schedule');
+            return const SkeletonList(rows: 5);
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: describeError(snapshot.error!),
               onRetry: _reload,
             );
           }
@@ -104,7 +106,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Text(
                     'Next 21 days · ${entries.length} episodes',
-                    style: const TextStyle(fontSize: 11, color: kMuted),
+                    style: const TextStyle(fontSize: 13, color: kMuted),
                   ),
                 ),
                 ...dates.map((date) {
@@ -119,15 +121,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           parsed == null
                               ? date
                               : '${fmtDay(parsed)}${date == calendar.s('today') ? ' · Today' : ''}',
-                          style: const TextStyle(
-                            fontSize: 11,
+                          style: TextStyle(
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
-                            color: kMuted,
+                            color: date == calendar.s('today')
+                                ? kAccent
+                                : kMuted,
                           ),
                         ),
                       ),
-                      ...items.map((entry) => _CalendarEntry(entry: entry)),
+                      ..._groupByShow(items)
+                          .map((group) => _CalendarShowGroup(entries: group)),
                     ],
                   );
                 }),
@@ -140,19 +145,93 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 }
 
-class _CalendarEntry extends StatelessWidget {
-  const _CalendarEntry({required this.entry});
+/// Episodes of the same show on the same day (a weekly drop of 2-4 episodes)
+/// collapse into one poster with an episode list, instead of repeating the
+/// identical poster once per episode.
+List<List<Map<String, dynamic>>> _groupByShow(
+  List<Map<String, dynamic>> items,
+) {
+  final groups = <String, List<Map<String, dynamic>>>{};
+  for (final entry in items) {
+    final key = '${entry.i('show_tmdb_id') ?? entry.s('show_title') ?? ''}';
+    groups.putIfAbsent(key, () => []).add(entry);
+  }
+  return groups.values.toList();
+}
+
+class _CalendarShowGroup extends StatelessWidget {
+  const _CalendarShowGroup({required this.entries});
+
+  final List<Map<String, dynamic>> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
+    final first = entries.first;
+    final poster = app.imageUrl(first.s('poster_path'), size: 'w185');
+    final showTitle = first.s('show_title') ?? '';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 52,
+            height: 78,
+            child: Poster(url: poster, title: showTitle, radius: 7),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 2),
+                  child: Text(
+                    showTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                for (final entry in entries) _CalendarEpisodeRow(entry: entry),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarEpisodeRow extends StatelessWidget {
+  const _CalendarEpisodeRow({required this.entry});
 
   final Map<String, dynamic> entry;
 
   @override
   Widget build(BuildContext context) {
-    final app = ScrobScope.of(context);
-    final poster = app.imageUrl(entry.s('poster_path'), size: 'w185');
     final showId = entry.i('show_tmdb_id');
     final season = entry.i('season_number');
     final episode = entry.i('episode_number');
+    final name = entry.s('episode_name') ?? '';
+    final label = 'S${season ?? '?'}E${episode ?? '?'}'
+        '${name.isEmpty ? '' : ' · $name'}';
+
+    // Only states that carry information get an icon; "airing" is the default
+    // for everything on a calendar, so it gets nothing.
+    Widget? status;
+    if (entry.b('watched')) {
+      status = const Icon(Icons.check_circle_rounded, size: 16, color: kGreen);
+    } else if (entry.b('collected')) {
+      status = const Icon(Icons.download_done_rounded, size: 16, color: kMuted);
+    }
+
     return InkWell(
+      borderRadius: BorderRadius.circular(8),
       onTap: showId == null || season == null || episode == null
           ? null
           : () => pushScreen(
@@ -165,52 +244,18 @@ class _CalendarEntry extends StatelessWidget {
                 ),
               ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
-            SizedBox(
-              width: 46,
-              height: 69,
-              child: Poster(
-                url: poster,
-                title: entry.s('show_title'),
-                radius: 7,
-              ),
-            ),
-            const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.s('show_title') ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    'S${season ?? '?'}E${episode ?? '?'} · ${entry.s('episode_name') ?? ''}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10, color: kMuted),
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      if (entry.b('watched'))
-                        const TagChip(label: 'Watched')
-                      else if (entry.b('collected'))
-                        const TagChip(label: 'Collected')
-                      else
-                        const TagChip(label: 'Airing'),
-                    ],
-                  ),
-                ],
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: kMuted),
               ),
             ),
+            if (status != null) ...[const SizedBox(width: 8), status],
           ],
         ),
       ),

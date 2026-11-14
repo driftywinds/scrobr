@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
+import '../widgets/net_image.dart';
 import '../widgets/common.dart';
 
 class BrowseScreen extends StatefulWidget {
@@ -230,11 +231,10 @@ class _CollectionHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               child: AspectRatio(
                 aspectRatio: 16 / 7,
-                child: Image.network(
-                  backdrop,
-                  headers: ScrobScope.of(context).imageHeaders(backdrop),
+                child: NetImage(
+                  url: backdrop,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: kCard),
+                  error: Container(color: kCard),
                 ),
               ),
             ),

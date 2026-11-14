@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
+import '../widgets/net_image.dart';
 import '../widgets/common.dart';
 
 class StudioScreen extends StatefulWidget {
@@ -176,11 +177,10 @@ class _StudioHeader extends StatelessWidget {
             height: 80,
             child: logo == null
                 ? const Icon(Icons.apartment_rounded, color: kMuted, size: 42)
-                : Image.network(
-                    logo,
-                    headers: ScrobScope.of(context).imageHeaders(logo),
+                : NetImage(
+                    url: logo,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    error: const Icon(
                       Icons.apartment_rounded,
                       color: kMuted,
                       size: 42,

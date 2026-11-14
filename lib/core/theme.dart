@@ -78,6 +78,26 @@ ThemeData buildTheme() {
       backgroundColor: kSurface,
       surfaceTintColor: Colors.transparent,
     ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? kAccent
+              : Colors.transparent,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? Colors.white
+              : kMuted,
+        ),
+        side: const WidgetStatePropertyAll(
+          BorderSide(color: Color(0xFF3F3F46)),
+        ),
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+      ),
+    ),
     chipTheme: ChipThemeData(
       backgroundColor: kSurface,
       selectedColor: kAccent.withValues(alpha: 0.3),

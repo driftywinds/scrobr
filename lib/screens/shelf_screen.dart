@@ -283,6 +283,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: SegmentedButton<String>(
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: 'watched', label: Text('Watched')),
                 ButtonSegment(value: 'collection', label: Text('Collected')),

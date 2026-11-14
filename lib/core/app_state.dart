@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,6 +47,9 @@ class AppState extends ChangeNotifier {
       apiKey: apiKey,
     );
   }
+
+  /// Test hook: replaces the lazily created API client. Not for app code.
+  void debugUseClient(ApiClient value) => _client = value;
 
   static String normalizeOrigin(String value) {
     var s = value.trim();
@@ -250,10 +255,61 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Binary download that goes through the same 401 handling as [get].
+  Future<Uint8List> getBytes(String path, [Map<String, dynamic>? query]) async {
+    final result = await _guard(() => client.getBytes(path, query));
+    return result as Uint8List;
+  }
+
+  /// Multipart upload that goes through the same 401 handling as [post].
+  Future<dynamic> postMultipart(
+    String path, {
+    required String field,
+    required Uint8List bytes,
+    required String filename,
+    Map<String, String> fields = const {},
+    String? mimeType,
+  }) =>
+      _guard(
+        () => client.postMultipart(
+          path,
+          field: field,
+          bytes: bytes,
+          filename: filename,
+          fields: fields,
+          mimeType: mimeType,
+        ),
+      );
+
+  /// Best-effort GET for optional extras (recommendations, registration
+  /// status). Failures are swallowed on purpose; for primary content use
+  /// [getTracked] so the screen can tell the user something went wrong.
   Future<dynamic> tryGet(String path, [Map<String, dynamic>? query]) async {
     try {
       return await get(path, query);
     } catch (_) {
+      return null;
+    }
+  }
+
+  /// Like [tryGet] but records outages in [report], so a screen that loads
+  /// many sections in parallel can distinguish "nothing here" from "the
+  /// server is unreachable".
+  Future<dynamic> getTracked(
+    LoadReport report,
+    String path, [
+    Map<String, dynamic>? query,
+  ]) async {
+    report.attempts++;
+    try {
+      return await get(path, query);
+    } catch (e) {
+      // Client errors (403/404/422...) usually mean "this optional section
+      // doesn't apply to your account" (e.g. For You without a source), so
+      // they stay quiet. Only outages and server faults are reported.
+      final reportable =
+          e is! ApiException || e.isNetwork || e.isServerError;
+      if (reportable) report.errors.add(e);
       return null;
     }
   }
@@ -332,6 +388,24 @@ class AppState extends ChangeNotifier {
           : ApiClient.proxyGateKey,
     };
   }
+}
+
+/// Collects the outcome of a batch of parallel requests (see
+/// [AppState.getTracked]).
+class LoadReport {
+  int attempts = 0;
+  final List<Object> errors = [];
+
+  bool get hasErrors => errors.isNotEmpty;
+
+  /// Every request failed: show a full-screen error, not an empty dashboard.
+  bool get allFailed => attempts > 0 && errors.length >= attempts;
+
+  /// Some sections loaded, some didn't: show a retry banner.
+  bool get partial => hasErrors && !allFailed;
+
+  String get message =>
+      errors.isEmpty ? '' : describeError(errors.first);
 }
 
 class ScrobScope extends InheritedNotifier<AppState> {

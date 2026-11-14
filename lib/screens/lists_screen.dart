@@ -134,6 +134,7 @@ class _ListsScreenState extends State<ListsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: SegmentedButton<String>(
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: 'mine', label: Text('My lists')),
                 ButtonSegment(value: 'public', label: Text('Public')),

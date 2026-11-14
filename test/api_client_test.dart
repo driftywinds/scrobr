@@ -86,4 +86,96 @@ void main() {
     expect(seen.body, contains('export.zip'));
     expect(seen.body, contains('content-type: image/png'));
   });
+
+  test('transport failures become network ApiExceptions', () async {
+    final client = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      client: MockClient((_) async => throw http.ClientException('boom')),
+    );
+
+    await expectLater(
+      client.get('/history'),
+      throwsA(isA<ApiException>().having((e) => e.isNetwork, 'isNetwork', true)),
+    );
+    await expectLater(
+      client.getBytes('/export/data'),
+      throwsA(isA<ApiException>().having((e) => e.isNetwork, 'isNetwork', true)),
+    );
+  });
+
+  test('requests time out instead of hanging', () async {
+    final client = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      timeout: const Duration(milliseconds: 30),
+      client: MockClient((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      client.get('/slow'),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.isNetwork, 'isNetwork', true)
+            .having((e) => e.message, 'message', contains('too long')),
+      ),
+    );
+  });
+
+  test('FastAPI validation errors are flattened', () async {
+    final client = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      client: MockClient((_) async => http.Response(
+            jsonEncode({
+              'detail': [
+                {'msg': 'field required'},
+                {'msg': 'too short'},
+              ],
+            }),
+            422,
+          )),
+    );
+
+    await expectLater(
+      client.post('/x', {}),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 422)
+            .having((e) => e.message, 'message', 'field required\ntoo short'),
+      ),
+    );
+  });
+
+  test('string detail and plain-text bodies are surfaced', () async {
+    final withDetail = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      client: MockClient(
+        (_) async => http.Response(jsonEncode({'detail': 'no_sources'}), 400),
+      ),
+    );
+    await expectLater(
+      withDetail.get('/media/for-you'),
+      throwsA(isA<ApiException>().having((e) => e.message, 'm', 'no_sources')),
+    );
+
+    final plain = ApiClient(
+      baseUrl: 'https://example.test/api/proxy',
+      client: MockClient((_) async => http.Response('bad gateway', 502)),
+    );
+    await expectLater(
+      plain.get('/x'),
+      throwsA(isA<ApiException>().having((e) => e.isServerError, 'srv', true)),
+    );
+  });
+
+  test('describeError gives friendly text', () {
+    expect(
+      describeError(ApiException(401, 'x')),
+      contains('session has expired'),
+    );
+    expect(describeError(ApiException(503, 'x')), contains('503'));
+    expect(describeError(ApiException(0, 'Offline')), 'Offline');
+    expect(describeError(ApiException(404, 'Not found')), 'Not found');
+  });
 }

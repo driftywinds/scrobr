@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -13,8 +15,27 @@ class ApiException implements Exception {
 
   bool get isUnauthorized => status == 401;
 
+  /// No HTTP response at all: offline, DNS failure, TLS error or timeout.
+  bool get isNetwork => status == 0;
+
+  bool get isServerError => status >= 500;
+
   @override
   String toString() => 'HTTP $status: $message';
+}
+
+/// Turns any thrown object into a short sentence that is safe to show.
+String describeError(Object error) {
+  if (error is ApiException) {
+    if (error.isNetwork) return error.message;
+    if (error.isUnauthorized) return 'Your session has expired. Sign in again.';
+    if (error.isServerError) {
+      return 'The server had a problem (${error.status}). Try again shortly.';
+    }
+    return error.message;
+  }
+  if (error is TimeoutException) return 'The server took too long to respond.';
+  return '$error';
 }
 
 class ApiClient {
@@ -23,6 +44,8 @@ class ApiClient {
     this.token,
     this.apiKey,
     http.Client? client,
+    this.timeout = const Duration(seconds: 30),
+    this.transferTimeout = const Duration(minutes: 3),
   })  : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
         _http = client ?? http.Client();
 
@@ -35,6 +58,12 @@ class ApiClient {
   final String? token;
   final String? apiKey;
   final http.Client _http;
+
+  /// Applies to ordinary JSON calls.
+  final Duration timeout;
+
+  /// Applies to uploads and downloads (exports, backups, avatars).
+  final Duration transferTimeout;
 
   Map<String, String> get _headers => {
         'Accept': 'application/json',
@@ -97,25 +126,9 @@ class ApiClient {
   Future<Uint8List> getBytes(String path, [Map<String, dynamic>? query]) async {
     final request = http.Request('GET', _uri(path, query))
       ..headers.addAll(_headers);
-    final streamed = await _http.send(request);
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return response.bodyBytes;
-    }
-    var detail = response.body;
-    try {
-      final parsed = jsonDecode(response.body);
-      if (parsed is Map && parsed['detail'] != null) {
-        detail = '${parsed['detail']}';
-      }
-    } catch (_) {
-      // keep the raw body
-    }
-    throw ApiException(
-      response.statusCode,
-      detail.isEmpty ? (response.reasonPhrase ?? 'Request failed') : detail,
-      request.url.path,
-    );
+    final response = await _perform(request, transferTimeout);
+    if (_ok(response)) return response.bodyBytes;
+    throw _failure(response, request.url.path);
   }
 
   Future<dynamic> postMultipart(
@@ -137,36 +150,9 @@ class ApiClient {
           contentType: mimeType == null ? null : MediaType.parse(mimeType),
         ),
       );
-
-    final streamed = await _http.send(request);
-    final response = await http.Response.fromStream(streamed);
-    dynamic parsed;
-    if (response.body.isNotEmpty) {
-      try {
-        parsed = jsonDecode(response.body);
-      } catch (_) {
-        parsed = response.body;
-      }
-    }
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return parsed;
-    }
-    var detail = parsed;
-    if (parsed is Map && parsed['detail'] != null) {
-      detail = parsed['detail'];
-    }
-    if (detail is List) {
-      detail = detail
-          .map((e) => e is Map ? (e['msg'] ?? e.toString()) : '$e')
-          .join('\n');
-    }
-    throw ApiException(
-      response.statusCode,
-      detail == null || '$detail'.isEmpty
-          ? (response.reasonPhrase ?? 'Request failed')
-          : '$detail',
-      request.url.path,
-    );
+    final response = await _perform(request, transferTimeout);
+    if (_ok(response)) return _decode(response);
+    throw _failure(response, request.url.path);
   }
 
   Future<dynamic> _send(
@@ -190,40 +176,72 @@ class ApiClient {
       }
     }
 
-    http.Response response;
+    final response = await _perform(request, timeout);
+    if (_ok(response)) return _decode(response);
+    throw _failure(response, uri.path);
+  }
+
+  /// Sends [request] and buffers the response, mapping every transport-level
+  /// failure (offline, DNS, TLS, timeout) to a network [ApiException].
+  Future<http.Response> _perform(
+    http.BaseRequest request,
+    Duration limit,
+  ) async {
     try {
-      final streamed = await _http.send(request);
-      response = await http.Response.fromStream(streamed);
-    } catch (e) {
-      throw ApiException(0, 'Network error: $e', uri.path);
+      final streamed = await _http.send(request).timeout(limit);
+      return await http.Response.fromStream(streamed).timeout(limit);
+    } on TimeoutException {
+      throw ApiException(
+        0,
+        'The server took too long to respond.',
+        request.url.path,
+      );
+    } on SocketException {
+      throw ApiException(
+        0,
+        'Can\'t reach the server. Check your connection.',
+        request.url.path,
+      );
+    } on HandshakeException {
+      throw ApiException(
+        0,
+        'Secure connection to the server failed.',
+        request.url.path,
+      );
+    } on http.ClientException catch (e) {
+      throw ApiException(0, 'Network error: ${e.message}', request.url.path);
     }
+  }
 
-    dynamic parsed;
-    if (response.body.isNotEmpty) {
-      try {
-        parsed = jsonDecode(response.body);
-      } catch (_) {
-        parsed = response.body;
-      }
+  static bool _ok(http.Response response) =>
+      response.statusCode >= 200 && response.statusCode < 300;
+
+  static dynamic _decode(http.Response response) {
+    if (response.body.isEmpty) return null;
+    try {
+      return jsonDecode(response.body);
+    } catch (_) {
+      return response.body;
     }
+  }
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return parsed;
-    }
-
-    var detail = parsed;
-    if (parsed is Map && parsed['detail'] != null) {
-      detail = parsed['detail'];
+  /// Builds the exception for a non-2xx response. FastAPI reports either a
+  /// string `detail` or a list of validation errors.
+  static ApiException _failure(http.Response response, String path) {
+    var detail = _decode(response);
+    if (detail is Map && detail['detail'] != null) {
+      detail = detail['detail'];
     }
     if (detail is List) {
       detail = detail
           .map((e) => e is Map ? (e['msg'] ?? e.toString()) : '$e')
           .join('\n');
     }
-    throw ApiException(
+    final text = detail == null ? '' : '$detail';
+    return ApiException(
       response.statusCode,
-      detail == null || '$detail'.isEmpty ? response.reasonPhrase ?? 'Request failed' : '$detail',
-      uri.path,
+      text.isEmpty ? (response.reasonPhrase ?? 'Request failed') : text,
+      path,
     );
   }
 }
