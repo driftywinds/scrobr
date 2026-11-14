@@ -1,4 +1,4 @@
-package com.scrob.scrob
+package com.dw.scrobr
 
 import io.flutter.embedding.android.FlutterActivity
 

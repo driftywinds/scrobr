@@ -34,7 +34,7 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Scrob',
+            'Scrobr',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
@@ -56,7 +56,7 @@ class AboutScreen extends StatelessWidget {
           ),
           _AboutTile(
             icon: Icons.code_rounded,
-            title: 'Scrob source',
+            title: 'Scrob server source',
             subtitle: 'github.com/ellite/scrob',
             onTap: () => launchUrl(
               Uri.parse('https://github.com/ellite/scrob'),

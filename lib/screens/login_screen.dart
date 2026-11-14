@@ -286,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    'Scrob',
+                    'Scrobr',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 32,

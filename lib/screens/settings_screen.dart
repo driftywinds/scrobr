@@ -636,7 +636,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.info_outline_rounded),
-              title: const Text('Scrob for Android'),
+              title: const Text('Scrobr for Android'),
               subtitle: const Text('API-key session'),
               onTap: () => openAbout(context),
             ),
@@ -945,7 +945,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('Scrob for Android'),
+            title: const Text('Scrobr for Android'),
             subtitle: Text(app.server),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => openAbout(context),

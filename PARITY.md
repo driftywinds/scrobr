@@ -1,4 +1,4 @@
-# Scrob Android parity
+# Scrobr parity
 
 Target instance: `https://scrob.003274.xyz` (Scrob 2.38.0). The app is a native
 Flutter client over `/api/proxy`; it does not embed the web UI.

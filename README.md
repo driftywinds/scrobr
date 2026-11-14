@@ -1,6 +1,6 @@
-# Scrob for Android
+# Scrobr
 
-A native Flutter client for [Scrob](https://github.com/ellite/scrob) — the
+Scrobr is a native Flutter client for [Scrob](https://github.com/ellite/scrob) — the
 self-hosted media tracker (Letterboxd + Trakt for your own library).
 
 The app talks to the Scrob backend through the same `/api/proxy` surface the

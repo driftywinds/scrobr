@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
               errorBuilder: (_, __, ___) => const Icon(Icons.movie_filter),
             ),
             const SizedBox(width: 8),
-            const Text('Scrob'),
+            const Text('Scrobr'),
           ],
         ),
         actions: [

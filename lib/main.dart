@@ -22,7 +22,7 @@ class ScrobApp extends StatelessWidget {
     return ScrobScope(
       notifier: state,
       child: MaterialApp(
-        title: 'Scrob',
+        title: 'Scrobr',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         home: ListenableBuilder(
