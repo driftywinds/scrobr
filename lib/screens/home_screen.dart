@@ -185,6 +185,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 MediaRow(
                   title: 'Airing Today',
                   items: data.airingToday,
+                  onSeeAll: () => pushScreen(
+                    context,
+                    BrowseScreen.airingToday(),
+                  ),
                 ),
                 MediaRow(
                   title: 'Recently Added Movies',

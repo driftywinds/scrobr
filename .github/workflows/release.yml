@@ -84,7 +84,8 @@ jobs:
           flutter build apk --release \
             --build-name "${{ steps.version.outputs.version }}" \
             --build-number "${{ github.run_number }}" \
-            --dart-define=SCROB_SERVER=https://scrob.003274.xyz
+            --dart-define=SCROB_SERVER=https://scrob.003274.xyz \
+            --dart-define=APP_VERSION="${{ steps.version.outputs.version }}"
           cp build/app/outputs/flutter-apk/app-release.apk \
              "scrob-${{ steps.version.outputs.version }}.apk"
 

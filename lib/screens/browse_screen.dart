@@ -31,6 +31,12 @@ class BrowseScreen extends StatefulWidget {
         singlePage: true,
       );
 
+  static BrowseScreen airingToday() => BrowseScreen._(
+        title: 'Airing Today',
+        path: '/media/airing-today/collected',
+        singlePage: true,
+      );
+
   static BrowseScreen collection(int id) => BrowseScreen._(
         title: 'Collection',
         collectionId: id,

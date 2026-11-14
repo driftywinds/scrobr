@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../screens/about_screen.dart';
 import '../screens/browse_screen.dart';
 import '../screens/calendar_screen.dart';
 import '../screens/episode_screen.dart';
@@ -101,6 +102,9 @@ void openSearch(BuildContext context) =>
 
 void openExplore(BuildContext context, {String type = 'movie'}) =>
     pushScreen(context, ExploreScreen(initialType: type));
+
+void openAbout(BuildContext context) =>
+    pushScreen(context, const AboutScreen());
 
 void openSettings(BuildContext context) =>
     pushScreen(context, const SettingsScreen());
