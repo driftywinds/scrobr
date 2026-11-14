@@ -64,6 +64,8 @@ ThemeData buildTheme() {
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: kCard,
+      contentTextStyle: TextStyle(color: Colors.white, fontSize: 13),
+      actionTextColor: Colors.white,
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: kSurface,

@@ -401,14 +401,17 @@ class _ShowBody extends StatelessWidget {
             child: InkWell(
               onTap: showId == null
                   ? null
-                  : () => pushScreen(
+                  : () async {
+                      await pushScreen(
                         context,
                         SeasonScreen(
                           showTmdbId: showId,
                           seasonNumber: number,
                           showTitle: title,
                         ),
-                      ),
+                      );
+                      reload();
+                    },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                 child: Row(

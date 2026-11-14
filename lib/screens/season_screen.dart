@@ -212,16 +212,19 @@ class _SeasonScreenState extends State<SeasonScreen> {
                 final number = episode.i('episode_number') ?? 0;
                 final watched = episode.b('watched');
                 return InkWell(
-                  onTap: () => pushScreen(
-                    context,
-                    EpisodeScreen(
-                      showTmdbId: widget.showTmdbId,
-                      seasonNumber: widget.seasonNumber,
-                      episodeNumber: number,
-                      showTitle: widget.showTitle,
-                      seasonTitle: season.s('name'),
-                    ),
-                  ),
+                  onTap: () async {
+                    await pushScreen(
+                      context,
+                      EpisodeScreen(
+                        showTmdbId: widget.showTmdbId,
+                        seasonNumber: widget.seasonNumber,
+                        episodeNumber: number,
+                        showTitle: widget.showTitle,
+                        seasonTitle: season.s('name'),
+                      ),
+                    );
+                    if (mounted) _reload();
+                  },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
