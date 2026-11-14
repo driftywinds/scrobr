@@ -232,9 +232,22 @@ class AppState extends ChangeNotifier {
     await refresh();
   }
 
+  int avatarVersion = 0;
+
+  void bumpAvatar() {
+    avatarVersion++;
+    notifyListeners();
+  }
+
   String? imageUrl(String? path, {String size = 'w500'}) {
     if (path == null || path.isEmpty) return null;
-    if (path.startsWith('/')) return '$proxyUrl$path';
+    if (path.startsWith('/')) {
+      var url = '$proxyUrl$path';
+      if (path.contains('/profile/avatar/')) {
+        url = '$url${url.contains('?') ? '&' : '?'}v=$avatarVersion';
+      }
+      return url;
+    }
     // The image proxy accepts a JWT, not an API key. In API-key mode use the
     // public TMDB/TVDB URL directly so covers still render.
     if (apiKey != null && apiKey!.isNotEmpty && token == null) {

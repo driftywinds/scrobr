@@ -64,4 +64,12 @@ void main() {
       'https://artworks.thetvdb.com/banners/x.jpg',
     );
   });
+
+  test('avatar URLs are cache-busted after a change', () {
+    final state = AppState(initialServer: 'https://example.test');
+
+    expect(state.imageUrl('/profile/avatar/1'), endsWith('?v=0'));
+    state.bumpAvatar();
+    expect(state.imageUrl('/profile/avatar/1'), endsWith('?v=1'));
+  });
 }

@@ -169,6 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mimeType: mime,
       );
       await app.refresh();
+      app.bumpAvatar();
       if (!mounted) return;
       _reload();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -205,6 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await app.delete('/profile/me/avatar');
       await app.refresh();
+      app.bumpAvatar();
       if (!mounted) return;
       _reload();
     } catch (e) {
