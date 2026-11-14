@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
@@ -92,11 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset(
-              'assets/scrob.png',
+            SvgPicture.asset(
+              'assets/scrobr.svg',
               width: 28,
               height: 28,
-              errorBuilder: (_, __, ___) => const Icon(Icons.movie_filter),
+              placeholderBuilder: (_) =>
+                  const Icon(Icons.movie_filter, size: 28),
             ),
             const SizedBox(width: 8),
             const Text('Scrobr'),

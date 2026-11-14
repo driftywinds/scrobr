@@ -43,6 +43,7 @@ dependencies:
   path_provider: ^2.1.6
   file_picker: ^13.3.3
   http_parser: ^4.1.2
+  flutter_svg: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -67,7 +68,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/scrob.png
+    - assets/scrobr.svg
+    - assets/scrobr-app.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

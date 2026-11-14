@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
@@ -273,11 +274,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Center(
-                    child: Image.asset(
-                      'assets/scrob.png',
+                    child: SvgPicture.asset(
+                      'assets/scrobr.svg',
                       width: 88,
                       height: 88,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      placeholderBuilder: (_) => const Icon(
                         Icons.movie_filter_rounded,
                         size: 80,
                         color: kAccent,

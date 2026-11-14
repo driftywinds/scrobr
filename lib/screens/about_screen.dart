@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,11 +22,11 @@ class AboutScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           Center(
-            child: Image.asset(
-              'assets/scrob.png',
+            child: SvgPicture.asset(
+              'assets/scrobr.svg',
               width: 84,
               height: 84,
-              errorBuilder: (_, __, ___) => const Icon(
+              placeholderBuilder: (_) => const Icon(
                 Icons.movie_filter_rounded,
                 size: 72,
                 color: kAccent,
