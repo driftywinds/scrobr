@@ -76,6 +76,23 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     }
   }
 
+  Future<void> _push(int id) async {
+    try {
+      await ScrobScope.of(context).post('/sync/connection/$id/push');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Push started')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not start push: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _libraries(int id) async {
     final app = ScrobScope.of(context);
     try {
@@ -256,6 +273,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                             if (id == null) return;
                             if (value == 'sync') _sync(id);
                             if (value == 'full') _sync(id, full: true);
+                            if (value == 'push') _push(id);
                             if (value == 'libraries') _libraries(id);
                             if (value == 'delete') _delete(id);
                           },
@@ -264,6 +282,10 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                             PopupMenuItem(
                               value: 'full',
                               child: Text('Full resync'),
+                            ),
+                            PopupMenuItem(
+                              value: 'push',
+                              child: Text('Push now'),
                             ),
                             PopupMenuItem(
                               value: 'libraries',
@@ -304,11 +326,39 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                               : (v) => _patch(id, {'sync_ratings': v}),
                         ),
                         _Toggle(
+                          label: 'Playback',
+                          value: connection.b('sync_playback'),
+                          onChanged: id == null
+                              ? null
+                              : (v) => _patch(id, {'sync_playback': v}),
+                        ),
+                        _Toggle(
                           label: 'Push watched',
                           value: connection.b('push_watched'),
                           onChanged: id == null
                               ? null
                               : (v) => _patch(id, {'push_watched': v}),
+                        ),
+                        _Toggle(
+                          label: 'Push collection',
+                          value: connection.b('push_collection'),
+                          onChanged: id == null
+                              ? null
+                              : (v) => _patch(id, {'push_collection': v}),
+                        ),
+                        _Toggle(
+                          label: 'Push playback',
+                          value: connection.b('push_playback'),
+                          onChanged: id == null
+                              ? null
+                              : (v) => _patch(id, {'push_playback': v}),
+                        ),
+                        _Toggle(
+                          label: 'Push ratings',
+                          value: connection.b('push_ratings'),
+                          onChanged: id == null
+                              ? null
+                              : (v) => _patch(id, {'push_ratings': v}),
                         ),
                       ],
                     ),

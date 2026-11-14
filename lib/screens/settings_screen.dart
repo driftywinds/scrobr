@@ -677,9 +677,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               settings.b('trakt_connected') ? 'Connected' : 'Not connected',
             ),
             trailing: settings.b('trakt_connected')
-                ? IconButton(
-                    onPressed: () => _sync('/trakt/sync'),
-                    icon: const Icon(Icons.sync_rounded),
+                ? PopupMenuButton<String>(
+                    onSelected: (value) => _sync('/trakt/$value'),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'sync', child: Text('Sync now')),
+                      PopupMenuItem(value: 'push', child: Text('Push now')),
+                    ],
                   )
                 : TextButton(
                     onPressed: _openWebConnections,
@@ -693,9 +696,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               settings.b('simkl_connected') ? 'Connected' : 'Not connected',
             ),
             trailing: settings.b('simkl_connected')
-                ? IconButton(
-                    onPressed: () => _sync('/simkl/sync'),
-                    icon: const Icon(Icons.sync_rounded),
+                ? PopupMenuButton<String>(
+                    onSelected: (value) => _sync('/simkl/$value'),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'sync', child: Text('Sync now')),
+                      PopupMenuItem(value: 'push', child: Text('Push now')),
+                    ],
                   )
                 : TextButton(
                     onPressed: _openWebConnections,
@@ -708,10 +714,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(
               settings.b('mdblist_connected') ? 'Connected' : 'Not connected',
             ),
-            trailing: TextButton(
-              onPressed: _openWebConnections,
-              child: Text(settings.b('mdblist_connected') ? 'Manage' : 'Connect'),
-            ),
+            trailing: settings.b('mdblist_connected')
+                ? PopupMenuButton<String>(
+                    onSelected: (value) => _sync('/mdblist/$value'),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'sync', child: Text('Sync now')),
+                      PopupMenuItem(value: 'push', child: Text('Push now')),
+                    ],
+                  )
+                : TextButton(
+                    onPressed: _openWebConnections,
+                    child: const Text('Connect'),
+                  ),
           ),
           ListTile(
             leading: const Icon(Icons.webhook_rounded),
