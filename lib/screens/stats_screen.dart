@@ -274,7 +274,7 @@ class _ChartSection extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
           ),
           const SizedBox(height: 8),
           Container(
@@ -373,7 +373,7 @@ class _ChipsSection extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
           ),
           const SizedBox(height: 6),
           Wrap(

@@ -1,13 +1,44 @@
 import 'package:material_ui/material_ui.dart';
 
+// ── Palette ────────────────────────────────────────────────────────────────
 const kBg = Color(0xFF09090B);
 const kSurface = Color(0xFF18181B);
 const kCard = Color(0xFF27272A);
 const kAccent = Color(0xFF3B82F6);
+const kAccentSoft = Color(0xFF60A5FA);
 const kMuted = Color(0xFFB4B4BD);
 const kAmber = Color(0xFFFBBF24);
 const kDanger = Color(0xFFEF4444);
 const kGreen = Color(0xFF22C55E);
+const kBorder = Color(0xFF2E2E33);
+const kBorderStrong = Color(0xFF3F3F46);
+const kText = Color(0xFFF4F4F5);
+const kBody = Color(0xFFD4D4D8);
+
+// ── Shape & spacing tokens ─────────────────────────────────────────────────
+const kRadiusSm = 8.0;
+const kRadius = 12.0;
+const kRadiusLg = 16.0;
+const kPagePad = 16.0;
+
+/// Brand gradient used for hero accents and primary calls to action.
+const kAccentGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF3B82F6), Color(0xFF6366F1)],
+);
+
+/// Subtle raised-surface decoration shared by cards, panels and tiles.
+BoxDecoration panelDecoration({
+  double radius = kRadius,
+  Color color = kSurface,
+  bool border = true,
+}) =>
+    BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      border: border ? Border.all(color: kBorder) : null,
+    );
 
 ThemeData buildTheme() {
   final scheme = ColorScheme.fromSeed(
@@ -15,7 +46,7 @@ ThemeData buildTheme() {
     brightness: Brightness.dark,
   ).copyWith(
     primary: kAccent,
-    secondary: const Color(0xFF60A5FA),
+    secondary: kAccentSoft,
     surface: kBg,
     onSurface: Colors.white,
     surfaceContainerHighest: kSurface,
@@ -24,77 +55,208 @@ ThemeData buildTheme() {
     onInverseSurface: Colors.white,
   );
 
+  final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
+  final textTheme = base.textTheme
+      .apply(bodyColor: kText, displayColor: kText)
+      .copyWith(
+        titleLarge: const TextStyle(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.4,
+          color: kText,
+        ),
+        titleMedium: const TextStyle(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
+          color: kText,
+        ),
+        bodyMedium: const TextStyle(height: 1.4, color: kText),
+      );
+
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: scheme,
+    textTheme: textTheme,
     scaffoldBackgroundColor: kBg,
     appBarTheme: const AppBarTheme(
       backgroundColor: kBg,
       surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
-        fontSize: 20,
+        fontSize: 21,
         fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
         color: Colors.white,
       ),
     ),
     cardColor: kSurface,
-    dividerColor: const Color(0xFF3F3F46),
+    cardTheme: CardThemeData(
+      color: kSurface,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadius),
+        side: const BorderSide(color: kBorder),
+      ),
+    ),
+    dividerColor: kBorderStrong,
+    dividerTheme: const DividerThemeData(color: kBorder, thickness: 1, space: 1),
+    listTileTheme: const ListTileThemeData(
+      iconColor: kMuted,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(foregroundColor: kText),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(64, 46),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadius),
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(64, 46),
+        foregroundColor: kText,
+        side: const BorderSide(color: kBorderStrong),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadius),
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: kAccentSoft,
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadiusSm),
+        ),
+      ),
+    ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected) ? kAccent : kSurface,
         ),
         foregroundColor: const WidgetStatePropertyAll(Colors.white),
-        side: const WidgetStatePropertyAll(
-          BorderSide(color: Color(0xFF3F3F46)),
+        side: const WidgetStatePropertyAll(BorderSide(color: kBorderStrong)),
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
         ),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: kSurface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
       indicatorColor: kAccent.withValues(alpha: 0.22),
-      labelTextStyle: const WidgetStatePropertyAll(
-        TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      indicatorShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-      height: 66,
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: states.contains(WidgetState.selected) ? Colors.white : kMuted,
+        ),
+      ),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected) ? Colors.white : kMuted,
+        ),
+      ),
+      height: 68,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: kSurface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      hintStyle: const TextStyle(color: kMuted),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kRadius),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF3F3F46)),
+        borderRadius: BorderRadius.circular(kRadius),
+        borderSide: const BorderSide(color: kBorderStrong),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(kRadius),
+        borderSide: const BorderSide(color: kAccent, width: 1.5),
       ),
     ),
-    snackBarTheme: const SnackBarThemeData(
+    snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: kCard,
-      contentTextStyle: TextStyle(color: Colors.white, fontSize: 13),
-      actionTextColor: Colors.white,
+      contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+      actionTextColor: kAccentSoft,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadius),
+        side: const BorderSide(color: kBorderStrong),
+      ),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: kSurface,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
     ),
-    dialogTheme: const DialogThemeData(
+    dialogTheme: DialogThemeData(
       backgroundColor: kSurface,
       surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: kBorder),
+      ),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: kCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadius),
+        side: const BorderSide(color: kBorderStrong),
+      ),
+      textStyle: const TextStyle(fontSize: 14, color: kText),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: kSurface,
       selectedColor: kAccent.withValues(alpha: 0.3),
-      side: const BorderSide(color: Color(0xFF3F3F46)),
-      labelStyle: const TextStyle(fontSize: 12),
+      side: const BorderSide(color: kBorderStrong),
+      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? Colors.white : kMuted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? kAccent : kCard,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: kAccent,
+      linearTrackColor: kCard,
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: kCard,
+        borderRadius: BorderRadius.circular(kRadiusSm),
+        border: Border.all(color: kBorderStrong),
+      ),
+      textStyle: const TextStyle(color: Colors.white, fontSize: 12),
     ),
   );
 }

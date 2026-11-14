@@ -143,10 +143,12 @@ class _MovieBody extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
+                        Colors.black.withValues(alpha: 0.5),
                         Colors.transparent,
-                        kBg.withValues(alpha: 0.4),
+                        kBg.withValues(alpha: 0.55),
                         kBg,
                       ],
+                      stops: const [0, 0.3, 0.75, 1],
                     ),
                   ),
                 ),
@@ -163,7 +165,19 @@ class _MovieBody extends StatelessWidget {
                 SizedBox(
                   width: 108,
                   height: 162,
-                  child: Poster(url: poster, title: title),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Poster(url: poster, title: title),
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -346,7 +360,7 @@ class _MovieBody extends StatelessWidget {
                 children: [
                   const Text(
                     'Release dates',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                   ),
                   const SizedBox(height: 6),
                   ...releaseDates.entries.map(
@@ -373,7 +387,7 @@ class _MovieBody extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Cast',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -445,7 +459,7 @@ class _MovieBody extends StatelessWidget {
                 children: [
                   const Text(
                     'Crew',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                   ),
                   const SizedBox(height: 6),
                   ...crew.take(8).map(
@@ -470,7 +484,7 @@ class _MovieBody extends StatelessWidget {
                 children: [
                   const Text(
                     'Where to watch',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -498,7 +512,7 @@ class _MovieBody extends StatelessWidget {
                 children: [
                   const Text(
                     'Production companies',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -605,35 +619,7 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? kAccent.withValues(alpha: 0.2) : kSurface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: active ? kAccent.withValues(alpha: 0.6) : const Color(0xFF3F3F46),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 15, color: active ? kAccent : kMuted),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: active ? Colors.white : const Color(0xFFD4D4D8),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return ActionPill(icon: icon, label: label, active: active, onTap: onTap);
   }
 }
 

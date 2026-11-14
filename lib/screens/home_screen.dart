@@ -113,11 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => openSearch(context),
             icon: const Icon(Icons.search_rounded),
           ),
-          IconButton(
-            tooltip: 'Calendar',
-            onPressed: () => openCalendar(context),
-            icon: const Icon(Icons.calendar_month_outlined),
-          ),
           PopupMenuButton<String>(
             onSelected: _openMenu,
             itemBuilder: (_) => const [
@@ -135,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView(label: 'Loading your dashboard');
+            return const DashboardSkeleton();
           }
           if (snapshot.hasError) {
             return ErrorView(
@@ -159,16 +154,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (app.isApiKeyMode)
                   Container(
                     margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: kAccent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+                      color: kAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: kAccent.withValues(alpha: 0.3)),
                     ),
-                    child: const Text(
-                      'API-key session: account, comments and admin screens are limited.',
-                      style: TextStyle(fontSize: 11, color: kMuted),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.key_rounded, size: 16, color: kAccentSoft),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'API-key session: account, comments and admin screens are limited.',
+                            style: TextStyle(fontSize: 12, color: kMuted),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                _Shortcuts(onSelected: _openMenu),
                 if (hero != null) _ContinueHero(item: hero),
                 if (data.nowPlaying.isNotEmpty)
                   _NowPlayingStrip(
@@ -289,90 +294,196 @@ class _ContinueHero extends StatelessWidget {
     final progress = item.d('progress_percent') ?? 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => openMedia(context, media),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: kAccent.withValues(alpha: 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedArtwork(
-                  url: backdrop,
-                  fit: BoxFit.cover,
-                  placeholder: Container(color: kCard),
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        kBg.withValues(alpha: 0.6),
-                        kBg,
-                      ],
-                      stops: const [0.2, 0.65, 1],
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedArtwork(
+                      url: backdrop,
+                      fit: BoxFit.cover,
+                      placeholder: Container(color: kCard),
                     ),
-                  ),
-                ),
-                Positioned(
-                  left: 14,
-                  right: 14,
-                  bottom: 12,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'CONTINUE WATCHING',
-                        style: TextStyle(
-                          fontSize: 9,
-                          letterSpacing: 1.4,
-                          fontWeight: FontWeight.w800,
-                          color: kAccent,
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.25),
+                            Colors.transparent,
+                            kBg.withValues(alpha: 0.75),
+                            kBg,
+                          ],
+                          stops: const [0, 0.3, 0.7, 1],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                    ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
                         ),
-                      ),
-                      if (episode.isNotEmpty)
-                        Text(
-                          episode,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11, color: kMuted),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12),
+                          ),
                         ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(child: ProgressBar(value: progress)),
-                          const SizedBox(width: 10),
-                          Text(
-                            '${progress.round()}%',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_arrow_rounded,
+                                size: 13, color: kAccentSoft),
+                            SizedBox(width: 3),
+                            Text(
+                              'CONTINUE WATCHING',
+                              style: TextStyle(
+                                fontSize: 9,
+                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 14,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          if (episode.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                episode,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: kMuted,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(child: ProgressBar(value: progress)),
+                              const SizedBox(width: 10),
+                              Text(
+                                '${progress.round()}%',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Positioned.fill(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(onTap: () => openMedia(context, media)),
+                ),
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Horizontal row of quick links, so Lists / Calendar / Progress etc. are one
+/// tap away instead of hidden in the overflow menu.
+class _Shortcuts extends StatelessWidget {
+  const _Shortcuts({required this.onSelected});
+
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      ('lists', Icons.view_list_rounded, 'Lists'),
+      ('calendar', Icons.calendar_month_rounded, 'Calendar'),
+      ('progress', Icons.timelapse_rounded, 'Progress'),
+      ('dropped', Icons.do_not_disturb_on_outlined, 'Dropped'),
+      ('requests', Icons.download_rounded, 'Requests'),
+    ];
+    return SizedBox(
+      height: 54,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final (key, icon, label) = items[i];
+          return Material(
+            color: kSurface,
+            shape: const StadiumBorder(side: BorderSide(color: kBorder)),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: () => onSelected(key),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 16, color: kAccentSoft),
+                    const SizedBox(width: 7),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -387,17 +498,32 @@ class _NowPlayingStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (sessions.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 8),
+      decoration: BoxDecoration(
+        color: kGreen.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kGreen.withValues(alpha: 0.25)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  color: kGreen,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
               const Text(
                 'NOW PLAYING',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   letterSpacing: 1.3,
                   fontWeight: FontWeight.w800,
                   color: kGreen,
@@ -408,7 +534,7 @@ class _NowPlayingStrip extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Clear sessions',
                 onPressed: onClear,
-                icon: const Icon(Icons.close_rounded, size: 14),
+                icon: const Icon(Icons.close_rounded, size: 16, color: kMuted),
               ),
             ],
           ),
@@ -417,23 +543,31 @@ class _NowPlayingStrip extends StatelessWidget {
             final title = media.s('show_title') ?? media.s('title') ?? 'Unknown';
             final pct = session.d('progress_percent') ?? 0;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
+              padding: const EdgeInsets.only(bottom: 6, right: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.play_circle_fill, color: kGreen, size: 16),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${pct.round()}%',
+                        style: const TextStyle(fontSize: 11, color: kMuted),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '${pct.round()}%',
-                    style: const TextStyle(fontSize: 10, color: kMuted),
-                  ),
+                  const SizedBox(height: 5),
+                  ProgressBar(value: pct, height: 3),
                 ],
               ),
             );
@@ -443,5 +577,3 @@ class _NowPlayingStrip extends StatelessWidget {
     );
   }
 }
-
-

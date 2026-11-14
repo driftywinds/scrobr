@@ -174,7 +174,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingView(label: 'Finding something to watch');
+                  return const DashboardSkeleton();
                 }
                 if (snapshot.hasError) {
                   return ErrorView(

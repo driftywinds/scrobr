@@ -140,7 +140,7 @@ class _PersonScreenState extends State<PersonScreen> {
                 tilePadding: EdgeInsets.zero,
                 title: const Text(
                   'Biography',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                 ),
                 childrenPadding: const EdgeInsets.only(bottom: 8),
                 children: [

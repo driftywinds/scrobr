@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
+import '../core/theme.dart';
 import 'discover_screen.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
@@ -81,13 +82,19 @@ class _AppShellState extends State<AppShell> {
             _visited.contains(tab.key) ? tab.page : const SizedBox.shrink(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (value) => setState(() {
-          _selected = tabs[value].key;
-          _visited.add(_selected);
-        }),
-        destinations: [for (final tab in tabs) tab.destination],
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: kBorder)),
+        ),
+        child: NavigationBar(
+          selectedIndex: index,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          onDestinationSelected: (value) => setState(() {
+            _selected = tabs[value].key;
+            _visited.add(_selected);
+          }),
+          destinations: [for (final tab in tabs) tab.destination],
+        ),
       ),
     );
   }

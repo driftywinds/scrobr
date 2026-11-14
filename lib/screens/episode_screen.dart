@@ -349,7 +349,7 @@ class _PeopleRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
             ),
           ),
           const SizedBox(height: 8),
@@ -423,35 +423,7 @@ class _EpisodeAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? kAccent.withValues(alpha: 0.2) : kSurface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: active ? kAccent.withValues(alpha: 0.6) : const Color(0xFF3F3F46),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 15, color: active ? kAccent : kMuted),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: active ? Colors.white : const Color(0xFFD4D4D8),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return ActionPill(icon: icon, label: label, active: active, onTap: onTap);
   }
 }
 
