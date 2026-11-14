@@ -250,6 +250,25 @@ class AppState extends ChangeNotifier {
     return path;
   }
 
+  /// Public fallback for a proxied poster URL, used only when the
+  /// authenticated image proxy fails. TMDB artwork is public.
+  String? directImageUrl(String? url) {
+    if (url == null) return null;
+    final tmdb = RegExp(
+      r'/api/proxy/media/image/(w\d+|original)/(.+)$',
+    ).firstMatch(url);
+    if (tmdb != null) {
+      return 'https://image.tmdb.org/t/p/${tmdb.group(1)}/${tmdb.group(2)}';
+    }
+    final tvdb = RegExp(
+      r'/api/proxy/media/image/tvdb(/.*)$',
+    ).firstMatch(url);
+    if (tvdb != null) {
+      return 'https://artworks.thetvdb.com${tvdb.group(1)}';
+    }
+    return null;
+  }
+
   /// Headers for own-proxy images. The media-image endpoint requires a JWT
   /// even though posters contain no private data. Dart's HttpClient strips
   /// Authorization/Cookie on cross-origin redirects, so the header cannot leak

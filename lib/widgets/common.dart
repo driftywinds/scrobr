@@ -49,7 +49,15 @@ class Poster extends StatelessWidget {
               url!,
               headers: app.imageHeaders(url),
               fit: fit,
-              errorBuilder: (_, __, ___) => placeholder,
+              errorBuilder: (_, __, ___) {
+                final fallback = app.directImageUrl(url);
+                if (fallback == null) return placeholder;
+                return Image.network(
+                  fallback,
+                  fit: fit,
+                  errorBuilder: (_, __, ___) => placeholder,
+                );
+              },
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return Container(color: kCard, child: const Center(

@@ -47,4 +47,21 @@ void main() {
     expect(state.imageUrl(tmdb, size: 'w342'), tmdb);
     expect(state.imageHeaders(tmdb), isNull);
   });
+
+  test('proxy posters have a public fallback', () {
+    final state = AppState(initialServer: 'https://example.test');
+
+    expect(
+      state.directImageUrl(
+        'https://example.test/api/proxy/media/image/w342/poster.jpg',
+      ),
+      'https://image.tmdb.org/t/p/w342/poster.jpg',
+    );
+    expect(
+      state.directImageUrl(
+        'https://example.test/api/proxy/media/image/tvdb/banners/x.jpg',
+      ),
+      'https://artworks.thetvdb.com/banners/x.jpg',
+    );
+  });
 }
