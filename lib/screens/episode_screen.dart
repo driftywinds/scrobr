@@ -254,12 +254,14 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () {
                               final e = prev.last;
+                              final number = e.i('episode_number');
+                              if (number == null) return;
                               pushScreen(
                                 context,
                                 EpisodeScreen(
                                   showTmdbId: widget.showTmdbId,
                                   seasonNumber: widget.seasonNumber,
-                                  episodeNumber: e.i('episode_number')!,
+                                  episodeNumber: number,
                                   showTitle: widget.showTitle,
                                   seasonTitle: widget.seasonTitle,
                                 ),
@@ -276,12 +278,14 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () {
                               final e = next.first;
+                              final number = e.i('episode_number');
+                              if (number == null) return;
                               pushScreen(
                                 context,
                                 EpisodeScreen(
                                   showTmdbId: widget.showTmdbId,
                                   seasonNumber: widget.seasonNumber,
-                                  episodeNumber: e.i('episode_number')!,
+                                  episodeNumber: number,
                                   showTitle: widget.showTitle,
                                   seasonTitle: widget.seasonTitle,
                                 ),

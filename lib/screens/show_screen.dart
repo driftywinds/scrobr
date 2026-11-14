@@ -110,6 +110,7 @@ class _ShowBody extends StatelessWidget {
     final inRewatch = rewatch.isNotEmpty;
     final watchPct = show.d('watch_pct') ?? 0;
     final networks = show.maps('networks');
+    final showId = show.i('tmdb_id');
 
     return CustomScrollView(
       slivers: [
@@ -294,18 +295,22 @@ class _ShowBody extends StatelessWidget {
                 _ShowAction(
                   icon: Icons.done_all_rounded,
                   label: 'Mark all watched',
-                  onTap: () => _act(
-                    context,
-                    () => markShowWatched(context, show.i('tmdb_id')!),
-                  ),
+                  onTap: showId == null
+                      ? null
+                      : () => _act(
+                            context,
+                            () => markShowWatched(context, showId),
+                          ),
                 ),
                 _ShowAction(
                   icon: Icons.remove_done_rounded,
                   label: 'Unwatch all',
-                  onTap: () => _act(
-                    context,
-                    () => unmarkShowWatched(context, show.i('tmdb_id')!),
-                  ),
+                  onTap: showId == null
+                      ? null
+                      : () => _act(
+                            context,
+                            () => unmarkShowWatched(context, showId),
+                          ),
                 ),
                 _ShowAction(
                   icon: Icons.star_outline_rounded,
@@ -390,14 +395,16 @@ class _ShowBody extends StatelessWidget {
           final seasonPoster = app.imageUrl(season.s('poster_path'), size: 'w185');
           return SliverToBoxAdapter(
             child: InkWell(
-              onTap: () => pushScreen(
-                context,
-                SeasonScreen(
-                  showTmdbId: show.i('tmdb_id')!,
-                  seasonNumber: number,
-                  showTitle: title,
-                ),
-              ),
+              onTap: showId == null
+                  ? null
+                  : () => pushScreen(
+                        context,
+                        SeasonScreen(
+                          showTmdbId: showId,
+                          seasonNumber: number,
+                          showTitle: title,
+                        ),
+                      ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                 child: Row(
@@ -502,6 +509,8 @@ class _ShowBody extends StatelessWidget {
 
   Future<void> _chooseOrder(BuildContext context, _ShowData data) async {
     final app = ScrobScope.of(context);
+    final showId = data.detail.i('tmdb_id');
+    if (showId == null) return;
     final order = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       builder: (context) => SafeArea(
@@ -534,7 +543,7 @@ class _ShowBody extends StatelessWidget {
     if (key == null || key == data.selectedOrder) return;
     try {
       await app.post(
-        '/shows/${data.detail.i('tmdb_id')}/episode-order',
+        '/shows/$showId/episode-order',
         {
           'episode_order': key,
           'order_label': order.s('label'),
