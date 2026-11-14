@@ -7,6 +7,33 @@ The app talks to the Scrob backend through the same `/api/proxy` surface the
 PWA uses. It supports JWT username/password sessions, optional API-key sessions,
 and the main browsing, tracking, social and settings flows of the web UI.
 
+## Features
+
+- Password login with 2FA challenge, "stay logged in", registration and API-key
+  sign-in; server URL is configurable.
+- Dashboard: continue watching, next up, now playing, recently added and
+  trending rows.
+- Discover: trending, now playing / on air, upcoming / new episodes, top rated,
+  for you, hidden gems and streaming rows for movies and shows.
+- Library for movies and shows with sort, watched/rating/list/year/genre
+  filters and infinite scrolling.
+- Search across TMDB movies, shows and people, plus Scrob user search.
+- Movie, show, season, episode, person and collection pages with cast, crew,
+  recommendations, release dates and where-to-watch.
+- Actions: mark watched/unwatched (item, season or show), 1–10 ratings,
+  comments with spoilers, add to list, collect/request, drop/undrop, rewatch,
+  trailer launch and timed manual watching sessions.
+- Watch history with date grouping, filters, per-entry delete and unwatch.
+- Lists (watchlist, private/friends/public), create/edit/delete and item
+  management.
+- Profiles with follow/unfollow, top rated and recently watched rows, stats
+  charts (watch time, activity, ratings, weekdays, genres) and public profiles.
+- Calendar, progress, dropped, connection management and sync controls.
+- Settings: preferences, API-key regeneration, password/2FA, connections,
+  Trakt/Simkl/MDBList/Bingebase entry points and an admin panel for settings,
+  users, requests and maintenance.
+- Release APK workflow for manual dispatch or `v*` tags.
+
 ## Run
 
 ```sh
@@ -41,3 +68,7 @@ APK as a build artifact and attaches it to a GitHub release for tag pushes.
 The backend OpenAPI document is admin-only (`GET /openapi.json`). It is kept
 locally under `.tmp/` and ignored by git. See `.skills/scrob-api/SKILL.md` for
 the API workflow and `.skills/flutter-android/SKILL.md` for the local toolchain.
+
+API keys can read/write data endpoints, but account, comments, connections and
+`/admin/*` need a real JWT session. The app shows an API-key session as such and
+opens the password-only screens when you sign in normally.

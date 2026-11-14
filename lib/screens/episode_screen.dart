@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
+import '../widgets/session.dart';
 import '../widgets/common.dart';
 
 class EpisodeScreen extends StatefulWidget {
@@ -194,6 +195,14 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                         icon: Icons.playlist_add_rounded,
                         label: 'Add show to list',
                         onTap: () => addToListDialog(context, episode),
+                      ),
+                      _EpisodeAction(
+                        icon: Icons.timer_outlined,
+                        label: 'Session',
+                        onTap: () async {
+                          await startManualSession(context, episode);
+                          _reload();
+                        },
                       ),
                       _EpisodeAction(
                         icon: Icons.open_in_new_rounded,
@@ -431,3 +440,4 @@ class _EpisodeAction extends StatelessWidget {
     );
   }
 }
+

@@ -404,6 +404,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _syncStatus() async {
+    try {
+      final data = await ScrobScope.of(context).get('/sync/status');
+      final jobs = asMaps(data);
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: jobs.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('No sync jobs yet.'),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: jobs.length,
+                  itemBuilder: (context, index) {
+                    final job = jobs[index];
+                    final total = job.i('total_items') ?? 0;
+                    final done = job.i('processed_items') ?? 0;
+                    return ListTile(
+                      leading: Icon(
+                        job.s('status') == 'running'
+                            ? Icons.sync_rounded
+                            : job.s('status') == 'completed'
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.error_outline_rounded,
+                      ),
+                      title: Text(
+                        '${job.s('source') ?? ''} · ${job.s('status') ?? ''}',
+                      ),
+                      subtitle: Text(
+                        total > 0 ? '$done / $total' : job.s('message') ?? '',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not load sync status: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _editKey(String setting, String label, {bool secret = false}) async {
     final controller = TextEditingController();
     final ok = await showDialog<bool>(
@@ -604,7 +653,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.sync_rounded),
             title: const Text('Sync status'),
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => openHistory(context),
+            onTap: _syncStatus,
           ),
           const _Section('Integrations'),
           ListTile(

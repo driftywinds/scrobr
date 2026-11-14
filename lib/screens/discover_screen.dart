@@ -61,12 +61,38 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     });
   }
 
+  Future<void> _pick() async {
+    final app = ScrobScope.of(context);
+    try {
+      final result = asMap(await app.get('/media/pick', {'type': _type}));
+      if (!mounted) return;
+      if (result.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nothing to pick from yet')),
+        );
+        return;
+      }
+      openMedia(context, result);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not pick: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Discover'),
         actions: [
+          IconButton(
+            tooltip: 'Pick something for me',
+            onPressed: _pick,
+            icon: const Icon(Icons.casino_outlined),
+          ),
           IconButton(
             onPressed: () => openSearch(context),
             icon: const Icon(Icons.search_rounded),

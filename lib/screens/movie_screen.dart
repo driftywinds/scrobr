@@ -7,6 +7,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
+import '../widgets/session.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
 
@@ -264,6 +265,14 @@ class _MovieBody extends StatelessWidget {
                   icon: Icons.movie_outlined,
                   label: 'Trailer',
                   onTap: () => openTrailer(context, media),
+                ),
+                _ActionPill(
+                  icon: Icons.timer_outlined,
+                  label: 'Session',
+                  onTap: () async {
+                    await startManualSession(context, media);
+                    reload();
+                  },
                 ),
                 if (media.b('request_enabled'))
                   _ActionPill(
@@ -582,4 +591,5 @@ class _ActionPill extends StatelessWidget {
     );
   }
 }
+
 
