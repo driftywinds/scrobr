@@ -485,13 +485,7 @@ class _WideMediaTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
-    final isEpisode = media.s('type') == 'episode';
-    final poster = app.imageUrl(
-      isEpisode
-          ? (media.s('show_poster_path') ?? media.s('poster_path'))
-          : (media.s('poster_path') ?? media.s('show_poster_path')),
-      size: 'w185',
-    );
+    final poster = app.imageUrl(posterPathFor(media), size: 'w185');
     final title = media.s('show_title') ?? media.s('title') ?? '';
     return InkWell(
       borderRadius: BorderRadius.circular(12),

@@ -282,12 +282,7 @@ class _HistoryTile extends StatelessWidget {
     final app = ScrobScope.of(context);
     final media = asMap(event['media']);
     final isEpisode = media.s('type') == 'episode';
-    final poster = app.imageUrl(
-      isEpisode
-          ? (media.s('show_poster_path') ?? media.s('poster_path'))
-          : (media.s('poster_path') ?? media.s('show_poster_path')),
-      size: 'w185',
-    );
+    final poster = app.imageUrl(posterPathFor(media), size: 'w185');
     final title = media.s('show_title') ?? media.s('title') ?? '';
     final episode = isEpisode
         ? 'S${media.i('season_number')}E${media.i('episode_number')} · ${media.s('title') ?? ''}'

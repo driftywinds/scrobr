@@ -47,6 +47,16 @@ extension JsonMapX on Map<String, dynamic> {
   Map<String, dynamic> map(String key) => asMap(this[key]);
 }
 
+/// Portrait slot artwork. Episodes use the show's poster so horizontal stills
+/// are never cropped into a 2:3 card.
+String? posterPathFor(Map<String, dynamic> item) {
+  final isEpisode =
+      (item.s('type') ?? item.s('media_type')) == 'episode';
+  return isEpisode
+      ? (item.s('show_poster_path') ?? item.s('poster_path'))
+      : (item.s('poster_path') ?? item.s('show_poster_path'));
+}
+
 String fmtDate(String? iso) {
   if (iso == null || iso.isEmpty) return 'Unknown';
   final d = DateTime.tryParse(iso);
