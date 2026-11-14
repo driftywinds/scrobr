@@ -60,6 +60,9 @@ flutter build apk --release --dart-define=SCROB_SERVER=https://scrob.003274.xyz
 Release builds are currently signed with the debug key so they are directly
 installable. Add a keystore and signing config before publishing.
 
+See [PARITY.md](PARITY.md) for the web-to-native feature map and deliberate
+exclusions.
+
 ## Release workflow
 
 `.github/workflows/release.yml` builds a release APK on:

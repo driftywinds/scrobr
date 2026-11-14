@@ -16,6 +16,10 @@ web origin's proxy: `https://<host>/api/proxy/<backend-path>`.
   `get_current_user_or_api_key`: media, history, lists, ratings, comments,
   calendar, profile reads, export, etc. Account/security and `/admin/*`
   endpoints require a real JWT admin session.
+- `GET /media/image/...` is JWT-only (Authorization, `?token=`, or cookie); an
+  API key is rejected. Native clients should attach Authorization to own-proxy
+  images and rely on Dart/HTTP stripping it on cross-origin redirects to
+  `image.tmdb.org`/`artworks.thetvdb.com`.
 - `/docs`, `/redoc`, `/openapi.json` are admin-JWT only, not API-key. The live
   schema is kept at `.tmp/openapi.json` (gitignored); do not commit it.
 - Login can return `{requires_2fa, temp_token}`; finish with
