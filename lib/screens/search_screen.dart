@@ -163,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SegmentedButton<String>(
+              child: SegmentedButton<String>(showSelectedIcon: false, 
                 segments: const [
                   ButtonSegment(value: 'movie', label: Text('Movies')),
                   ButtonSegment(value: 'series', label: Text('Shows')),

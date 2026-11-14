@@ -4,7 +4,7 @@ const kBg = Color(0xFF09090B);
 const kSurface = Color(0xFF18181B);
 const kCard = Color(0xFF27272A);
 const kAccent = Color(0xFF3B82F6);
-const kMuted = Color(0xFFA1A1AA);
+const kMuted = Color(0xFFB4B4BD);
 const kAmber = Color(0xFFFBBF24);
 const kDanger = Color(0xFFEF4444);
 const kGreen = Color(0xFF22C55E);
@@ -42,6 +42,17 @@ ThemeData buildTheme() {
     ),
     cardColor: kSurface,
     dividerColor: const Color(0xFF3F3F46),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected) ? kAccent : kSurface,
+        ),
+        foregroundColor: const WidgetStatePropertyAll(Colors.white),
+        side: const WidgetStatePropertyAll(
+          BorderSide(color: Color(0xFF3F3F46)),
+        ),
+      ),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: kSurface,
       indicatorColor: kAccent.withValues(alpha: 0.22),

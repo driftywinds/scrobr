@@ -151,7 +151,7 @@ class _AdminScreenState extends State<AdminScreen>
     setState(() => _backingUp = true);
     try {
       final app = ScrobScope.of(context);
-      final bytes = await app.client.getBytes('/admin/backup');
+      final bytes = await app.getBytes('/admin/backup');
       final dir = await getTemporaryDirectory();
       final stamp = DateTime.now()
           .toIso8601String()
@@ -206,7 +206,7 @@ class _AdminScreenState extends State<AdminScreen>
     setState(() => _restoring = true);
     try {
       final bytes = await picked.readAsBytes();
-      final response = asMap(await ScrobScope.of(context).client.postMultipart(
+      final response = asMap(await ScrobScope.of(context).postMultipart(
         '/admin/restore',
         field: 'file',
         bytes: bytes,

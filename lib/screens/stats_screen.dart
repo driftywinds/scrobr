@@ -57,7 +57,7 @@ class _StatsScreenState extends State<StatsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SegmentedButton<String>(
+              child: SegmentedButton<String>(showSelectedIcon: false, 
                 segments: const [
                   ButtonSegment(value: 'all', label: Text('All time')),
                   ButtonSegment(value: 'year', label: Text('This year')),

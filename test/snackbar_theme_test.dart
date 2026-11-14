@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:scrob/core/theme.dart';
+import 'package:scrobr/core/theme.dart';
 
 void main() {
   testWidgets('snackbar content renders white on the dark theme', (tester) async {

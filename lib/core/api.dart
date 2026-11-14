@@ -23,6 +23,7 @@ class ApiClient {
     this.token,
     this.apiKey,
     http.Client? client,
+    this.timeout = const Duration(seconds: 20),
   })  : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
         _http = client ?? http.Client();
 
@@ -34,7 +35,18 @@ class ApiClient {
   final String baseUrl;
   final String? token;
   final String? apiKey;
+  final Duration timeout;
   final http.Client _http;
+
+  Future<http.StreamedResponse> _sendRequest(http.BaseRequest request) =>
+      _http.send(request).timeout(
+        timeout,
+        onTimeout: () => throw ApiException(
+          0,
+          'Request timed out',
+          request.url.path,
+        ),
+      );
 
   Map<String, String> get _headers => {
         'Accept': 'application/json',
@@ -97,7 +109,7 @@ class ApiClient {
   Future<Uint8List> getBytes(String path, [Map<String, dynamic>? query]) async {
     final request = http.Request('GET', _uri(path, query))
       ..headers.addAll(_headers);
-    final streamed = await _http.send(request);
+    final streamed = await _sendRequest(request);
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response.bodyBytes;
@@ -138,7 +150,7 @@ class ApiClient {
         ),
       );
 
-    final streamed = await _http.send(request);
+    final streamed = await _sendRequest(request);
     final response = await http.Response.fromStream(streamed);
     dynamic parsed;
     if (response.body.isNotEmpty) {
@@ -192,7 +204,7 @@ class ApiClient {
 
     http.Response response;
     try {
-      final streamed = await _http.send(request);
+      final streamed = await _sendRequest(request);
       response = await http.Response.fromStream(streamed);
     } catch (e) {
       throw ApiException(0, 'Network error: $e', uri.path);

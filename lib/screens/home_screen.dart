@@ -38,6 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
       app.tryGet('/history/now-playing'),
       app.tryGet('/media/airing-today/collected'),
     ]);
+    if (results.every((result) => result == null)) {
+      throw Exception('Could not load your dashboard');
+    }
     return _HomeData(
       continueWatching: asMaps(asMap(results[0])['continue_watching']),
       nextUp: asMaps(asMap(results[1])['next_up']),
@@ -297,14 +300,11 @@ class _ContinueHero extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (backdrop != null)
-                  Image.network(
-                    backdrop,
-                    headers: ScrobScope.of(context).imageHeaders(backdrop),
-                    fit: BoxFit.cover,
-                  )
-                else
-                  Container(color: kCard),
+                CachedArtwork(
+                  url: backdrop,
+                  fit: BoxFit.cover,
+                  placeholder: Container(color: kCard),
+                ),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(

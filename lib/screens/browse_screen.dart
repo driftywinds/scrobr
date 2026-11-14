@@ -230,11 +230,10 @@ class _CollectionHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               child: AspectRatio(
                 aspectRatio: 16 / 7,
-                child: Image.network(
-                  backdrop,
-                  headers: ScrobScope.of(context).imageHeaders(backdrop),
+                child: CachedArtwork(
+                  url: backdrop,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: kCard),
+                  placeholder: Container(color: kCard),
                 ),
               ),
             ),

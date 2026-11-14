@@ -16,6 +16,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   String _selected = 'home';
+  final Set<String> _visited = {'home'};
 
   @override
   Widget build(BuildContext context) {
@@ -75,12 +76,17 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: IndexedStack(
         index: index,
-        children: [for (final tab in tabs) tab.page],
+        children: [
+          for (final tab in tabs)
+            _visited.contains(tab.key) ? tab.page : const SizedBox.shrink(),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (value) =>
-            setState(() => _selected = tabs[value].key),
+        onDestinationSelected: (value) => setState(() {
+          _selected = tabs[value].key;
+          _visited.add(_selected);
+        }),
         destinations: [for (final tab in tabs) tab.destination],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
@@ -21,7 +22,6 @@ class Poster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = ScrobScope.of(context);
     final placeholder = Container(
       color: kCard,
       alignment: Alignment.center,
@@ -35,7 +35,7 @@ class Poster extends StatelessWidget {
               truncate(title, 40),
               maxLines: 2,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: kMuted),
+              style: const TextStyle(fontSize: 11, color: kMuted),
             ),
         ],
       ),
@@ -43,32 +43,51 @@ class Poster extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: url == null || url!.isEmpty
-          ? placeholder
-          : Image.network(
-              url!,
-              headers: app.imageHeaders(url),
-              fit: fit,
-              errorBuilder: (_, __, ___) {
-                final fallback = app.directImageUrl(url);
-                if (fallback == null) return placeholder;
-                return Image.network(
-                  fallback,
-                  fit: fit,
-                  errorBuilder: (_, __, ___) => placeholder,
-                );
-              },
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(color: kCard, child: const Center(
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ));
-              },
-            ),
+      child: CachedArtwork(
+        url: url,
+        fit: fit,
+        placeholder: placeholder,
+      ),
+    );
+  }
+}
+
+/// Disk-cached network artwork. Public posters hit the server image proxy with
+/// the session header; on failure we retry the public TMDB/TVDB URL without it.
+class CachedArtwork extends StatelessWidget {
+  const CachedArtwork({
+    super.key,
+    required this.url,
+    this.fit = BoxFit.cover,
+    this.placeholder,
+  });
+
+  final String? url;
+  final BoxFit fit;
+  final Widget? placeholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
+    final empty = placeholder ?? Container(color: kCard);
+    if (url == null || url!.isEmpty) return empty;
+    return CachedNetworkImage(
+      imageUrl: url!,
+      httpHeaders: app.imageHeaders(url),
+      fit: fit,
+      fadeInDuration: const Duration(milliseconds: 160),
+      placeholder: (_, __) => empty,
+      errorWidget: (context, failedUrl, error) {
+        final direct = app.directImageUrl(failedUrl);
+        if (direct == null) return empty;
+        return CachedNetworkImage(
+          imageUrl: direct,
+          fit: fit,
+          fadeInDuration: const Duration(milliseconds: 160),
+          placeholder: (_, __) => empty,
+          errorWidget: (_, __, ___) => empty,
+        );
+      },
     );
   }
 }
@@ -97,19 +116,21 @@ class MediaCard extends StatelessWidget {
     final isPerson = type == 'person';
     final posterPath = posterPathFor(item);
     final url = app.imageUrl(posterPath, size: 'w342');
-    final title = item.s('title') ?? item.s('name') ?? '';
+    final rawTitle = item.s('title') ?? item.s('name') ?? '';
+    final showTitle = item.s('show_title') ?? '';
+    final title =
+        isEpisode && showTitle.isNotEmpty ? showTitle : rawTitle;
     final year = yearOf(item.s('release_date') ?? item.s('first_air_date'));
     final rating = item.d('tmdb_rating');
     final watched = item.b('watched') || (item.d('play_count') ?? 0) > 0;
 
     String subtitle = '';
     if (isEpisode) {
-      final show = item.s('show_title') ?? '';
       final se = [
         if (item.i('season_number') != null) 'S${item.i('season_number')}',
         if (item.i('episode_number') != null) 'E${item.i('episode_number')}',
       ].join();
-      subtitle = [show, se].where((e) => e.isNotEmpty).join(' · ');
+      subtitle = [se, rawTitle].where((e) => e.isNotEmpty).join(' · ');
     } else if (isPerson) {
       subtitle = item.s('known_for_department') ?? 'Person';
     } else {
@@ -183,7 +204,7 @@ class MediaCard extends StatelessWidget {
               truncate(title, 46),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             if (showSubtitle && subtitle.isNotEmpty)
               Padding(
@@ -192,7 +213,7 @@ class MediaCard extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 10, color: kMuted),
+                  style: const TextStyle(fontSize: 11, color: kMuted),
                 ),
               ),
           ],
@@ -446,17 +467,21 @@ class UserAvatar extends StatelessWidget {
         ),
       );
     }
-    return ClipOval(
-      child: Image.network(
-        url!,
-        headers: ScrobScope.of(context).imageHeaders(url),
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => CircleAvatar(
-          radius: size / 2,
-          backgroundColor: kCard,
-          child: Text(initials(name), style: TextStyle(fontSize: size * 0.32)),
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ClipOval(
+        child: CachedArtwork(
+          url: url,
+          fit: BoxFit.cover,
+          placeholder: CircleAvatar(
+            radius: size / 2,
+            backgroundColor: kCard,
+            child: Text(
+              initials(name),
+              style: TextStyle(fontSize: size * 0.32),
+            ),
+          ),
         ),
       ),
     );

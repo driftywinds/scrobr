@@ -63,7 +63,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: SegmentedButton<String>(
+            child: SegmentedButton<String>(showSelectedIcon: false, 
               segments: const [
                 ButtonSegment(value: 'pending', label: Text('Pending')),
                 ButtonSegment(value: 'approved', label: Text('Approved')),

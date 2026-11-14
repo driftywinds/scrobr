@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -238,6 +240,29 @@ class AppState extends ChangeNotifier {
 
   Future<dynamic> delete(String path, [Map<String, dynamic>? query]) =>
       _guard(() => client.delete(path, query));
+
+  Future<Uint8List> getBytes(
+    String path, [
+    Map<String, dynamic>? query,
+  ]) async =>
+      await _guard(() => client.getBytes(path, query)) as Uint8List;
+
+  Future<dynamic> postMultipart(
+    String path, {
+    required String field,
+    required Uint8List bytes,
+    required String filename,
+    Map<String, String> fields = const {},
+    String? mimeType,
+  }) =>
+      _guard(() => client.postMultipart(
+            path,
+            field: field,
+            bytes: bytes,
+            filename: filename,
+            fields: fields,
+            mimeType: mimeType,
+          ));
 
   Future<dynamic> _guard(Future<dynamic> Function() request) async {
     try {

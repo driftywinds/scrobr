@@ -73,6 +73,16 @@ installable. Add a keystore and signing config before publishing.
 See [PARITY.md](PARITY.md) for the web-to-native feature map and deliberate
 exclusions.
 
+## Engineering
+
+- Artwork is disk-cached through `cached_network_image` with the session
+  headers; public TMDB/TVDB URLs are the fallback.
+- Bottom tabs are built lazily on first visit.
+- API calls time out after 20 seconds; binary and multipart calls share the
+  same 401 handling as normal requests.
+- CI runs `flutter analyze --no-fatal-infos` and `flutter test` on pull requests
+  and pushes to `main` (`.github/workflows/ci.yml`).
+
 ## Release workflow
 
 `.github/workflows/release.yml` builds a release APK on:

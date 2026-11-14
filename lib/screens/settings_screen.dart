@@ -47,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     setState(() => _importing = true);
     try {
-      final response = asMap(await ScrobScope.of(context).client.postMultipart(
+      final response = asMap(await ScrobScope.of(context).postMultipart(
         '/export/import',
         field: 'file',
         bytes: bytes,
@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _exporting = true);
     try {
       final app = ScrobScope.of(context);
-      final bytes = await app.client.getBytes('/export/data');
+      final bytes = await app.getBytes('/export/data');
       final dir = await getTemporaryDirectory();
       final stamp = DateTime.now()
           .toIso8601String()

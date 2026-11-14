@@ -97,14 +97,11 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (still != null)
-                        Image.network(
-                          still,
-                          headers: ScrobScope.of(context).imageHeaders(still),
-                          fit: BoxFit.cover,
-                        )
-                      else
-                        Container(color: kCard),
+                      CachedArtwork(
+                        url: still,
+                        fit: BoxFit.cover,
+                        placeholder: Container(color: kCard),
+                      ),
                       DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(

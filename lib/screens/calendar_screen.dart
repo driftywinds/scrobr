@@ -127,7 +127,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       ),
-                      ...items.map((entry) => _CalendarEntry(entry: entry)),
+                      ..._groupByShow(items).map(
+                        (episodes) => _CalendarShowGroup(episodes: episodes),
+                      ),
                     ],
                   );
                 }),
@@ -138,81 +140,103 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
   }
+
+  List<List<Map<String, dynamic>>> _groupByShow(
+    List<Map<String, dynamic>> items,
+  ) {
+    final groups = <Object, List<Map<String, dynamic>>>{};
+    for (final item in items) {
+      final key = item.i('show_tmdb_id') ?? item.s('show_title');
+      groups.putIfAbsent(key ?? item, () => []).add(item);
+    }
+    return groups.values.toList();
+  }
 }
 
-class _CalendarEntry extends StatelessWidget {
-  const _CalendarEntry({required this.entry});
+class _CalendarShowGroup extends StatelessWidget {
+  const _CalendarShowGroup({required this.episodes});
 
-  final Map<String, dynamic> entry;
+  final List<Map<String, dynamic>> episodes;
 
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
-    final poster = app.imageUrl(entry.s('poster_path'), size: 'w185');
-    final showId = entry.i('show_tmdb_id');
-    final season = entry.i('season_number');
-    final episode = entry.i('episode_number');
-    return InkWell(
-      onTap: showId == null || season == null || episode == null
-          ? null
-          : () => pushScreen(
-                context,
-                EpisodeScreen(
-                  showTmdbId: showId,
-                  seasonNumber: season,
-                  episodeNumber: episode,
-                  showTitle: entry.s('show_title'),
+    final first = episodes.first;
+    final poster = app.imageUrl(first.s('poster_path'), size: 'w185');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 46,
+            height: 69,
+            child: Poster(
+              url: poster,
+              title: first.s('show_title'),
+              radius: 7,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  first.s('show_title') ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 46,
-              height: 69,
-              child: Poster(
-                url: poster,
-                title: entry.s('show_title'),
-                radius: 7,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.s('show_title') ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                ...episodes.map((entry) {
+                  final showId = entry.i('show_tmdb_id');
+                  final season = entry.i('season_number');
+                  final episode = entry.i('episode_number');
+                  final label =
+                      'S${season ?? '?'}E${episode ?? '?'} · ${entry.s('episode_name') ?? ''}';
+                  return InkWell(
+                    onTap: showId == null || season == null || episode == null
+                        ? null
+                        : () => pushScreen(
+                              context,
+                              EpisodeScreen(
+                                showTmdbId: showId,
+                                seasonNumber: season,
+                                episodeNumber: episode,
+                                showTitle: entry.s('show_title'),
+                              ),
+                            ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: kMuted,
+                              ),
+                            ),
+                          ),
+                          if (entry.b('watched'))
+                            const TagChip(label: 'Watched')
+                          else if (entry.b('collected'))
+                            const TagChip(label: 'Collected'),
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    'S${season ?? '?'}E${episode ?? '?'} · ${entry.s('episode_name') ?? ''}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10, color: kMuted),
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      if (entry.b('watched'))
-                        const TagChip(label: 'Watched')
-                      else if (entry.b('collected'))
-                        const TagChip(label: 'Collected')
-                      else
-                        const TagChip(label: 'Airing'),
-                    ],
-                  ),
-                ],
-              ),
+                  );
+                }),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

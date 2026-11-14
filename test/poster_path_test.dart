@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrob/core/format.dart';
+import 'package:scrobr/core/format.dart';
 
 void main() {
   test('episodes use the show poster', () {

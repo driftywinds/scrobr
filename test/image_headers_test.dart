@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrob/core/app_state.dart';
+import 'package:scrobr/core/app_state.dart';
 
 void main() {
   test('session headers cover own proxy images but not external URLs', () {

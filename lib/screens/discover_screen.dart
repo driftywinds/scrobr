@@ -41,6 +41,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       app.tryGet('/media/streaming', {'type': _type}),
       app.tryGet('/media/trending/trailers'),
     ]);
+    if (results.every((result) => result == null)) {
+      throw Exception('Could not load discovery');
+    }
     return _DiscoverData(
       trending: asMaps(asMap(results[0])['results']),
       nowPlaying: asMaps(asMap(results[1])['results']),
@@ -157,7 +160,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SegmentedButton<String>(
+            child: SegmentedButton<String>(showSelectedIcon: false, 
               segments: const [
                 ButtonSegment(value: 'movie', label: Text('Movies')),
                 ButtonSegment(value: 'series', label: Text('Shows')),

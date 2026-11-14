@@ -150,14 +150,11 @@ class _ShowBody extends StatelessWidget {
             background: Stack(
               fit: StackFit.expand,
               children: [
-                if (backdrop != null)
-                  Image.network(
-                    backdrop,
-                    headers: ScrobScope.of(context).imageHeaders(backdrop),
-                    fit: BoxFit.cover,
-                  )
-                else
-                  Container(color: kCard),
+                CachedArtwork(
+                  url: backdrop,
+                  fit: BoxFit.cover,
+                  placeholder: Container(color: kCard),
+                ),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(

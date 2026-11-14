@@ -176,11 +176,10 @@ class _StudioHeader extends StatelessWidget {
             height: 80,
             child: logo == null
                 ? const Icon(Icons.apartment_rounded, color: kMuted, size: 42)
-                : Image.network(
-                    logo,
-                    headers: ScrobScope.of(context).imageHeaders(logo),
+                : CachedArtwork(
+                    url: logo,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    placeholder: const Icon(
                       Icons.apartment_rounded,
                       color: kMuted,
                       size: 42,

@@ -156,7 +156,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: SegmentedButton<String>(
+            child: SegmentedButton<String>(showSelectedIcon: false, 
               segments: const [
                 ButtonSegment(value: '', label: Text('All')),
                 ButtonSegment(value: 'movie', label: Text('Movies')),
@@ -315,7 +315,7 @@ class _HistoryTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -324,16 +324,19 @@ class _HistoryTile extends StatelessWidget {
                       episode,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, color: kMuted),
+                      style: const TextStyle(fontSize: 11, color: kMuted),
                     ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         time,
-                        style: const TextStyle(fontSize: 9, color: kMuted),
+                        style: const TextStyle(fontSize: 10, color: kMuted),
                       ),
-                      if (source != null && source.isNotEmpty) ...[
+                      if (source != null &&
+                          source.isNotEmpty &&
+                          source != 'import' &&
+                          source != 'manual') ...[
                         const SizedBox(width: 6),
                         TagChip(label: source),
                       ],

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -53,6 +54,7 @@ Future<bool> toggleWatched(
         'media_type': type,
       });
     }
+    HapticFeedback.selectionClick();
     showSnack(context, watched ? 'Marked as watched' : 'Marked as unwatched');
     if (watched) {
       final promptKey = type == 'episode'
