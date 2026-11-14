@@ -54,7 +54,7 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Building Scrob $version"
+          echo "Building Scrobr $version"
 
       - name: Install dependencies
         run: flutter pub get
@@ -87,13 +87,13 @@ jobs:
             --dart-define=SCROB_SERVER=https://scrob.003274.xyz \
             --dart-define=APP_VERSION="${{ steps.version.outputs.version }}"
           cp build/app/outputs/flutter-apk/app-release.apk \
-             "scrob-${{ steps.version.outputs.version }}.apk"
+             "scrobr-${{ steps.version.outputs.version }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: scrob-apk-${{ steps.version.outputs.version }}
-          path: scrob-${{ steps.version.outputs.version }}.apk
+          name: scrobr-apk-${{ steps.version.outputs.version }}
+          path: scrobr-${{ steps.version.outputs.version }}.apk
           if-no-files-found: error
 
       - name: Publish GitHub release
@@ -101,5 +101,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: scrob-${{ steps.version.outputs.version }}.apk
+          files: scrobr-${{ steps.version.outputs.version }}.apk
           generate_release_notes: true
