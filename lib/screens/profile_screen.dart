@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import 'profile_media_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.userId});
@@ -228,6 +229,15 @@ class _ProfileBody extends StatelessWidget {
     };
   }
 
+  void _openMore(BuildContext context, String kind, String title) {
+    final id = profile.i('id');
+    if (id == null) return;
+    pushScreen(
+      context,
+      ProfileMediaScreen(userId: id, kind: kind, title: title),
+    );
+  }
+
   Future<void> _follow(BuildContext context) async {
     final app = ScrobScope.of(context);
     final id = profile.i('id');
@@ -385,21 +395,41 @@ class _ProfileBody extends StatelessWidget {
           MediaRow(
             title: 'Top Rated Movies',
             items: topMovies.map(_asMedia).toList(),
+            onSeeAll: () => _openMore(
+              context,
+              'top-rated-movies',
+              'Top Rated Movies',
+            ),
           ),
         if (topShows.isNotEmpty)
           MediaRow(
             title: 'Top Rated Shows',
             items: topShows.map(_asMedia).toList(),
+            onSeeAll: () => _openMore(
+              context,
+              'top-rated-shows',
+              'Top Rated Shows',
+            ),
           ),
         if (recentMovies.isNotEmpty)
           MediaRow(
             title: 'Recently Watched Movies',
             items: recentMovies.map(_asMedia).toList(),
+            onSeeAll: () => _openMore(
+              context,
+              'recently-watched-movies',
+              'Recently Watched Movies',
+            ),
           ),
         if (recentShows.isNotEmpty)
           MediaRow(
             title: 'Recently Watched Shows',
             items: recentShows.map(_asMedia).toList(),
+            onSeeAll: () => _openMore(
+              context,
+              'recently-watched-shows',
+              'Recently Watched Shows',
+            ),
           ),
         if (lists.isNotEmpty)
           Padding(

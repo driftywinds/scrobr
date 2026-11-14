@@ -11,8 +11,8 @@ and the main browsing, tracking, social and settings flows of the web UI.
 
 - Password login with 2FA challenge, "stay logged in", registration and API-key
   sign-in; server URL is configurable.
-- Dashboard: continue watching, next up, now playing, recently added and
-  trending rows.
+- Dashboard: continue watching, next up, airing today, now playing, recently
+  added and trending rows.
 - Discover: trending, now playing / on air, upcoming / new episodes, top rated,
   for you, hidden gems and streaming rows for movies and shows.
 - Library for movies and shows with sort, watched/rating/list/year/genre
@@ -28,8 +28,9 @@ and the main browsing, tracking, social and settings flows of the web UI.
 - Watch history with date grouping, filters, per-entry delete and unwatch.
 - Lists (watchlist, private/friends/public), create/edit/delete and item
   management.
-- Profiles with follow/unfollow, top rated and recently watched rows, stats
-  charts (watch time, activity, ratings, weekdays, genres) and public profiles.
+- Profiles with follow/unfollow, top rated and recently watched rows with
+  paginated “see all” pages, stats charts (watch time, activity, ratings,
+  weekdays, genres) and public profiles.
 - Calendar, progress, dropped, existing connection management and sync controls.
 - Settings: preferences, API-key regeneration, password/email/2FA, connected
   apps, manage-on-web links for providers/integrations and an admin panel for

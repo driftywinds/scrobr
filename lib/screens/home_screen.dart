@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
       app.tryGet('/media/trending/movies'),
       app.tryGet('/media/trending/shows'),
       app.tryGet('/history/now-playing'),
+      app.tryGet('/media/airing-today/collected'),
     ]);
     return _HomeData(
       continueWatching: asMaps(asMap(results[0])['continue_watching']),
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       trendingMovies: asMaps(asMap(results[4])['results']),
       trendingShows: asMaps(asMap(results[5])['results']),
       nowPlaying: asMaps(asMap(results[6])['now_playing']),
+      airingToday: asMaps(asMap(results[7])['results']),
     );
   }
 
@@ -181,6 +183,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   onSeeAll: () => pushScreen(context, const NextUpScreen()),
                 ),
                 MediaRow(
+                  title: 'Airing Today',
+                  items: data.airingToday,
+                ),
+                MediaRow(
                   title: 'Recently Added Movies',
                   items: data.recentMovies,
                   onSeeAll: () => pushScreen(
@@ -241,6 +247,7 @@ class _HomeData {
     required this.trendingMovies,
     required this.trendingShows,
     required this.nowPlaying,
+    required this.airingToday,
   });
 
   final List<Map<String, dynamic>> continueWatching;
@@ -250,6 +257,7 @@ class _HomeData {
   final List<Map<String, dynamic>> trendingMovies;
   final List<Map<String, dynamic>> trendingShows;
   final List<Map<String, dynamic>> nowPlaying;
+  final List<Map<String, dynamic>> airingToday;
 }
 
 class _ContinueHero extends StatelessWidget {
