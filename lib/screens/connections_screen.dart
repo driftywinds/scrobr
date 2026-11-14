@@ -19,7 +19,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _future ??= _load();
+    if (!ScrobScope.of(context).isApiKeyMode) {
+      _future ??= _load();
+    }
   }
 
   Future<List<Map<String, dynamic>>> _load() async {
@@ -185,6 +187,28 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
+    if (app.isApiKeyMode) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Connections')),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const EmptyState(
+              title: 'Password login required',
+              body:
+                  'Connections use account-level credentials. Sign in with your password, or manage them on the Scrob web UI.',
+              icon: Icons.lock_outline_rounded,
+            ),
+            FilledButton.tonalIcon(
+              onPressed: _openWeb,
+              icon: const Icon(Icons.open_in_new_rounded, size: 16),
+              label: const Text('Open web connections'),
+            ),
+          ],
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Connections'),

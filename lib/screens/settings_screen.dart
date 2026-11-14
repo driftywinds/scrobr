@@ -497,6 +497,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
+    if (app.isApiKeyMode) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kSurface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.key_rounded, color: kAccent),
+                      SizedBox(width: 8),
+                      Text(
+                        'API-key session',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Account settings, connections and integrations need a password login. You can still browse, track and use the web UI.',
+                    style: TextStyle(fontSize: 12, color: kMuted, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.public_rounded),
+              title: const Text('Open Scrob web UI'),
+              subtitle: Text(app.server),
+              trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+              onTap: _openWebUi,
+            ),
+            ListTile(
+              leading: const Icon(Icons.dns_outlined),
+              title: const Text('Connections on web'),
+              trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+              onTap: _openWebConnections,
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('Scrob for Android'),
+              subtitle: const Text('API-key session'),
+            ),
+          ],
+        ),
+      );
+    }
     final settings = app.settings ?? const <String, dynamic>{};
     final me = app.me ?? const <String, dynamic>{};
 
