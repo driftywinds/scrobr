@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../screens/about_screen.dart';
 import '../screens/browse_screen.dart';
@@ -18,6 +19,7 @@ import '../screens/show_screen.dart';
 import '../screens/stats_screen.dart';
 import '../screens/studio_screen.dart';
 import 'format.dart';
+import 'app_state.dart';
 
 Future<T?> pushScreen<T>(BuildContext context, Widget screen) {
   return Navigator.of(context).push<T>(
@@ -28,6 +30,22 @@ Future<T?> pushScreen<T>(BuildContext context, Widget screen) {
 void openMedia(BuildContext context, Map<String, dynamic> item) {
   final type = item.s('type') ?? item.s('media_type');
   final tmdb = item.i('tmdb_id');
+  final tvdb = item.i('tvdb_id');
+  if (tmdb == null && tvdb != null) {
+    final app = ScrobScope.of(context);
+    final path = switch (type) {
+      'episode' => '/show/tvdb/${item.i('show_tvdb_id') ?? tvdb}',
+      'person' || 'collection' => null,
+      _ => '/show/tvdb/$tvdb',
+    };
+    if (path != null) {
+      launchUrl(
+        Uri.parse('${app.server}$path'),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+  }
   switch (type) {
     case 'movie':
       if (tmdb != null) pushScreen(context, MovieScreen(tmdbId: tmdb));
