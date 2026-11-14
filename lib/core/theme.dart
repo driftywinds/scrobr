@@ -20,6 +20,8 @@ ThemeData buildTheme() {
     onSurface: Colors.white,
     surfaceContainerHighest: kSurface,
     error: kDanger,
+    // SnackBar's fallback content colour derives from onInverseSurface.
+    onInverseSurface: Colors.white,
   );
 
   return ThemeData(
