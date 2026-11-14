@@ -140,7 +140,7 @@ class _ShowBody extends StatelessWidget {
             ),
           ],
           flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.only(left: 16, right: 16, bottom: 14),
+            titlePadding: const EdgeInsets.only(left: 72, right: 16, bottom: 14),
             title: Text(
               title,
               maxLines: 1,
