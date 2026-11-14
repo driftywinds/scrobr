@@ -108,6 +108,7 @@ class _ShowBody extends StatelessWidget {
     final rewatch = asMap(show['rewatch']);
     final inRewatch = rewatch.isNotEmpty;
     final watchPct = show.d('watch_pct') ?? 0;
+    final networks = show.maps('networks');
 
     return CustomScrollView(
       slivers: [
@@ -217,6 +218,29 @@ class _ShowBody extends StatelessWidget {
                         children:
                             show.strings('genres').map((g) => TagChip(label: g)).toList(),
                       ),
+                      if (networks.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: networks.map((network) {
+                            final id = network.i('id');
+                            return ActionChip(
+                              label: Text(
+                                network.s('name') ?? '',
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                              onPressed: id == null
+                                  ? null
+                                  : () => openStudio(
+                                        context,
+                                        id,
+                                        isNetwork: true,
+                                      ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ],
                   ),
                 ),
