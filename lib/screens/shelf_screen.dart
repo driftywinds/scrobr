@@ -105,6 +105,7 @@ class NextUpScreen extends StatefulWidget {
 
 class _NextUpScreenState extends State<NextUpScreen> {
   Future<List<Map<String, dynamic>>>? _future;
+  bool _includeHidden = false;
 
   @override
   void didChangeDependencies() {
@@ -113,9 +114,10 @@ class _NextUpScreenState extends State<NextUpScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _load() async {
-    final data = asMap(
-      await ScrobScope.of(context).get('/history/next-up', {'limit': 100}),
-    );
+    final data = asMap(await ScrobScope.of(context).get(
+      '/history/next-up',
+      {'limit': 100, 'include_hidden': _includeHidden},
+    ));
     return data.maps('next_up');
   }
 
@@ -126,12 +128,31 @@ class _NextUpScreenState extends State<NextUpScreen> {
     setState(() => _future = _load());
   }
 
+  Future<void> _unhide(int showId) async {
+    await ScrobScope.of(context)
+        .delete('/history/next-up/hide', {'show_id': showId});
+    if (!mounted) return;
+    setState(() => _future = _load());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Next Up'),
         actions: [
+          IconButton(
+            tooltip: _includeHidden ? 'Hide hidden shows' : 'Show hidden shows',
+            onPressed: () {
+              setState(() => _includeHidden = !_includeHidden);
+              setState(() => _future = _load());
+            },
+            icon: Icon(
+              _includeHidden
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+            ),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () => setState(() => _future = _load()),
@@ -176,13 +197,22 @@ class _NextUpScreenState extends State<NextUpScreen> {
                       'S${item.i('season_number')}E${item.i('episode_number')} · ${item.s('show_title') ?? ''}${left != null ? ' · $left left' : ''}',
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'hide') {
-                        final showId = item.i('show_id');
-                        if (showId != null) _hide(showId);
-                      }
+                      final showId = item.i('show_id');
+                      if (showId == null) return;
+                      if (value == 'hide') _hide(showId);
+                      if (value == 'unhide') _unhide(showId);
                     },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'hide', child: Text('Hide show')),
+                    itemBuilder: (_) => [
+                      if (item.b('next_up_hidden'))
+                        const PopupMenuItem(
+                          value: 'unhide',
+                          child: Text('Unhide show'),
+                        )
+                      else
+                        const PopupMenuItem(
+                          value: 'hide',
+                          child: Text('Hide show'),
+                        ),
                     ],
                   ),
                 );

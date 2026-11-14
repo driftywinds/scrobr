@@ -53,6 +53,19 @@ class _HomeScreenState extends State<HomeScreen> {
     await next;
   }
 
+  Future<void> _clearSessions() async {
+    try {
+      await ScrobScope.of(context).delete('/history/sessions');
+      await _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not clear sessions: $e')),
+        );
+      }
+    }
+  }
+
   void _openMenu(String value) {
     switch (value) {
       case 'lists':
@@ -151,7 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 if (hero != null) _ContinueHero(item: hero),
                 if (data.nowPlaying.isNotEmpty)
-                  _NowPlayingStrip(sessions: data.nowPlaying),
+                  _NowPlayingStrip(
+                    sessions: data.nowPlaying,
+                    onClear: _clearSessions,
+                  ),
                 MediaRow(
                   title: 'Continue Watching',
                   items: data.continueWatching
@@ -345,9 +361,10 @@ class _ContinueHero extends StatelessWidget {
 }
 
 class _NowPlayingStrip extends StatelessWidget {
-  const _NowPlayingStrip({required this.sessions});
+  const _NowPlayingStrip({required this.sessions, required this.onClear});
 
   final List<Map<String, dynamic>> sessions;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -357,16 +374,26 @@ class _NowPlayingStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'NOW PLAYING',
-            style: TextStyle(
-              fontSize: 9,
-              letterSpacing: 1.3,
-              fontWeight: FontWeight.w800,
-              color: kGreen,
-            ),
+          Row(
+            children: [
+              const Text(
+                'NOW PLAYING',
+                style: TextStyle(
+                  fontSize: 9,
+                  letterSpacing: 1.3,
+                  fontWeight: FontWeight.w800,
+                  color: kGreen,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Clear sessions',
+                onPressed: onClear,
+                icon: const Icon(Icons.close_rounded, size: 14),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
           ...sessions.map((session) {
             final media = asMap(session['media']);
             final title = media.s('show_title') ?? media.s('title') ?? 'Unknown';
