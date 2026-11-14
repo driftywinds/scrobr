@@ -634,6 +634,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               trailing: const Icon(Icons.open_in_new_rounded, size: 16),
               onTap: _openWebConnections,
             ),
+            SwitchListTile(
+              title: const Text('Show Library tab'),
+              subtitle: const Text('Adds Library to the bottom navigation'),
+              value: app.showLibraryTab,
+              onChanged: (v) => app.setShowLibraryTab(v),
+            ),
             ListTile(
               leading: const Icon(Icons.info_outline_rounded),
               title: const Text('Scrobr for Android'),
@@ -786,6 +792,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
           if (!app.isApiKeyMode) ...[
+            const _Section('Navigation'),
+            SwitchListTile(
+              title: const Text('Show Library tab'),
+              subtitle: const Text(
+                'Adds Library to the bottom navigation (off by default)',
+              ),
+              value: app.showLibraryTab,
+              onChanged: (v) => app.setShowLibraryTab(v),
+            ),
             const _Section('Preferences'),
             SwitchListTile(
               title: const Text('Blur explicit artwork'),

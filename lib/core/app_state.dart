@@ -4,18 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
 import 'format.dart';
 
-const _kServer = 'scrob_server';
+const _kServer = 'scrobr_server';
 const _kToken = 'scrob_token';
 const _kApiKey = 'scrob_api_key';
+const _kShowLibrary = 'scrobr_show_library';
 
 class AppState extends ChangeNotifier {
   AppState({String? initialServer})
-      : server = normalizeOrigin(initialServer ?? defaultServer);
-
-  static const String defaultServer = String.fromEnvironment(
-    'SCROB_SERVER',
-    defaultValue: 'https://scrob.003274.xyz',
-  );
+      : server = normalizeOrigin(initialServer ?? '');
 
   late SharedPreferences _prefs;
   ApiClient? _client;
@@ -26,8 +22,10 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? me;
   Map<String, dynamic>? settings;
   bool initialized = false;
+  bool showLibraryTab = false;
   String? sessionError;
 
+  bool get hasServer => server.isNotEmpty;
   bool get isLoggedIn => token != null || apiKey != null;
   bool get isApiKeyMode => token == null && apiKey != null;
   bool get isAdmin => me?.b('is_admin') ?? false;
@@ -35,18 +33,24 @@ class AppState extends ChangeNotifier {
   String get displayName =>
       me?.s('display_name') ?? me?.s('username') ?? (isApiKeyMode ? 'API key' : 'Scrob user');
   String get origin => server;
-  String get proxyUrl => '$server/api/proxy';
+  String get proxyUrl => hasServer ? '$server/api/proxy' : '';
 
-  ApiClient get client => _client ??= ApiClient(
-        baseUrl: proxyUrl,
-        token: token,
-        apiKey: apiKey,
-      );
+  ApiClient get client {
+    if (!hasServer) {
+      throw StateError('No Scrob server configured');
+    }
+    return _client ??= ApiClient(
+      baseUrl: proxyUrl,
+      token: token,
+      apiKey: apiKey,
+    );
+  }
 
   static String normalizeOrigin(String value) {
     var s = value.trim();
-    if (s.isEmpty) s = defaultServer;
-    if (!s.startsWith('http://') && !s.startsWith('https://')) {
+    if (s.isEmpty) return '';
+    final lower = s.toLowerCase();
+    if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
       s = 'https://$s';
     }
     s = s.replaceAll(RegExp(r'/+$'), '');
@@ -58,10 +62,11 @@ class AppState extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    server = normalizeOrigin(_prefs.getString(_kServer) ?? defaultServer);
+    server = normalizeOrigin(_prefs.getString(_kServer) ?? '');
+    showLibraryTab = _prefs.getBool(_kShowLibrary) ?? false;
     token = _prefs.getString(_kToken);
     apiKey = _prefs.getString(_kApiKey);
-    if (token != null && token!.isNotEmpty) {
+    if (hasServer && token != null && token!.isNotEmpty) {
       try {
         await _loadSession();
       } on ApiException catch (e) {
@@ -168,11 +173,43 @@ class AppState extends ChangeNotifier {
 
   Future<void> setServer(String value) async {
     final next = normalizeOrigin(value);
-    if (next == server) return;
+    if (next.isEmpty || next == server) return;
     await _clearCredentials(notify: false);
     server = next;
     await _prefs.setString(_kServer, next);
     notifyListeners();
+  }
+
+  Future<void> setShowLibraryTab(bool value) async {
+    showLibraryTab = value;
+    await _prefs.setBool(_kShowLibrary, value);
+    notifyListeners();
+  }
+
+  /// Checks that the URL points at a live Scrob API before it is saved.
+  static Future<String> verifyServer(String value) async {
+    final origin = normalizeOrigin(value);
+    if (origin.isEmpty) {
+      throw ApiException(0, 'Enter your server URL');
+    }
+    final api = ApiClient(baseUrl: '$origin/api/proxy');
+    try {
+      final data = asMap(await api.get('/auth/has-users'));
+      if (!data.containsKey('has_users')) {
+        throw ApiException(0, 'That URL is not a Scrob server.');
+      }
+      return origin;
+    } on ApiException catch (e) {
+      if (e.status == 401 || e.status == 404) {
+        throw ApiException(e.status, 'No Scrob server found at $origin');
+      }
+      throw ApiException(
+        e.status,
+        'Could not connect to $origin: ${e.message}',
+      );
+    } catch (_) {
+      throw ApiException(0, 'Could not connect to $origin');
+    }
   }
 
   Future<dynamic> get(String path, [Map<String, dynamic>? query]) =>
@@ -287,7 +324,7 @@ class AppState extends ChangeNotifier {
   /// Authorization/Cookie on cross-origin redirects, so the header cannot leak
   /// when the proxy 302s to image.tmdb.org.
   Map<String, String>? imageHeaders(String? url) {
-    if (url == null || !url.startsWith(proxyUrl)) return null;
+    if (!hasServer || url == null || !url.startsWith(proxyUrl)) return null;
     return {
       if (token != null) 'Authorization': 'Bearer $token',
       'X-Api-Key': (apiKey != null && apiKey!.isNotEmpty)

@@ -100,6 +100,14 @@ String fmtRating(num? n) {
 
 String fmtPercent(num? n) => '${(n ?? 0).round()}%';
 
+String fmtMonthShort(String? value) {
+  if (value == null || value.isEmpty) return '';
+  final m = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
+  if (m == null) return value;
+  final date = DateTime(int.parse(m.group(1)!), int.parse(m.group(2)!));
+  return DateFormat('MMM yy').format(date);
+}
+
 String yearOf(dynamic date) {
   final s = asString(date);
   if (s == null || s.length < 4) return '';

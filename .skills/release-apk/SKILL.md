@@ -13,8 +13,9 @@ It runs on Ubuntu, sets up Flutter stable, runs `flutter pub get` and
 flutter build apk --release --build-name "${VERSION#v}" --build-number "$GITHUB_RUN_NUMBER"
 ```
 
-and uploads `build/app/outputs/flutter-apk/app-release.apk` as an artifact. On
-tag pushes it also creates/updates a GitHub Release with that APK.
+and uploads `build/app/outputs/flutter-apk/app-release.apk` as an artifact. It
+then creates/updates a GitHub Release tagged `v${VERSION}` with that APK for both
+manual dispatches and tag pushes.
 
 ## Signing with a base64 keystore
 

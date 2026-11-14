@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _username = TextEditingController();
   final _password = TextEditingController();
   final _apiKey = TextEditingController();
+  final _serverUrl = TextEditingController();
   bool _remember = true;
   bool _obscure = true;
   bool _busy = false;
@@ -35,7 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_registrationChecked) {
+    final app = ScrobScope.of(context);
+    if (app.hasServer && !_registrationChecked) {
       _registrationChecked = true;
       _checkRegistration();
     }
@@ -43,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _checkRegistration() async {
     final app = ScrobScope.of(context);
+    if (!app.hasServer) return;
     final result = await app.tryGet('/auth/registration-status');
     if (!mounted) return;
     setState(() => _registrationEnabled = asMap(result).b('enabled'));
@@ -53,11 +56,16 @@ class _LoginScreenState extends State<LoginScreen> {
     _username.dispose();
     _password.dispose();
     _apiKey.dispose();
+    _serverUrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final app = ScrobScope.of(context);
+    if (!app.hasServer) {
+      setState(() => _error = 'Connect to your server first');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -101,6 +109,26 @@ class _LoginScreenState extends State<LoginScreen> {
     return result == true;
   }
 
+  Future<void> _connectServer() async {
+    final app = ScrobScope.of(context);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final origin = await AppState.verifyServer(_serverUrl.text);
+      await app.setServer(origin);
+      _registrationChecked = false;
+      await _checkRegistration();
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _changeServer() async {
     final app = ScrobScope.of(context);
     final controller = TextEditingController(text: app.server);
@@ -114,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
           keyboardType: TextInputType.url,
           decoration: const InputDecoration(
             labelText: 'Server URL',
-            hintText: 'https://scrob.example.com',
+            hintText: 'https://your-server.example',
           ),
         ),
         actions: [
@@ -130,14 +158,27 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
     controller.dispose();
-    if (value != null && value.trim().isNotEmpty) {
-      await app.setServer(value);
+    if (value == null || value.trim().isEmpty) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final origin = await AppState.verifyServer(value);
+      await app.setServer(origin);
+      _registrationChecked = false;
+      await _checkRegistration();
       if (mounted) {
-        setState(() => _error = null);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Server set to ${app.server}')),
         );
       }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -260,9 +301,132 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _serverSetup() {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: SvgPicture.asset(
+                      'assets/scrobr.svg',
+                      width: 88,
+                      height: 88,
+                      placeholderBuilder: (_) => const Icon(
+                        Icons.movie_filter_rounded,
+                        size: 80,
+                        color: kAccent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Scrobr',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Connect to your own Scrob server to get started.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: kMuted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 28),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: kSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFF27272A)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Server URL',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'The app verifies the server before saving it. '
+                          'Use the address of your self-hosted Scrob instance.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: kMuted,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _serverUrl,
+                          autofocus: true,
+                          keyboardType: TextInputType.url,
+                          textInputAction: TextInputAction.done,
+                          autocorrect: false,
+                          onSubmitted: (_) {
+                            if (!_busy) _connectServer();
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'Server URL',
+                            hintText: 'https://your-server.example',
+                            prefixIcon: Icon(Icons.dns_outlined),
+                          ),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            _error!,
+                            style: const TextStyle(
+                              color: kDanger,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        FilledButton(
+                          onPressed: _busy ? null : _connectServer,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          child: _busy
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Connect'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
+    if (!app.hasServer) return _serverSetup();
     return Scaffold(
       body: SafeArea(
         child: Center(

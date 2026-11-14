@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
@@ -76,6 +79,49 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         return;
       }
       openMedia(context, result);
+    } on ApiException catch (e) {
+      if (!e.message.contains('no_sources')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not pick: $e')),
+          );
+        }
+        return;
+      }
+      // The server only personalises picks when the user has a streaming
+      // service or media-server source. Fall back to public trending titles
+      // so the button still does something useful.
+      try {
+        final data = asMap(await app.get(
+          _type == 'movie' ? '/media/trending/movies' : '/media/trending/shows',
+        ));
+        final items = data.maps('results');
+        if (items.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Add a source in Connections to get picks'),
+              ),
+            );
+          }
+          return;
+        }
+        if (!mounted) return;
+        openMedia(context, items[Random().nextInt(items.length)]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Picked from trending — add a source in Connections for personalised picks',
+            ),
+          ),
+        );
+      } catch (fallbackError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not pick: $fallbackError')),
+          );
+        }
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

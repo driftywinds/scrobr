@@ -28,7 +28,9 @@ class ScrobApp extends StatelessWidget {
         home: ListenableBuilder(
           listenable: state,
           builder: (context, _) =>
-              state.isLoggedIn ? const AppShell() : const LoginScreen(),
+              state.isLoggedIn && state.hasServer
+                  ? const AppShell()
+                  : const LoginScreen(),
         ),
       ),
     );

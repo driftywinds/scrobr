@@ -7,18 +7,28 @@ The app talks to the Scrob backend through the same `/api/proxy` surface the
 PWA uses. It supports JWT username/password sessions, optional API-key sessions,
 and the main browsing, tracking, social and settings flows of the web UI.
 
+## Screenshots
+
+| Home | Discover |
+| --- | --- |
+| <img src="assets/scr1.jpg" width="300" alt="Scrobr Home"> | <img src="assets/scr2.jpg" width="300" alt="Scrobr Discover"> |
+| **Watch history** | **Calendar** |
+| <img src="assets/scr3.jpg" width="300" alt="Scrobr History"> | <img src="assets/scr4.jpg" width="300" alt="Scrobr Calendar"> |
+
 ## Features
 
-- Password login with 2FA challenge, "stay logged in", registration and API-key
-  sign-in; server URL is configurable.
+- First launch asks for your own Scrob server URL and verifies it before saving.
+  Password login with TOTP/backup-code challenge, "stay logged in", registration
+  and API-key sign-in.
 - Dashboard: continue watching, next up, airing today, now playing, recently
   added and trending rows.
 - Discover: trending, now playing / on air, upcoming / new episodes, top rated,
   for you, hidden gems and streaming rows for movies and shows.
 - Explore screen for movies/shows: popular, top rated and trending categories
   with genre, year, rating, watch-state and list filters.
-- Library for movies and shows with sort, watched/rating/list/year/genre
-  filters, saved filter presets and infinite scrolling.
+- Optional Library tab (off by default; enable in Settings) for movies and shows
+  with sort, watched/rating/list/year/genre filters, saved presets and infinite
+  scrolling.
 - Search across TMDB movies, shows and people, plus Scrob user search.
 - Movie, show, season, episode, person, collection and studio/company pages
   with cast, crew, recommendations, release dates and where-to-watch.
@@ -48,13 +58,13 @@ flutter pub get
 flutter run
 ```
 
-The default server is `https://scrob.003274.xyz`; change it from the login
-screen or in Settings.
+On first launch the app asks for your own Scrob server URL, verifies it, and
+then saves it. No server is bundled or assumed.
 
 ## Build
 
 ```sh
-flutter build apk --release --dart-define=SCROB_SERVER=https://scrob.003274.xyz
+flutter build apk --release
 ```
 
 Release builds are currently signed with the debug key so they are directly
@@ -71,7 +81,8 @@ exclusions.
 - a pushed tag such as `v1.2.3`.
 
 The tag version is passed to Flutter as `--build-name`; the workflow uploads the
-APK as a build artifact and attaches it to a GitHub release for tag pushes.
+APK as a build artifact and creates a GitHub release (including for manual
+dispatches).
 
 ### Signing
 

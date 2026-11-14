@@ -162,7 +162,10 @@ class _StatsBody extends StatelessWidget {
                   .map((e) =>
                       (e.i('movies') ?? 0) + (e.i('episodes') ?? 0) + 0.0)
                   .toList(),
-              labels: activity.map((e) => e.s('month') ?? '').toList(),
+              labels: activity
+                  .map((e) => fmtMonthShort(e.s('month')))
+                  .toList(),
+              maxLabels: 8,
             ),
           ),
         if (ratings.isNotEmpty)
@@ -293,23 +296,29 @@ class _BarChart extends StatelessWidget {
     required this.values,
     required this.labels,
     this.color = kAccent,
+    this.maxLabels = 0,
   });
 
   final List<double> values;
   final List<String> labels;
   final Color color;
+  final int maxLabels;
 
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final step = maxLabels > 0 && values.length > maxLabels
+        ? (values.length / maxLabels).ceil()
+        : 1;
     return SizedBox(
       height: 120,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: List.generate(values.length, (i) {
           final ratio = maxValue <= 0 ? 0.0 : values[i] / maxValue;
-          final label = labels[i];
+          final showLabel = step <= 1 || i % step == 0 || i == values.length - 1;
+          final label = showLabel ? labels[i] : '';
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -334,7 +343,9 @@ class _BarChart extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    label.length >= 7 ? label.substring(2) : label,
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
                     style: const TextStyle(fontSize: 7, color: kMuted),
                   ),
                 ],

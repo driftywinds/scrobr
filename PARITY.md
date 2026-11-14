@@ -1,13 +1,14 @@
 # Scrobr parity
 
-Target instance: `https://scrob.003274.xyz` (Scrob 2.38.0). The app is a native
-Flutter client over `/api/proxy`; it does not embed the web UI.
+The app is a native Flutter client over `/api/proxy`; it does not embed the web
+UI or bundle any server address. The user supplies and verifies their own Scrob
+server on first launch.
 
 ## Native screens
 
 | Web area | Android |
 | --- | --- |
-| `/login`, `/register`, `/forgot-password` | Password login, TOTP/backup-code challenge, registration, reset email; `AutofillGroup` hints |
+| `/login`, `/register`, `/forgot-password` | First-run server URL verification, password login, TOTP/backup-code challenge, registration, reset email; `AutofillGroup` hints |
 | `/` dashboard | Continue watching, Next Up, Airing Today, Now Playing, Recently Added, Trending |
 | `/discover`, `/movies`, `/shows` | Discover rows and native Explore with Popular/Top Rated/Trending plus genre, year, rating, watch, list and my-rating filters |
 | `/search` | Movies, shows, people |
