@@ -493,9 +493,24 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
       TextEditingController(text: widget.settings.s('tvdb_subscriber_pin'));
   late final _mdblist =
       TextEditingController(text: widget.settings.s('mdblist_api_key'));
+  late final _radarrUrl =
+      TextEditingController(text: widget.settings.s('radarr_url'));
+  late final _radarrToken =
+      TextEditingController(text: widget.settings.s('radarr_token'));
+  late final _sonarrUrl =
+      TextEditingController(text: widget.settings.s('sonarr_url'));
+  late final _sonarrToken =
+      TextEditingController(text: widget.settings.s('sonarr_token'));
+  late final _cacheLimit = TextEditingController(
+    text: widget.settings.d('image_cache_limit_gb')?.toString() ?? '',
+  );
+  late final _defaultOrder =
+      TextEditingController(text: widget.settings.s('default_episode_order'));
   late bool _loggedOut = widget.settings.b('enable_logged_out_navigation');
   late bool _disableComments = widget.settings.b('disable_comments');
   late bool _imageCache = widget.settings.b('image_cache_enabled');
+  late bool _radarrApproval = widget.settings.b('radarr_require_approval');
+  late bool _sonarrApproval = widget.settings.b('sonarr_require_approval');
   bool _saving = false;
 
   @override
@@ -504,6 +519,12 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
     _tvdb.dispose();
     _tvdbPin.dispose();
     _mdblist.dispose();
+    _radarrUrl.dispose();
+    _radarrToken.dispose();
+    _sonarrUrl.dispose();
+    _sonarrToken.dispose();
+    _cacheLimit.dispose();
+    _defaultOrder.dispose();
     super.dispose();
   }
 
@@ -517,6 +538,19 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
             _tvdbPin.text.trim().isEmpty ? null : _tvdbPin.text.trim(),
         'mdblist_api_key':
             _mdblist.text.trim().isEmpty ? null : _mdblist.text.trim(),
+        'radarr_url': _radarrUrl.text.trim().isEmpty ? null : _radarrUrl.text.trim(),
+        'radarr_token':
+            _radarrToken.text.trim().isEmpty ? null : _radarrToken.text.trim(),
+        'sonarr_url': _sonarrUrl.text.trim().isEmpty ? null : _sonarrUrl.text.trim(),
+        'sonarr_token':
+            _sonarrToken.text.trim().isEmpty ? null : _sonarrToken.text.trim(),
+        'radarr_require_approval': _radarrApproval,
+        'sonarr_require_approval': _sonarrApproval,
+        'image_cache_limit_gb':
+            double.tryParse(_cacheLimit.text.trim()),
+        'default_episode_order': _defaultOrder.text.trim().isEmpty
+            ? null
+            : _defaultOrder.text.trim(),
         'enable_logged_out_navigation': _loggedOut,
         'disable_comments': _disableComments,
         'image_cache_enabled': _imageCache,
@@ -566,6 +600,65 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
           obscureText: true,
           decoration: const InputDecoration(labelText: 'MDBList API key'),
         ),
+        const SizedBox(height: 16),
+        const Text(
+          'Radarr / Sonarr requests',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _radarrUrl,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(labelText: 'Radarr URL'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _radarrToken,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Radarr API key'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _sonarrUrl,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(labelText: 'Sonarr URL'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _sonarrToken,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Sonarr API key'),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Require approval for Radarr requests'),
+          value: _radarrApproval,
+          onChanged: (v) => setState(() => _radarrApproval = v),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Require approval for Sonarr requests'),
+          value: _sonarrApproval,
+          onChanged: (v) => setState(() => _sonarrApproval = v),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _defaultOrder,
+          decoration: const InputDecoration(
+            labelText: 'Default episode order',
+            hintText: 'e.g. tmdb:aired',
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _cacheLimit,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Image cache limit (GB)',
+            hintText: 'empty = unlimited/default',
+          ),
+        ),
+        const SizedBox(height: 12),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Allow browsing without an account'),
