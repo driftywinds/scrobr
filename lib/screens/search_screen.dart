@@ -164,7 +164,6 @@ class _SearchScreenState extends State<SearchScreen> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SegmentedButton<String>(
-                showSelectedIcon: false,
                 segments: const [
                   ButtonSegment(value: 'movie', label: Text('Movies')),
                   ButtonSegment(value: 'series', label: Text('Shows')),

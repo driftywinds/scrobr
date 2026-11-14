@@ -31,18 +31,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Future<_DiscoverData> _load() async {
     final app = ScrobScope.of(context);
     final isMovie = _type == 'movie';
-    final report = LoadReport();
-    Future<dynamic> fetch(String path, [Map<String, dynamic>? query]) =>
-        app.getTracked(report, path, query);
     final results = await Future.wait([
-      fetch(isMovie ? '/media/trending/movies' : '/media/trending/shows'),
-      fetch(isMovie ? '/media/now-playing' : '/media/on-air-this-week'),
-      fetch(isMovie ? '/media/upcoming' : '/media/new-episodes'),
-      fetch(isMovie ? '/media/top-rated-movies' : '/media/top-rated-shows'),
-      fetch('/media/hidden-gems', {'type': _type}),
-      fetch('/media/for-you'),
-      fetch('/media/streaming', {'type': _type}),
-      fetch('/media/trending/trailers'),
+      app.tryGet(isMovie ? '/media/trending/movies' : '/media/trending/shows'),
+      app.tryGet(isMovie ? '/media/now-playing' : '/media/on-air-this-week'),
+      app.tryGet(isMovie ? '/media/upcoming' : '/media/new-episodes'),
+      app.tryGet(isMovie ? '/media/top-rated-movies' : '/media/top-rated-shows'),
+      app.tryGet('/media/hidden-gems', {'type': _type}),
+      app.tryGet('/media/for-you'),
+      app.tryGet('/media/streaming', {'type': _type}),
+      app.tryGet('/media/trending/trailers'),
     ]);
     return _DiscoverData(
       trending: asMaps(asMap(results[0])['results']),
@@ -53,7 +50,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       forYou: asMaps(asMap(results[5])['results']),
       streaming: asMaps(asMap(results[6])['results']),
       trailers: asMaps(asMap(results[7])['results']),
-      report: report,
     );
   }
 
@@ -162,7 +158,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: SegmentedButton<String>(
-              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: 'movie', label: Text('Movies')),
                 ButtonSegment(value: 'series', label: Text('Shows')),
@@ -176,7 +171,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const RowsSkeleton();
+                  return const LoadingView(label: 'Finding something to watch');
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
@@ -188,23 +183,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 if (data == null) {
                   return const EmptyState(title: 'Nothing to discover');
                 }
-                if (data.report.allFailed) {
-                  return ErrorView(
-                    message: data.report.message,
-                    onRetry: _reload,
-                  );
-                }
                 return RefreshIndicator(
                   onRefresh: _reload,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(bottom: 28),
                     children: [
-                      if (data.report.partial)
-                        PartialLoadBanner(
-                          message: data.report.message,
-                          onRetry: _reload,
-                        ),
                       MediaRow(
                         title: 'Trending ${_type == 'movie' ? 'Movies' : 'Shows'}',
                         items: data.trending,
@@ -240,8 +224,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       ),
                       if (_type == 'movie')
                         _TrailerRow(items: data.trailers),
-                      if (!data.report.hasErrors &&
-                          data.trending.isEmpty &&
+                      if (data.trending.isEmpty &&
                           data.nowPlaying.isEmpty &&
                           data.upcoming.isEmpty &&
                           data.topRated.isEmpty)
@@ -291,10 +274,8 @@ class _DiscoverData {
     required this.forYou,
     required this.streaming,
     required this.trailers,
-    required this.report,
   });
 
-  final LoadReport report;
   final List<Map<String, dynamic>> trending;
   final List<Map<String, dynamic>> nowPlaying;
   final List<Map<String, dynamic>> upcoming;

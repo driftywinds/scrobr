@@ -6,7 +6,6 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
-import '../widgets/net_image.dart';
 import '../widgets/comments.dart';
 import '../widgets/session.dart';
 import '../widgets/trakt_comments.dart';
@@ -134,10 +133,10 @@ class _MovieBody extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (backdrop != null)
-                  NetImage(
-                    url: backdrop,
+                  Image.network(
+                    backdrop,
+                    headers: ScrobScope.of(context).imageHeaders(backdrop),
                     fit: BoxFit.cover,
-                    error: Container(color: kCard),
                   )
                 else
                   Container(color: kCard),

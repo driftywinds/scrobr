@@ -478,7 +478,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                         SegmentedButton<bool>(
-                          showSelectedIcon: false,
                           segments: const [
                             ButtonSegment(value: false, label: Text('Password')),
                             ButtonSegment(value: true, label: Text('API key')),

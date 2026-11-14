@@ -17,11 +17,6 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   String _selected = 'home';
 
-  /// Tabs the user has opened so far. Pages are built lazily on first visit
-  /// (an eager IndexedStack fired every tab's network calls at launch) and
-  /// then kept alive so scroll position and loaded data survive tab switches.
-  final Set<String> _visited = {'home'};
-
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
@@ -77,33 +72,16 @@ class _AppShellState extends State<AppShell> {
     var index = tabs.indexWhere((tab) => tab.key == _selected);
     if (index < 0) index = 0;
 
-    _visited.add(tabs[index].key);
-
-    return PopScope(
-      // Back from any other tab returns to Home before leaving the app.
-      canPop: tabs[index].key == 'home',
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _selected = 'home');
-      },
-      child: Scaffold(
-        body: IndexedStack(
-          index: index,
-          children: [
-            for (final tab in tabs)
-              KeyedSubtree(
-                key: ValueKey(tab.key),
-                child: _visited.contains(tab.key)
-                    ? tab.page
-                    : const SizedBox.shrink(),
-              ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: index,
-          onDestinationSelected: (value) =>
-              setState(() => _selected = tabs[value].key),
-          destinations: [for (final tab in tabs) tab.destination],
-        ),
+    return Scaffold(
+      body: IndexedStack(
+        index: index,
+        children: [for (final tab in tabs) tab.page],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        onDestinationSelected: (value) =>
+            setState(() => _selected = tabs[value].key),
+        destinations: [for (final tab in tabs) tab.destination],
       ),
     );
   }

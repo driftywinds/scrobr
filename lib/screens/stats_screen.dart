@@ -58,7 +58,6 @@ class _StatsScreenState extends State<StatsScreen> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SegmentedButton<String>(
-                showSelectedIcon: false,
                 segments: const [
                   ButtonSegment(value: 'all', label: Text('All time')),
                   ButtonSegment(value: 'year', label: Text('This year')),

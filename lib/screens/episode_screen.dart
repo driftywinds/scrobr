@@ -5,7 +5,6 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
-import '../widgets/net_image.dart';
 import '../widgets/comments.dart';
 import '../widgets/session.dart';
 import '../widgets/trakt_comments.dart';
@@ -99,10 +98,10 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                     fit: StackFit.expand,
                     children: [
                       if (still != null)
-                        NetImage(
-                          url: still,
+                        Image.network(
+                          still,
+                          headers: ScrobScope.of(context).imageHeaders(still),
                           fit: BoxFit.cover,
-                          error: Container(color: kCard),
                         )
                       else
                         Container(color: kCard),

@@ -148,7 +148,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
             child: SegmentedButton<String>(
-              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: 'movie', label: Text('Movies')),
                 ButtonSegment(value: 'series', label: Text('Shows')),

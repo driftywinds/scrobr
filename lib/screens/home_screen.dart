@@ -5,7 +5,6 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
-import '../widgets/net_image.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
 import 'requests_screen.dart';
@@ -29,18 +28,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<_HomeData> _load() async {
     final app = ScrobScope.of(context);
-    final report = LoadReport();
-    Future<dynamic> fetch(String path, [Map<String, dynamic>? query]) =>
-        app.getTracked(report, path, query);
     final results = await Future.wait([
-      fetch('/history/continue-watching', {'limit': 12}),
-      fetch('/history/next-up', {'limit': 12}),
-      fetch('/media/recently-added', {'type': 'movie', 'limit': 20}),
-      fetch('/media/recently-added', {'type': 'episode', 'limit': 20}),
-      fetch('/media/trending/movies'),
-      fetch('/media/trending/shows'),
-      fetch('/history/now-playing'),
-      fetch('/media/airing-today/collected'),
+      app.tryGet('/history/continue-watching', {'limit': 12}),
+      app.tryGet('/history/next-up', {'limit': 12}),
+      app.tryGet('/media/recently-added', {'type': 'movie', 'limit': 20}),
+      app.tryGet('/media/recently-added', {'type': 'episode', 'limit': 20}),
+      app.tryGet('/media/trending/movies'),
+      app.tryGet('/media/trending/shows'),
+      app.tryGet('/history/now-playing'),
+      app.tryGet('/media/airing-today/collected'),
     ]);
     return _HomeData(
       continueWatching: asMaps(asMap(results[0])['continue_watching']),
@@ -51,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
       trendingShows: asMaps(asMap(results[5])['results']),
       nowPlaying: asMaps(asMap(results[6])['now_playing']),
       airingToday: asMaps(asMap(results[7])['results']),
-      report: report,
     );
   }
 
@@ -137,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const RowsSkeleton();
+            return const LoadingView(label: 'Loading your dashboard');
           }
           if (snapshot.hasError) {
             return ErrorView(
@@ -148,9 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
           final data = snapshot.data;
           if (data == null) {
             return const EmptyState(title: 'Nothing to show yet');
-          }
-          if (data.report.allFailed) {
-            return ErrorView(message: data.report.message, onRetry: _reload);
           }
           final hero = data.continueWatching.isNotEmpty
               ? data.continueWatching.first
@@ -173,11 +165,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       'API-key session: account, comments and admin screens are limited.',
                       style: TextStyle(fontSize: 11, color: kMuted),
                     ),
-                  ),
-                if (data.report.partial)
-                  PartialLoadBanner(
-                    message: data.report.message,
-                    onRetry: _reload,
                   ),
                 if (hero != null) _ContinueHero(item: hero),
                 if (data.nowPlaying.isNotEmpty)
@@ -237,8 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     BrowseScreen.trending(type: 'series'),
                   ),
                 ),
-                if (!data.report.hasErrors &&
-                    data.continueWatching.isEmpty &&
+                if (data.continueWatching.isEmpty &&
                     data.nextUp.isEmpty &&
                     data.recentMovies.isEmpty &&
                     data.recentEpisodes.isEmpty &&
@@ -268,10 +254,8 @@ class _HomeData {
     required this.trendingShows,
     required this.nowPlaying,
     required this.airingToday,
-    required this.report,
   });
 
-  final LoadReport report;
   final List<Map<String, dynamic>> continueWatching;
   final List<Map<String, dynamic>> nextUp;
   final List<Map<String, dynamic>> recentMovies;
@@ -314,10 +298,10 @@ class _ContinueHero extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (backdrop != null)
-                  NetImage(
-                    url: backdrop,
+                  Image.network(
+                    backdrop,
+                    headers: ScrobScope.of(context).imageHeaders(backdrop),
                     fit: BoxFit.cover,
-                    error: Container(color: kCard),
                   )
                 else
                   Container(color: kCard),

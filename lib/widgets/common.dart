@@ -4,8 +4,6 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
-import 'net_image.dart';
-import 'skeleton.dart';
 
 class Poster extends StatelessWidget {
   const Poster({
@@ -23,6 +21,7 @@ class Poster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
     final placeholder = Container(
       color: kCard,
       alignment: Alignment.center,
@@ -44,12 +43,32 @@ class Poster extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: NetImage(
-        url: url,
-        fit: fit,
-        loading: const SkeletonBox(radius: 0),
-        error: placeholder,
-      ),
+      child: url == null || url!.isEmpty
+          ? placeholder
+          : Image.network(
+              url!,
+              headers: app.imageHeaders(url),
+              fit: fit,
+              errorBuilder: (_, __, ___) {
+                final fallback = app.directImageUrl(url);
+                if (fallback == null) return placeholder;
+                return Image.network(
+                  fallback,
+                  fit: fit,
+                  errorBuilder: (_, __, ___) => placeholder,
+                );
+              },
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Container(color: kCard, child: const Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ));
+              },
+            ),
     );
   }
 }
@@ -78,24 +97,19 @@ class MediaCard extends StatelessWidget {
     final isPerson = type == 'person';
     final posterPath = posterPathFor(item);
     final url = app.imageUrl(posterPath, size: 'w342');
-    // Episodes are recognised by their show, so the show leads and the
-    // episode name goes on the second line (not the other way round).
-    final showTitle = item.s('show_title') ?? '';
-    final title = isEpisode && showTitle.isNotEmpty
-        ? showTitle
-        : (item.s('title') ?? item.s('name') ?? '');
+    final title = item.s('title') ?? item.s('name') ?? '';
     final year = yearOf(item.s('release_date') ?? item.s('first_air_date'));
     final rating = item.d('tmdb_rating');
     final watched = item.b('watched') || (item.d('play_count') ?? 0) > 0;
 
     String subtitle = '';
     if (isEpisode) {
+      final show = item.s('show_title') ?? '';
       final se = [
         if (item.i('season_number') != null) 'S${item.i('season_number')}',
         if (item.i('episode_number') != null) 'E${item.i('episode_number')}',
       ].join();
-      final episodeName = showTitle.isNotEmpty ? (item.s('title') ?? '') : '';
-      subtitle = [se, episodeName].where((e) => e.isNotEmpty).join(' · ');
+      subtitle = [show, se].where((e) => e.isNotEmpty).join(' · ');
     } else if (isPerson) {
       subtitle = item.s('known_for_department') ?? 'Person';
     } else {
@@ -136,12 +150,12 @@ class MediaCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.star_rounded, size: 12, color: kAmber),
+                          const Icon(Icons.star_rounded, size: 11, color: kAmber),
                           const SizedBox(width: 2),
                           Text(
                             fmtRating(rating),
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -169,11 +183,7 @@ class MediaCard extends StatelessWidget {
               truncate(title, 46),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             if (showSubtitle && subtitle.isNotEmpty)
               Padding(
@@ -182,7 +192,7 @@ class MediaCard extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11.5, color: kMuted),
+                  style: const TextStyle(fontSize: 10, color: kMuted),
                 ),
               ),
           ],
@@ -199,7 +209,7 @@ class MediaRow extends StatelessWidget {
     required this.items,
     this.onSeeAll,
     this.width = 124,
-    this.height = 264,
+    this.height = 252,
   });
 
   final String title;
@@ -211,8 +221,6 @@ class MediaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
-    // The two text lines under each poster grow with the system font size.
-    final extraText = MediaQuery.textScalerOf(context).scale(13) - 13;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -221,7 +229,7 @@ class MediaRow extends StatelessWidget {
           child: SectionHeader(title: title, onSeeAll: onSeeAll),
         ),
         SizedBox(
-          height: height + extraText * 3.5,
+          height: height,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -260,7 +268,7 @@ class SectionHeader extends StatelessWidget {
             onPressed: onSeeAll,
             child: const Text(
               'See all',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             ),
           ),
       ],
@@ -299,7 +307,7 @@ class EmptyState extends StatelessWidget {
             Text(
               body!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: kMuted, fontSize: 13),
+              style: const TextStyle(color: kMuted, fontSize: 12),
             ),
           ],
         ],
@@ -326,7 +334,7 @@ class ErrorView extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: kMuted, fontSize: 13),
+            style: const TextStyle(color: kMuted, fontSize: 12),
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 12),
@@ -334,56 +342,6 @@ class ErrorView extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Shown above partially loaded content when some sections failed.
-class PartialLoadBanner extends StatelessWidget {
-  const PartialLoadBanner({super.key, required this.message, this.onRetry});
-
-  final String message;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-      decoration: BoxDecoration(
-        color: kAmber.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kAmber.withValues(alpha: 0.30)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.wifi_off_rounded, size: 18, color: kAmber),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Some sections didn\'t load. $message',
-              style: const TextStyle(fontSize: 12, color: kMuted),
-            ),
-          ),
-          if (onRetry != null)
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
-    );
-  }
-}
-
-/// Placeholder for a page made of poster rows (Home, Discover).
-class RowsSkeleton extends StatelessWidget {
-  const RowsSkeleton({super.key, this.rows = 3});
-
-  final int rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const NeverScrollableScrollPhysics(),
-      children: [for (var i = 0; i < rows; i++) const SkeletonRow()],
     );
   }
 }
@@ -489,18 +447,16 @@ class UserAvatar extends StatelessWidget {
       );
     }
     return ClipOval(
-      child: SizedBox(
+      child: Image.network(
+        url!,
+        headers: ScrobScope.of(context).imageHeaders(url),
         width: size,
         height: size,
-        child: NetImage(
-          url: url,
-          fit: BoxFit.cover,
-          loading: SkeletonBox(width: size, height: size, radius: size / 2),
-          error: CircleAvatar(
-            radius: size / 2,
-            backgroundColor: kCard,
-            child: Text(initials(name), style: TextStyle(fontSize: size * 0.32)),
-          ),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => CircleAvatar(
+          radius: size / 2,
+          backgroundColor: kCard,
+          child: Text(initials(name), style: TextStyle(fontSize: size * 0.32)),
         ),
       ),
     );
@@ -520,7 +476,7 @@ class TagChip extends StatelessWidget {
         color: kCard,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 11, color: kMuted)),
+      child: Text(label, style: const TextStyle(fontSize: 10, color: kMuted)),
     );
   }
 }
