@@ -473,6 +473,28 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                               ? null
                               : (v) => _patch(id, {'watchlist_to_sonarr': v}),
                         ),
+                        if (connection.s('type') == 'plex') ...[
+                          _Toggle(
+                            label: 'Plex sync watchlist',
+                            value: connection.b('plex_sync_watchlist'),
+                            onChanged: id == null
+                                ? null
+                                : (v) => _patch(
+                                      id,
+                                      {'plex_sync_watchlist': v},
+                                    ),
+                          ),
+                          _Toggle(
+                            label: 'Plex push watchlist',
+                            value: connection.b('plex_push_watchlist'),
+                            onChanged: id == null
+                                ? null
+                                : (v) => _patch(
+                                      id,
+                                      {'plex_push_watchlist': v},
+                                    ),
+                          ),
+                        ],
                         if (id != null)
                           Align(
                             alignment: Alignment.centerLeft,
