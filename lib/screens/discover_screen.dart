@@ -20,25 +20,25 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   String _type = 'movie';
-  Future<_DiscoverData>? _future;
+  final Map<String, Future<_DiscoverData>> _futures = {};
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _future ??= _load();
+    _futures.putIfAbsent(_type, () => _load(_type));
   }
 
-  Future<_DiscoverData> _load() async {
+  Future<_DiscoverData> _load(String type) async {
     final app = ScrobScope.of(context);
-    final isMovie = _type == 'movie';
+    final isMovie = type == 'movie';
     final results = await Future.wait([
       app.tryGet(isMovie ? '/media/trending/movies' : '/media/trending/shows'),
       app.tryGet(isMovie ? '/media/now-playing' : '/media/on-air-this-week'),
       app.tryGet(isMovie ? '/media/upcoming' : '/media/new-episodes'),
       app.tryGet(isMovie ? '/media/top-rated-movies' : '/media/top-rated-shows'),
-      app.tryGet('/media/hidden-gems', {'type': _type}),
+      app.tryGet('/media/hidden-gems', {'type': type}),
       app.tryGet('/media/for-you'),
-      app.tryGet('/media/streaming', {'type': _type}),
+      app.tryGet('/media/streaming', {'type': type}),
       app.tryGet('/media/trending/trailers'),
     ]);
     if (results.every((result) => result == null)) {
@@ -57,8 +57,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Future<void> _reload() async {
-    final next = _load();
-    setState(() => _future = next);
+    final next = _load(_type);
+    setState(() => _futures[_type] = next);
     await next;
   }
 
@@ -66,7 +66,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     if (value == _type) return;
     setState(() {
       _type = value;
-      _future = _load();
+      _futures.putIfAbsent(value, () => _load(value));
     });
   }
 
@@ -170,7 +170,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           ),
           Expanded(
             child: FutureBuilder<_DiscoverData>(
-              future: _future,
+              future: _futures[_type],
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const DashboardSkeleton();
