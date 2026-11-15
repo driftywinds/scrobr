@@ -49,7 +49,7 @@ and the main browsing, tracking, social and settings flows of the web UI.
   apps, native ZIP data export/import, manage-on-web links for
   providers/integrations and an admin panel for settings, users, requests,
   maintenance and database backup/restore.
-- Release APK workflow for manual dispatch or `v*` tags.
+- Release APK workflows: pre-release universal builds on `v*` tags/manual dispatch, and a manual all-ABI release workflow.
 
 ## Run
 
@@ -85,14 +85,26 @@ exclusions.
 
 ## Release workflow
 
-`.github/workflows/release.yml` builds a release APK on:
+`.github/workflows/release.yml` builds the universal APK on:
 
 - `workflow_dispatch` with a version tag input (defaults to the ref name), or
 - a pushed tag such as `v1.2.3`.
 
-The tag version is passed to Flutter as `--build-name`; the workflow uploads the
-APK as a build artifact and creates a GitHub release (including for manual
-dispatches).
+The tag version is passed to Flutter as `--build-name`; the workflow uploads
+`scrobr-<version>-universal.apk` as a build artifact and publishes it as a
+**pre-release** (including for manual dispatches).
+
+`.github/workflows/release-all-abis.yml` is manual-dispatch only and requires a
+version tag. It builds four APKs:
+
+- `scrobr-<version>-universal.apk`
+- `scrobr-<version>-arm64-v8a.apk`
+- `scrobr-<version>-armeabi-v7a.apk`
+- `scrobr-<version>-x86_64.apk`
+
+It publishes them as a full release (promoting an existing pre-release for the
+same tag when applicable) and marks it latest. Use the normal workflow for
+testing/pre-releases and this one for the final multi-architecture release.
 
 ### Signing
 
