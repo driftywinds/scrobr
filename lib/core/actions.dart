@@ -33,7 +33,6 @@ Future<bool> toggleWatched(
       final body = <String, dynamic>{
         'media_type': type,
         'completed': true,
-        'watched_at': null,
       };
       if (type == 'episode') {
         body['tmdb_id'] = media.i('tmdb_id');
