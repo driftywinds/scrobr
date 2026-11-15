@@ -28,6 +28,9 @@ and the main browsing, tracking, social and settings flows of the web UI.
   added and trending rows.
 - Discover: trending, now playing / on air, upcoming / new episodes, top rated,
   for you, hidden gems and streaming rows for movies and shows.
+- Follow movies and shows into a private "Following · Calendar" list.
+  Followed shows/movies are merged into the Calendar without being collected,
+  and the calendar window can be set from 7 to 90 days.
 - Explore screen for movies/shows: popular, top rated and trending categories
   with genre, year, rating, watch-state and list filters.
 - Optional Library tab (off by default; enable in Settings) for movies and shows
