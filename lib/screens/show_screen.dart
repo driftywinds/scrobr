@@ -503,10 +503,10 @@ class _ShowBody extends StatelessWidget {
                     () => toggleCollect(context, show),
                   ),
                 ),
-                _ShowAction(
-                  icon: Icons.movie_outlined,
-                  label: 'Trailer',
-                  onTap: () => openTrailer(context, show),
+                FollowAction(
+                  type: 'series',
+                  tmdbId: show.i('tmdb_id'),
+                  onChanged: reload,
                 ),
               ],
             ),

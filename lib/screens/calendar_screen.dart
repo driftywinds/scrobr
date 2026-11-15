@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
+import '../core/following_calendar.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'episode_screen.dart';
+import 'movie_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -17,15 +19,79 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   Future<Map<String, dynamic>>? _future;
   bool _refreshing = false;
+  int _seenFollowingRevision = -1;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _future ??= _load();
+    final app = ScrobScope.of(context);
+    if (_future == null) {
+      _seenFollowingRevision = app.followingRevision;
+      _future = _load();
+    } else if (_seenFollowingRevision != app.followingRevision) {
+      _seenFollowingRevision = app.followingRevision;
+      _future = _load();
+    }
   }
 
-  Future<Map<String, dynamic>> _load() async =>
-      asMap(await ScrobScope.of(context).get('/calendar', {'days': 21}));
+  Future<Map<String, dynamic>> _load() async {
+    final app = ScrobScope.of(context);
+    final data = asMap(
+      await app.get('/calendar', {'days': app.calendarDays}),
+    );
+    final calendar = asMap(data['calendar']);
+    final merged = calendar.maps('entries');
+    final seen = <String>{
+      for (final entry in merged)
+        if (entry.s('media_type') != 'movie')
+          '${entry.i('show_tmdb_id') ?? entry.s('show_title')}:'
+              '${entry.i('season_number')}:${entry.i('episode_number')}',
+    };
+
+    try {
+      final followed = await followedCalendarEntries(
+        app,
+        days: app.calendarDays,
+      );
+      for (final entry in followed) {
+        final key = entry.s('media_type') == 'movie'
+            ? 'movie:${entry.i('tmdb_id')}'
+            : '${entry.i('show_tmdb_id') ?? entry.s('show_title')}:'
+                '${entry.i('season_number')}:${entry.i('episode_number')}';
+        if (seen.add(key)) merged.add(entry);
+      }
+    } catch (_) {
+      // A failed Following fetch must not make the whole calendar fail.
+    }
+
+    data['calendar'] = {...calendar, 'entries': merged};
+    return data;
+  }
+
+  Widget _daysControl(AppState app) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: 7, label: Text('7d')),
+            ButtonSegment(value: 14, label: Text('14d')),
+            ButtonSegment(value: 21, label: Text('21d')),
+            ButtonSegment(value: 30, label: Text('30d')),
+            ButtonSegment(value: 60, label: Text('60d')),
+            ButtonSegment(value: 90, label: Text('90d')),
+          ],
+          selected: {app.calendarDays},
+          onSelectionChanged: (value) async {
+            await app.setCalendarDays(value.first);
+            if (mounted) _reload();
+          },
+        ),
+      ),
+    );
+  }
 
   void _reload() => setState(() => _future = _load());
 
@@ -75,15 +141,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onRetry: _reload,
             );
           }
+          final app = ScrobScope.of(context);
           final data = snapshot.data ?? const {};
           final calendar = asMap(data['calendar']);
           final entries = calendar.maps('entries');
           if (entries.isEmpty) {
-            return const EmptyState(
-              title: 'Nothing airing',
-              body:
-                  'Collect a show, or mark an episode watched, and its upcoming episodes will appear here.',
-              icon: Icons.calendar_month_outlined,
+            return Column(
+              children: [
+                _daysControl(app),
+                const Expanded(
+                  child: EmptyState(
+                    title: 'Nothing airing',
+                    body:
+                        'Collect or follow a show, or mark an episode watched, and its upcoming episodes will appear here.',
+                    icon: Icons.calendar_month_outlined,
+                  ),
+                ),
+              ],
             );
           }
           final grouped = <String, List<Map<String, dynamic>>>{};
@@ -100,10 +174,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 28),
               children: [
+                _daysControl(app),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Text(
-                    'Next 21 days · ${entries.length} episodes',
+                    'Next ${app.calendarDays} days · ${entries.length} items',
                     style: const TextStyle(fontSize: 12, color: kMuted),
                   ),
                 ),
@@ -119,9 +194,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         isToday: date == calendar.s('today'),
                         count: items.length,
                       ),
-                      ..._groupByShow(items).map(
-                        (episodes) => _CalendarShowGroup(episodes: episodes),
-                      ),
+                      ..._groupByShow(items).map((group) {
+                        final first = group.first;
+                        return first.s('media_type') == 'movie'
+                            ? _CalendarMovieGroup(entry: first)
+                            : _CalendarShowGroup(episodes: group);
+                      }),
                     ],
                   );
                 }),
@@ -138,7 +216,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   ) {
     final groups = <Object, List<Map<String, dynamic>>>{};
     for (final item in items) {
-      final key = item.i('show_tmdb_id') ?? item.s('show_title');
+      final key = item.s('media_type') == 'movie'
+          ? 'movie:${item.i('tmdb_id')}'
+          : item.i('show_tmdb_id') ?? item.s('show_title');
       groups.putIfAbsent(key ?? item, () => []).add(item);
     }
     return groups.values.toList();
@@ -219,7 +299,9 @@ class _CalendarShowGroup extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (entry.b('watched'))
+                          if (entry.b('following'))
+                            const TagChip(label: 'Following')
+                          else if (entry.b('watched'))
                             const TagChip(label: 'Watched')
                           else if (entry.b('collected'))
                             const TagChip(label: 'Collected'),
@@ -232,6 +314,66 @@ class _CalendarShowGroup extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CalendarMovieGroup extends StatelessWidget {
+  const _CalendarMovieGroup({required this.entry});
+
+  final Map<String, dynamic> entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
+    final tmdbId = entry.i('tmdb_id');
+    final poster = app.imageUrl(entry.s('poster_path'), size: 'w185');
+    return InkWell(
+      borderRadius: BorderRadius.circular(kRadius),
+      onTap: tmdbId == null
+          ? null
+          : () => pushScreen(context, MovieScreen(tmdbId: tmdbId)),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(10),
+        decoration: panelDecoration(),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 46,
+              height: 69,
+              child: Poster(
+                url: poster,
+                title: entry.s('title'),
+                radius: 7,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.s('title') ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Movie release',
+                    style: TextStyle(fontSize: 12, color: kMuted),
+                  ),
+                ],
+              ),
+            ),
+            const TagChip(label: 'Following'),
+          ],
+        ),
       ),
     );
   }

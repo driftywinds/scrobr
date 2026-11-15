@@ -576,6 +576,83 @@ class UserAvatar extends StatelessWidget {
   }
 }
 
+class FollowAction extends StatefulWidget {
+  const FollowAction({
+    super.key,
+    required this.type,
+    required this.tmdbId,
+    this.onChanged,
+  });
+
+  final String type;
+  final int? tmdbId;
+  final VoidCallback? onChanged;
+
+  @override
+  State<FollowAction> createState() => _FollowActionState();
+}
+
+class _FollowActionState extends State<FollowAction> {
+  bool _following = false;
+  bool _busy = false;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_started) {
+      _started = true;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final id = widget.tmdbId;
+    if (id == null) return;
+    try {
+      final following = await ScrobScope.of(context).isFollowing(widget.type, id);
+      if (mounted) setState(() => _following = following);
+    } catch (_) {
+      // Keep the neutral Follow state when the list cannot be read.
+    }
+  }
+
+  Future<void> _toggle() async {
+    final id = widget.tmdbId;
+    if (id == null || _busy) return;
+    setState(() => _busy = true);
+    try {
+      final following = await ScrobScope.of(context).toggleFollowing(
+        widget.type,
+        id,
+      );
+      if (!mounted) return;
+      setState(() => _following = following);
+      widget.onChanged?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update Following: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionPill(
+      icon: _following
+          ? Icons.notifications_active_rounded
+          : Icons.notifications_none_rounded,
+      label: _following ? 'Following' : 'Follow',
+      active: _following,
+      onTap: widget.tmdbId == null || _busy ? null : _toggle,
+    );
+  }
+}
+
 class TagChip extends StatelessWidget {
   const TagChip({super.key, required this.label});
 

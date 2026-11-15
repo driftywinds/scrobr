@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
@@ -10,6 +11,11 @@ const _kServer = 'scrobr_server';
 const _kToken = 'scrob_token';
 const _kApiKey = 'scrob_api_key';
 const _kShowLibrary = 'scrobr_show_library';
+const _kCalendarDays = 'scrobr_calendar_days';
+const _kFollowingListId = 'scrobr_following_list_id';
+const _kFollowingMirror = 'scrobr_following_mirror';
+const kFollowingListName = 'Following · Calendar';
+const _kFollowingMarker = 'Calendar follows created by Scrobr.';
 
 class AppState extends ChangeNotifier {
   AppState({String? initialServer})
@@ -25,6 +31,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? settings;
   bool initialized = false;
   bool showLibraryTab = false;
+  int calendarDays = 21;
   String? sessionError;
 
   bool get hasServer => server.isNotEmpty;
@@ -66,6 +73,7 @@ class AppState extends ChangeNotifier {
     _prefs = await SharedPreferences.getInstance();
     server = normalizeOrigin(_prefs.getString(_kServer) ?? '');
     showLibraryTab = _prefs.getBool(_kShowLibrary) ?? false;
+    calendarDays = ((_prefs.getInt(_kCalendarDays) ?? 21).clamp(1, 90)).toInt();
     token = _prefs.getString(_kToken);
     apiKey = _prefs.getString(_kApiKey);
     if (hasServer && token != null && token!.isNotEmpty) {
@@ -168,8 +176,12 @@ class AppState extends ChangeNotifier {
     settings = null;
     sessionError = null;
     _client = null;
+    _followingListId = null;
+    _followingItems = null;
     await _prefs.remove(_kToken);
     await _prefs.remove(_kApiKey);
+    await _prefs.remove(_kFollowingListId);
+    await _prefs.remove(_kFollowingMirror);
     if (notify) notifyListeners();
   }
 
@@ -186,6 +198,154 @@ class AppState extends ChangeNotifier {
     showLibraryTab = value;
     await _prefs.setBool(_kShowLibrary, value);
     notifyListeners();
+  }
+
+  Future<void> setCalendarDays(int value) async {
+    calendarDays = value.clamp(1, 90).toInt();
+    await _prefs.setInt(_kCalendarDays, calendarDays);
+    notifyListeners();
+  }
+
+  int? _followingListId;
+  List<Map<String, dynamic>>? _followingItems;
+
+  bool _isFollowingList(Map<String, dynamic> list) =>
+      (list.s('description') ?? '').contains(_kFollowingMarker);
+
+  Future<int> ensureFollowingList() async {
+    if (_followingListId != null) return _followingListId!;
+
+    final stored = _prefs.getInt(_kFollowingListId);
+    if (stored != null && await _useFollowingList(stored)) {
+      return stored;
+    }
+
+    final lists = asMap(await get('/lists')).maps('lists');
+    for (final list in lists) {
+      if (!_isFollowingList(list)) continue;
+      final id = list.i('id');
+      if (id != null && await _useFollowingList(id)) return id;
+    }
+
+    final created = asMap(await post('/lists', {
+      'name': kFollowingListName,
+      'description': _kFollowingMarker,
+      'privacy_level': 'private',
+    }));
+    final id = created.i('id');
+    if (id == null) {
+      throw ApiException(0, 'Could not create the Following list');
+    }
+    _followingListId = id;
+    await _prefs.setInt(_kFollowingListId, id);
+    await _restoreFollowingMirror(id);
+    return id;
+  }
+
+  Future<void> _restoreFollowingMirror(int id) async {
+    final raw = _prefs.getString(_kFollowingMirror);
+    if (raw == null || raw.isEmpty) return;
+    try {
+      for (final media in asMaps(jsonDecode(raw))) {
+        final tmdbId = media.i('tmdb_id');
+        final type = media.s('type');
+        if (tmdbId == null || type == null) continue;
+        try {
+          await post('/lists/$id/items', {
+            'tmdb_id': tmdbId,
+            'media_type': type,
+          });
+        } catch (_) {
+          // One stale item must not block the rest of the restore.
+        }
+      }
+    } catch (_) {
+      // Ignore a corrupt mirror; the list itself is still usable.
+    }
+  }
+
+  Future<bool> _useFollowingList(int id) async {
+    try {
+      final list = asMap(await get('/lists/$id'));
+      if (list.i('id') == null) return false;
+      if (list.s('privacy_level') != 'private') {
+        await patch('/lists/$id', {
+          'name': list.s('name'),
+          'description': list.s('description'),
+          'privacy_level': 'private',
+        });
+      }
+      _followingListId = id;
+      await _prefs.setInt(_kFollowingListId, id);
+      return true;
+    } on ApiException catch (e) {
+      if (e.status == 404) return false;
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> followingItems({
+    bool refresh = false,
+  }) async {
+    if (!refresh && _followingItems != null) return _followingItems!;
+    final id = await ensureFollowingList();
+    try {
+      final list = asMap(await get('/lists/$id'));
+      final items = list.maps('items');
+      _followingItems = items;
+      final media = items.map((item) => asMap(item['media'])).toList();
+      await _prefs.setString(_kFollowingMirror, jsonEncode(media));
+      return items;
+    } catch (_) {
+      final raw = _prefs.getString(_kFollowingMirror);
+      if (raw != null && raw.isNotEmpty) {
+        try {
+          return asMaps(jsonDecode(raw));
+        } catch (_) {}
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> isFollowing(String type, int tmdbId) async {
+    final items = await followingItems();
+    return items.any((item) {
+      final media = asMap(item['media']);
+      return media.s('type') == type && media.i('tmdb_id') == tmdbId;
+    });
+  }
+
+  Future<bool> toggleFollowing(String type, int tmdbId) async {
+    final listId = await ensureFollowingList();
+    final items = await followingItems(refresh: true);
+    Map<String, dynamic>? existing;
+    for (final item in items) {
+      final media = asMap(item['media']);
+      if (media.s('type') == type && media.i('tmdb_id') == tmdbId) {
+        existing = item;
+        break;
+      }
+    }
+
+    if (existing != null) {
+      final itemId = existing.i('id');
+      if (itemId != null) {
+        await delete('/lists/$listId/items/$itemId');
+      }
+    } else {
+      await post('/lists/$listId/items', {
+        'tmdb_id': tmdbId,
+        'media_type': type,
+      });
+    }
+
+    _followingItems = null;
+    bumpFollowing();
+    final updated = await followingItems(refresh: true);
+    return updated.any((item) {
+      final media = asMap(item['media']);
+      return media.s('type') == type && media.i('tmdb_id') == tmdbId;
+    });
   }
 
   /// Checks that the URL points at a live Scrob API before it is saved.
@@ -296,9 +456,15 @@ class AppState extends ChangeNotifier {
 
   int avatarVersion = 0;
   int historyRevision = 0;
+  int followingRevision = 0;
 
   void bumpHistory() {
     historyRevision++;
+    notifyListeners();
+  }
+
+  void bumpFollowing() {
+    followingRevision++;
     notifyListeners();
   }
 

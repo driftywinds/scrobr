@@ -276,10 +276,10 @@ class _MovieBody extends StatelessWidget {
                     () => toggleCollect(context, media),
                   ),
                 ),
-                _ActionPill(
-                  icon: Icons.movie_outlined,
-                  label: 'Trailer',
-                  onTap: () => openTrailer(context, media),
+                FollowAction(
+                  type: 'movie',
+                  tmdbId: media.i('tmdb_id'),
+                  onChanged: reload,
                 ),
                 _ActionPill(
                   icon: Icons.timer_outlined,
