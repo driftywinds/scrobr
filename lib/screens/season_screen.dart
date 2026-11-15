@@ -203,7 +203,10 @@ class _SeasonScreenState extends State<SeasonScreen> {
                 child: SectionHeader(title: 'Episodes'),
               ),
               ...episodes.map((episode) {
-                final still = app.imageUrl(episode.s('still_path'), size: 'w300');
+                final still = app.imageUrl(
+                  episode.s('still_path') ?? episode.s('poster_path'),
+                  size: 'w300',
+                );
                 final number = episode.i('episode_number') ?? 0;
                 final watched = episode.b('watched');
                 return Padding(

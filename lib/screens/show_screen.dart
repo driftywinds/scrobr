@@ -97,6 +97,154 @@ class _ShowBody extends StatelessWidget {
     if (changed) reload();
   }
 
+  Future<void> _bulkSeasons(
+    BuildContext context,
+    List<Map<String, dynamic>> seasons,
+    int showId,
+    int initial,
+  ) async {
+    final numbers = seasons
+        .map((season) => season.i('season_number'))
+        .whereType<int>()
+        .toList();
+    if (numbers.isEmpty) return;
+    final selected = <int>{initial};
+
+    final result = await showModalBottomSheet<Map<String, Object>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheet) {
+          final allSelected = selected.length == numbers.length;
+          return SafeArea(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.82,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Select seasons',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => setSheet(() {
+                            if (allSelected) {
+                              selected.clear();
+                            } else {
+                              selected.addAll(numbers);
+                            }
+                          }),
+                          child: Text(allSelected ? 'Clear all' : 'Select all'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        for (final season in seasons.where(
+                          (season) => season.i('season_number') != null,
+                        ))
+                          CheckboxListTile(
+                            value:
+                                selected.contains(season.i('season_number')),
+                            title: Text(
+                              season.s('name') ??
+                                  'Season ${season.i('season_number')}',
+                            ),
+                            subtitle: Text(
+                              '${season.i('episode_count') ?? 0} episodes',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            onChanged: (on) => setSheet(() {
+                              final number = season.i('season_number');
+                              if (number == null) return;
+                              if (on == true) {
+                                selected.add(number);
+                              } else {
+                                selected.remove(number);
+                              }
+                            }),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: selected.isEmpty
+                                ? null
+                                : () => Navigator.pop(context, {
+                                      'watched': true,
+                                      'seasons': selected.toList(),
+                                    }),
+                            child: const Text('Mark watched'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: selected.isEmpty
+                                ? null
+                                : () => Navigator.pop(context, {
+                                      'watched': false,
+                                      'seasons': selected.toList(),
+                                    }),
+                            child: const Text('Unwatch'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (result == null || !context.mounted) return;
+
+    final app = ScrobScope.of(context);
+    final ids = (result['seasons'] as List).cast<int>();
+    final watched = result['watched'] == true;
+    try {
+      for (final seasonNumber in ids) {
+        if (watched) {
+          await app.post('/history/season', {
+            'series_tmdb_id': showId,
+            'season_number': seasonNumber,
+          });
+        } else {
+          await app.delete('/history/season', {
+            'series_tmdb_id': showId,
+            'season_number': seasonNumber,
+          });
+        }
+      }
+      app.bumpHistory();
+      reload();
+      showSnack(
+        context,
+        '${watched ? 'Marked' : 'Unmarked'} ${ids.length} season(s)',
+      );
+    } catch (e) {
+      showSnack(context, 'Could not update seasons: $e');
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
@@ -421,6 +569,9 @@ class _ShowBody extends StatelessWidget {
                       );
                       reload();
                     },
+              onLongPress: showId == null
+                  ? null
+                  : () => _bulkSeasons(context, seasons, showId, number),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                 child: Row(
