@@ -376,77 +376,7 @@ class _MovieBody extends StatelessWidget {
           ),
         if (cast.isNotEmpty)
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Cast',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 150,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: cast.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) {
-                        final person = cast[index];
-                        final avatar = app.imageUrl(
-                          person.s('profile_path'),
-                          size: 'w185',
-                        );
-                        return SizedBox(
-                          width: 86,
-                          child: InkWell(
-                            onTap: () {
-                              final id = person.i('tmdb_id');
-                              if (id != null) openPerson(context, id);
-                            },
-                            child: Column(
-                              children: [
-                                UserAvatar(
-                                  url: avatar,
-                                  name: person.s('name'),
-                                  size: 76,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  person.s('name') ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  person.s('character') ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    color: kMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: PeopleRow(title: 'Cast', people: cast),
           ),
         if (crew.isNotEmpty)
           SliverToBoxAdapter(

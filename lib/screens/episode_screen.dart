@@ -336,74 +336,8 @@ class _PeopleRow extends StatelessWidget {
   final String? showPoster;
 
   @override
-  Widget build(BuildContext context) {
-    final app = ScrobScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 138,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: people.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final person = people[index];
-                final id = person.i('tmdb_id');
-                return SizedBox(
-                  width: 80,
-                  child: InkWell(
-                    onTap: id == null ? null : () => openPerson(context, id),
-                    child: Column(
-                      children: [
-                        UserAvatar(
-                          url: app.imageUrl(
-                            person.s('profile_path'),
-                            size: 'w185',
-                          ),
-                          name: person.s('name'),
-                          size: 70,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          person.s('name') ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          person.s('character') ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 9, color: kMuted),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      PeopleRow(title: title, people: people);
 }
 
 class _EpisodeAction extends StatelessWidget {

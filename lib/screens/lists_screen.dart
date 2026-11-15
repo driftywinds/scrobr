@@ -149,7 +149,17 @@ class _ListsScreenState extends State<ListsScreen> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingView();
+                  return ListView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                    children: [
+                      for (var i = 0; i < 5; i++)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: SkeletonBox(height: 96, radius: 14),
+                        ),
+                    ],
+                  );
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
@@ -258,96 +268,147 @@ class _ListEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
     final previews = list.maps('preview_posters');
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: kSurface,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 72,
-              height: 76,
-              child: Stack(
-                children: [
-                  for (var i = 0; i < previews.length && i < 3; i++)
-                    Positioned(
-                      left: i * 14.0,
-                      top: i * 4.0,
-                      child: SizedBox(
-                        width: 48,
-                        height: 68,
-                        child: Poster(
-                          url: app.imageUrl(previews[i].s('url'), size: 'w185'),
-                          radius: 5,
+    final privacy = list.s('privacy_level') ?? '';
+    return Material(
+      color: kSurface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kBorder),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 84,
+                height: 80,
+                child: previews.isEmpty
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: kAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        child: const Icon(
+                          Icons.video_library_outlined,
+                          color: kAccentSoft,
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          for (var i = previews.length < 3
+                                  ? previews.length - 1
+                                  : 2;
+                              i >= 0;
+                              i--)
+                            Positioned(
+                              left: i * 16.0,
+                              top: i * 4.0,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      blurRadius: 6,
+                                      offset: const Offset(2, 0),
+                                    ),
+                                  ],
+                                ),
+                                child: SizedBox(
+                                  width: 50,
+                                  height: 72,
+                                  child: Poster(
+                                    url: app.imageUrl(
+                                      previews[i].s('url'),
+                                      size: 'w185',
+                                    ),
+                                    radius: 6,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (list.b('is_watchlist'))
-                        const Padding(
-                          padding: EdgeInsets.only(right: 4),
-                          child: Icon(
-                            Icons.bookmark_rounded,
-                            size: 14,
-                            color: kAccent,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (list.b('is_watchlist'))
+                          const Padding(
+                            padding: EdgeInsets.only(right: 5),
+                            child: Icon(
+                              Icons.bookmark_rounded,
+                              size: 15,
+                              color: kAccentSoft,
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            list.s('name') ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                              letterSpacing: -0.2,
+                            ),
                           ),
                         ),
-                      Expanded(
+                      ],
+                    ),
+                    if (showOwner && list.s('username') != null)
+                      Text(
+                        '@${list.s('username')}',
+                        style: const TextStyle(fontSize: 11, color: kAccentSoft),
+                      ),
+                    if (list.s('description') != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          list.s('name') ?? '',
+                          list.s('description')!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
+                          style: const TextStyle(fontSize: 12, color: kMuted),
                         ),
                       ),
-                    ],
-                  ),
-                  if (showOwner && list.s('username') != null)
-                    Text(
-                      '@${list.s('username')}',
-                      style: const TextStyle(fontSize: 10, color: kMuted),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          '${list.i('item_count') ?? 0} items',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: kBody,
+                          ),
+                        ),
+                        if (privacy.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          TagChip(label: privacy),
+                        ],
+                      ],
                     ),
-                  if (list.s('description') != null)
-                    Text(
-                      list.s('description')!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11, color: kMuted),
-                    ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${list.i('item_count') ?? 0} items · ${list.s('privacy_level') ?? ''}',
-                    style: const TextStyle(fontSize: 10, color: kMuted),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (onDelete != null && !list.b('is_watchlist'))
-              PopupMenuButton<String>(
-                iconSize: 18,
-                onSelected: (_) => onDelete!(),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'delete', child: Text('Delete list')),
-                ],
-              ),
-          ],
+              if (onDelete != null && !list.b('is_watchlist'))
+                PopupMenuButton<String>(
+                  iconSize: 18,
+                  onSelected: (_) => onDelete!(),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'delete', child: Text('Delete list')),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

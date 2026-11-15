@@ -152,9 +152,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
                 ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                child: ActionGrid(
                   children: [
                     _SmallAction(
                       icon: Icons.done_all_rounded,
@@ -201,17 +199,23 @@ class _SeasonScreenState extends State<SeasonScreen> {
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 18, 16, 6),
-                child: Text(
-                  'Episodes',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
+                padding: EdgeInsets.fromLTRB(16, 22, 16, 8),
+                child: SectionHeader(title: 'Episodes'),
               ),
               ...episodes.map((episode) {
                 final still = app.imageUrl(episode.s('still_path'), size: 'w300');
                 final number = episode.i('episode_number') ?? 0;
                 final watched = episode.b('watched');
-                return InkWell(
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: Material(
+                  color: kSurface,
+                  borderRadius: BorderRadius.circular(kRadius),
+                  child: InkWell(
+                  borderRadius: BorderRadius.circular(kRadius),
                   onTap: () async {
                     await pushScreen(
                       context,
@@ -225,21 +229,25 @@ class _SeasonScreenState extends State<SeasonScreen> {
                     );
                     if (mounted) _reload();
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(kRadius),
+                      border: Border.all(color: kBorder),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
-                          width: 112,
-                          height: 63,
+                          width: 124,
+                          height: 70,
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              Poster(url: still, radius: 7),
+                              Opacity(
+                                opacity: watched ? 0.55 : 1,
+                                child: Poster(url: still, radius: 8),
+                              ),
                               Positioned(
                                 left: 4,
                                 bottom: 4,
@@ -255,8 +263,8 @@ class _SeasonScreenState extends State<SeasonScreen> {
                                   child: Text(
                                     'E$number',
                                     style: const TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                 ),
@@ -278,7 +286,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: watched
                                             ? kMuted
@@ -287,10 +295,13 @@ class _SeasonScreenState extends State<SeasonScreen> {
                                     ),
                                   ),
                                   if (episode.b('watched'))
-                                    const Icon(
-                                      Icons.check_circle,
-                                      size: 15,
-                                      color: kGreen,
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 6),
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        size: 18,
+                                        color: kGreen,
+                                      ),
                                     ),
                                 ],
                               ),
@@ -306,7 +317,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
                                     '★ ${fmtRating(episode.d('tmdb_rating'))}',
                                 ].join(' · '),
                                 style: const TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 11,
                                   color: kMuted,
                                 ),
                               ),
@@ -315,6 +326,8 @@ class _SeasonScreenState extends State<SeasonScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  ),
                   ),
                 );
               }),
@@ -349,26 +362,6 @@ class _SmallAction extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: kSurface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF3F3F46)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: kMuted),
-            const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 10)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      ActionPill(icon: icon, label: label, onTap: onTap);
 }

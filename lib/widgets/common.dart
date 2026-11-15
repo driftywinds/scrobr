@@ -183,7 +183,7 @@ class MediaCard extends StatelessWidget {
                           const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.1),
                         ),
@@ -510,7 +510,7 @@ class RatingChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: kAmber.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: kAmber.withValues(alpha: 0.35)),
       ),
       child: Row(
@@ -584,12 +584,20 @@ class TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: kCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderStrong),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 10, color: kMuted)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+          color: kBody,
+        ),
+      ),
     );
   }
 }
@@ -973,6 +981,90 @@ class PersonTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+/// Horizontal strip of people (cast, guest stars…) with a section header.
+class PeopleRow extends StatelessWidget {
+  const PeopleRow({super.key, required this.title, required this.people});
+
+  final String title;
+  final List<Map<String, dynamic>> people;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SectionHeader(title: title),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 142,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: people.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final person = people[index];
+                final id = person.i('tmdb_id');
+                return SizedBox(
+                  width: 84,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(kRadius),
+                    onTap: id == null ? null : () => openPerson(context, id),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: kBorderStrong),
+                          ),
+                          child: UserAvatar(
+                            url: app.imageUrl(
+                              person.s('profile_path'),
+                              size: 'w185',
+                            ),
+                            name: person.s('name'),
+                            size: 70,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          person.s('name') ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          person.s('character') ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10.5, color: kMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

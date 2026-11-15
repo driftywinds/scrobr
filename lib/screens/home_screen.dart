@@ -346,7 +346,7 @@ class _ContinueHero extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.12),
                           ),
@@ -433,7 +433,7 @@ class _ContinueHero extends StatelessWidget {
   }
 }
 
-/// Horizontal row of quick links, so Lists / Calendar / Progress etc. are one
+/// Equal-width row of quick links, so Lists / Calendar / Progress etc. are one
 /// tap away instead of hidden in the overflow menu.
 class _Shortcuts extends StatelessWidget {
   const _Shortcuts({required this.onSelected});
@@ -449,41 +449,49 @@ class _Shortcuts extends StatelessWidget {
       ('dropped', Icons.do_not_disturb_on_outlined, 'Dropped'),
       ('requests', Icons.download_rounded, 'Requests'),
     ];
-    return SizedBox(
-      height: 54,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final (key, icon, label) = items[i];
-          return Material(
-            color: kSurface,
-            shape: const StadiumBorder(side: BorderSide(color: kBorder)),
-            child: InkWell(
-              customBorder: const StadiumBorder(),
-              onTap: () => onSelected(key),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 16, color: kAccentSoft),
-                    const SizedBox(width: 7),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Row(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(
+              child: Material(
+                color: kSurface,
+                borderRadius: BorderRadius.circular(kRadius),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(kRadius),
+                  onTap: () => onSelected(items[i].$1),
+                  child: Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(kRadius),
+                      border: Border.all(color: kBorder),
                     ),
-                  ],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(items[i].$2, size: 20, color: kAccentSoft),
+                        const SizedBox(height: 5),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            items[i].$3,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: kBody,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          );
-        },
+          ],
+        ],
       ),
     );
   }
