@@ -300,7 +300,9 @@ class AppState extends ChangeNotifier {
       final raw = _prefs.getString(_kFollowingMirror);
       if (raw != null && raw.isNotEmpty) {
         try {
-          return asMaps(jsonDecode(raw));
+          return asMaps(jsonDecode(raw))
+              .map((media) => <String, dynamic>{'media': media})
+              .toList();
         } catch (_) {}
       }
       rethrow;
