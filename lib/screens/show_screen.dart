@@ -553,7 +553,10 @@ class _ShowBody extends StatelessWidget {
           final number = season.i('season_number') ?? 0;
           final state = asMap(states['$number']);
           final pct = state.d('watch_pct') ?? 0;
-          final seasonPoster = app.imageUrl(season.s('poster_path'), size: 'w185');
+          final seasonPoster = app.imageUrl(
+            season.s('poster_path') ?? show.s('poster_path'),
+            size: 'w185',
+          );
           return SliverToBoxAdapter(
             child: InkWell(
               onTap: showId == null

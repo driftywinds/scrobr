@@ -42,6 +42,162 @@ class _SeasonScreenState extends State<SeasonScreen> {
 
   void _reload() => setState(() => _future = _load());
 
+  Future<void> _bulkEpisodes(
+    BuildContext context,
+    List<Map<String, dynamic>> episodes,
+    int? initial,
+  ) async {
+    final byNumber = <int, Map<String, dynamic>>{};
+    for (final episode in episodes) {
+      final number = episode.i('episode_number');
+      if (number != null) byNumber[number] = episode;
+    }
+    if (byNumber.isEmpty) return;
+
+    final selected = <int>{if (initial != null) initial};
+    final result = await showModalBottomSheet<Map<String, Object>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheet) {
+          final allSelected = selected.length == byNumber.length;
+          return SafeArea(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.82,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Select episodes',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => setSheet(() {
+                            if (allSelected) {
+                              selected.clear();
+                            } else {
+                              selected.addAll(byNumber.keys);
+                            }
+                          }),
+                          child: Text(allSelected ? 'Clear all' : 'Select all'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        for (final entry in byNumber.entries)
+                          CheckboxListTile(
+                            value: selected.contains(entry.key),
+                            title: Text(
+                              'S${widget.seasonNumber}E${entry.key} · '
+                              '${entry.value.s('title') ?? 'Episode ${entry.key}'}',
+                            ),
+                            subtitle: Text(
+                              entry.value.b('watched')
+                                  ? 'Watched'
+                                  : 'Unwatched',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            onChanged: (on) => setSheet(() {
+                              if (on == true) {
+                                selected.add(entry.key);
+                              } else {
+                                selected.remove(entry.key);
+                              }
+                            }),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: selected.isEmpty
+                                ? null
+                                : () => Navigator.pop(context, {
+                                      'watched': true,
+                                      'episodes': selected.toList(),
+                                    }),
+                            child: const Text('Mark watched'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: selected.isEmpty
+                                ? null
+                                : () => Navigator.pop(context, {
+                                      'watched': false,
+                                      'episodes': selected.toList(),
+                                    }),
+                            child: const Text('Unwatch'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (result == null || !context.mounted) return;
+
+    final app = ScrobScope.of(context);
+    final numbers = (result['episodes'] as List).cast<int>();
+    final watched = result['watched'] == true;
+    var changed = 0;
+    try {
+      for (final number in numbers) {
+        final episode = byNumber[number]!;
+        if (watched) {
+          await app.post('/history', {
+            'media_type': 'episode',
+            'completed': true,
+            'tmdb_id': episode.i('tmdb_id'),
+            'series_tmdb_id': widget.showTmdbId,
+            'season_number':
+                episode.i('season_number') ?? widget.seasonNumber,
+            'episode_number': number,
+          });
+        } else {
+          final id = episode.i('id');
+          final tmdb = episode.i('tmdb_id');
+          if (id == null && tmdb == null) continue;
+          await app.delete('/history/item', {
+            if (id != null) 'id': id,
+            if (id == null) 'tmdb_id': tmdb,
+            'media_type': 'episode',
+          });
+        }
+        changed++;
+      }
+      app.bumpHistory();
+      _reload();
+      showSnack(
+        context,
+        '${watched ? 'Marked' : 'Unmarked'} $changed episode(s)',
+      );
+    } catch (e) {
+      showSnack(context, 'Could not update episodes: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,9 +354,22 @@ class _SeasonScreenState extends State<SeasonScreen> {
                   ],
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 22, 16, 8),
-                child: SectionHeader(title: 'Episodes'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
+                child: Row(
+                  children: [
+                    const Expanded(child: SectionHeader(title: 'Episodes')),
+                    if (episodes.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () => _bulkEpisodes(context, episodes, null),
+                        icon: const Icon(Icons.checklist_rounded, size: 16),
+                        label: const Text(
+                          'Select',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               ...episodes.map((episode) {
                 final still = app.imageUrl(
@@ -232,6 +401,8 @@ class _SeasonScreenState extends State<SeasonScreen> {
                     );
                     if (mounted) _reload();
                   },
+                  onLongPress: () =>
+                      _bulkEpisodes(context, episodes, number),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
