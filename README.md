@@ -117,9 +117,11 @@ The workflow decodes it to `android/app/release.keystore`, writes the ignored
 
 ## API notes
 
-The backend OpenAPI document is admin-only (`GET /openapi.json`). It is kept
-locally under `.tmp/` and ignored by git. See `.skills/scrob-api/SKILL.md` for
-the API workflow and `.skills/flutter-android/SKILL.md` for the local toolchain.
+The backend OpenAPI document is admin-only (`GET /openapi.json`). A local
+snapshot can be regenerated under the ignored `.tmp/` directory when needed.
+See `.skills/scrob-api/SKILL.md` for the API workflow and
+`.skills/flutter-android/SKILL.md` for the local toolchain. Build outputs,
+Flutter/Gradle caches and `.tmp/` are disposable and are not committed.
 
 API keys can read/write data endpoints, but account, comments, connections and
 `/admin/*` need a real JWT session. The app shows an API-key session as such and
