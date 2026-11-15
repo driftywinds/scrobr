@@ -110,6 +110,12 @@ It publishes them as a full release (promoting an existing pre-release for the
 same tag when applicable) and marks it latest. Use the normal workflow for
 testing/pre-releases and this one for the final multi-architecture release.
 
+`.github/workflows/release-bundle.yml` is manual-dispatch only and requires a
+version tag. It builds a signed `scrobr-<version>.aab` for Google Play, uploads
+it as a workflow artifact, and attaches it to the GitHub release as a
+pre-release. Run the bundle workflow before the all-ABI workflow if both should
+share the same final release.
+
 ### Signing
 
 The workflow signs with a keystore supplied as repository secrets; without
