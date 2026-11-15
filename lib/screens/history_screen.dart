@@ -21,6 +21,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   int _totalPages = 1;
   bool _loading = false;
   bool _started = false;
+  int _seenRevision = -1;
   bool _searching = false;
   String? _error;
   String _type = '';
@@ -29,8 +30,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final app = ScrobScope.of(context);
     if (!_started) {
       _started = true;
+      _seenRevision = app.historyRevision;
+      _load(reset: true);
+    } else if (_seenRevision != app.historyRevision) {
+      _seenRevision = app.historyRevision;
       _load(reset: true);
     }
   }

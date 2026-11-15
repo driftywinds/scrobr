@@ -44,6 +44,7 @@ Future<bool> toggleWatched(
         body['tmdb_id'] = media.i('tmdb_id');
       }
       await app.post('/history', body);
+      app.bumpHistory();
     } else {
       final id = media.i('id');
       final tmdb = media.i('tmdb_id');
@@ -53,6 +54,7 @@ Future<bool> toggleWatched(
         if (id == null && tmdb != null) 'tmdb_id': tmdb,
         'media_type': type,
       });
+      app.bumpHistory();
     }
     HapticFeedback.selectionClick();
     showSnack(context, watched ? 'Marked as watched' : 'Marked as unwatched');
@@ -294,6 +296,7 @@ Future<bool> markSeasonWatched(
       'series_tmdb_id': showTmdbId,
       'season_number': seasonNumber,
     });
+    ScrobScope.of(context).bumpHistory();
     showSnack(context, 'Season marked watched');
     return true;
   } catch (e) {
@@ -312,6 +315,7 @@ Future<bool> unmarkSeasonWatched(
       'series_tmdb_id': showTmdbId,
       'season_number': seasonNumber,
     });
+    ScrobScope.of(context).bumpHistory();
     showSnack(context, 'Season marked unwatched');
     return true;
   } catch (e) {
@@ -325,6 +329,7 @@ Future<bool> markShowWatched(BuildContext context, int showTmdbId) async {
     await ScrobScope.of(context).post('/history/show-all', {
       'series_tmdb_id': showTmdbId,
     });
+    ScrobScope.of(context).bumpHistory();
     showSnack(context, 'Show marked watched');
     return true;
   } catch (e) {
@@ -337,6 +342,7 @@ Future<bool> unmarkShowWatched(BuildContext context, int showTmdbId) async {
   try {
     await ScrobScope.of(context)
         .delete('/history/show-all', {'series_tmdb_id': showTmdbId});
+    ScrobScope.of(context).bumpHistory();
     showSnack(context, 'Show marked unwatched');
     return true;
   } catch (e) {

@@ -295,6 +295,12 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarVersion = 0;
+  int historyRevision = 0;
+
+  void bumpHistory() {
+    historyRevision++;
+    notifyListeners();
+  }
 
   void bumpAvatar() {
     avatarVersion++;
