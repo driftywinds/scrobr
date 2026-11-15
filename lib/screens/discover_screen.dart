@@ -188,6 +188,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 return RefreshIndicator(
                   onRefresh: _reload,
                   child: ListView(
+                    key: PageStorageKey<String>('discover-$_type'),
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(bottom: 28),
                     children: [
