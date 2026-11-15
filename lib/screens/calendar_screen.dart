@@ -82,7 +82,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             return const EmptyState(
               title: 'Nothing airing',
               body:
-                  'Episodes from shows in your library will appear here for the next few weeks.',
+                  'Collect a show, or mark an episode watched, and its upcoming episodes will appear here.',
               icon: Icons.calendar_month_outlined,
             );
           }

@@ -265,7 +265,28 @@ Future<bool> toggleCollect(
   final type = media.s('type') == 'series' ? 'series' : 'movie';
   final inLibrary = media.b('in_library');
   try {
-    if (inLibrary) {
+    if (type == 'series') {
+      if (inLibrary) {
+        await app.delete('/media/collect-show', {
+          'tmdb_id': media.i('tmdb_id'),
+        });
+      } else {
+        await app.post('/media/collect-show', {
+          'tmdb_id': media.i('tmdb_id'),
+        });
+      }
+      // The calendar's candidate list is collection-driven; force a recompute
+      // so a newly collected show appears without waiting for the daily cache.
+      try {
+        await app.post('/calendar/refresh');
+      } catch (_) {
+        // Collection succeeded; the calendar can still be refreshed manually.
+      }
+      showSnack(
+        context,
+        inLibrary ? 'Removed from library' : 'Added to library',
+      );
+    } else if (inLibrary) {
       await app.delete('/media/collect', {
         'tmdb_id': media.i('tmdb_id'),
         'media_type': type,
