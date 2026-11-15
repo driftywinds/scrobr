@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
-import '../core/theme.dart';
 import '../widgets/common.dart';
 
 class SearchScreen extends StatefulWidget {

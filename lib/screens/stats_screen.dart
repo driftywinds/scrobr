@@ -311,13 +311,11 @@ class _BarChart extends StatelessWidget {
     required this.values,
     required this.labels,
     this.color = kAccent,
-    this.maxLabels = 0,
   });
 
   final List<double> values;
   final List<String> labels;
   final Color color;
-  final int maxLabels;
 
   static String _fmt(double v) {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
@@ -329,9 +327,7 @@ class _BarChart extends StatelessWidget {
     if (values.isEmpty) return const SizedBox.shrink();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
     final showValues = values.length <= 14;
-    final step = maxLabels > 0 && values.length > maxLabels
-        ? (values.length / maxLabels).ceil()
-        : 1;
+    final step = values.length > 14 ? (values.length / 12).ceil() : 1;
     final gap = values.length > 14 ? 1.0 : 3.0;
     return SizedBox(
       height: 150,
@@ -340,8 +336,9 @@ class _BarChart extends StatelessWidget {
         children: List.generate(values.length, (i) {
           final ratio = maxValue <= 0 ? 0.0 : values[i] / maxValue;
           final isPeak = values[i] == maxValue && maxValue > 0;
-          final showLabel = step <= 1 || i % step == 0 || i == values.length - 1;
-          final label = showLabel ? labels[i] : '';
+          final label = step <= 1 || i % step == 0 || i == values.length - 1
+              ? labels[i]
+              : '';
           return Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: gap),
