@@ -9,11 +9,15 @@ and the main browsing, tracking, social and settings flows of the web UI.
 
 ## Screenshots
 
-| Home | Discover |
+| Home | Calendar |
 | --- | --- |
-| <img src="assets/scr1.jpg" width="300" alt="Scrobr Home"> | <img src="assets/scr2.jpg" width="300" alt="Scrobr Discover"> |
-| **Watch history** | **Calendar** |
-| <img src="assets/scr3.jpg" width="300" alt="Scrobr History"> | <img src="assets/scr4.jpg" width="300" alt="Scrobr Calendar"> |
+| <img src="play-store/01-home.jpg" width="300" alt="Scrobr home screen"> | <img src="play-store/02-calendar.jpg" width="300" alt="Scrobr release calendar"> |
+| **Progress** | **Discover movies** |
+| <img src="play-store/03-progress.jpg" width="300" alt="Scrobr show progress"> | <img src="play-store/04-discover-movies.jpg" width="300" alt="Scrobr discover movies"> |
+| **Discover shows** | **History** |
+| <img src="play-store/05-discover-shows.jpg" width="300" alt="Scrobr discover shows"> | <img src="play-store/06-history.jpg" width="300" alt="Scrobr watch history"> |
+| **Profile** | |
+| <img src="play-store/07-profile.jpg" width="300" alt="Scrobr profile and stats"> | |
 
 ## Features
 
