@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/actions.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
@@ -19,11 +23,49 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Future<_HomeData>? _future;
+  _HomeData? _data;
+  bool _cacheRead = false;
+  int _seenHistoryRevision = -1;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final app = ScrobScope.of(context);
+    if (!_cacheRead) {
+      _cacheRead = true;
+      _readCache(app);
+    }
+    if (_seenHistoryRevision < 0) {
+      _seenHistoryRevision = app.historyRevision;
+    } else if (_seenHistoryRevision != app.historyRevision) {
+      _seenHistoryRevision = app.historyRevision;
+      _reload();
+    }
     _future ??= _load();
+  }
+
+  Future<void> _readCache(AppState app) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey(app));
+      if (raw == null || raw.isEmpty || !mounted || _data != null) return;
+      final cached = _HomeData.fromJson(asMap(jsonDecode(raw)));
+      setState(() => _data = cached);
+    } catch (_) {
+      // A corrupt cache should never block the network refresh.
+    }
+  }
+
+  String _cacheKey(AppState app) =>
+      'scrobr_home_${app.userId ?? 0}_${app.server.hashCode}';
+
+  Future<void> _saveCache(AppState app, _HomeData data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey(app), jsonEncode(data.toJson()));
+    } catch (_) {
+      // Cache writes are best-effort.
+    }
   }
 
   Future<_HomeData> _load() async {
@@ -41,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (results.every((result) => result == null)) {
       throw Exception('Could not load your dashboard');
     }
-    return _HomeData(
+    final data = _HomeData(
       continueWatching: asMaps(asMap(results[0])['continue_watching']),
       nextUp: asMaps(asMap(results[1])['next_up']),
       recentMovies: asMaps(asMap(results[2])['results']),
@@ -51,6 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
       nowPlaying: asMaps(asMap(results[6])['now_playing']),
       airingToday: asMaps(asMap(results[7])['results']),
     );
+    _data = data;
+    _saveCache(app, data);
+    return data;
   }
 
   Future<void> _reload() async {
@@ -129,16 +174,17 @@ class _HomeScreenState extends State<HomeScreen> {
       body: FutureBuilder<_HomeData>(
         future: _future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          final data = snapshot.data ?? _data;
+          if (data == null &&
+              snapshot.connectionState == ConnectionState.waiting) {
             return const DashboardSkeleton();
           }
-          if (snapshot.hasError) {
+          if (data == null && snapshot.hasError) {
             return ErrorView(
               message: '${snapshot.error}',
               onRetry: _reload,
             );
           }
-          final data = snapshot.data;
           if (data == null) {
             return const EmptyState(title: 'Nothing to show yet');
           }
@@ -191,6 +237,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: 'Next Up',
                   items: data.nextUp,
                   onSeeAll: () => pushScreen(context, const NextUpScreen()),
+                  onWatchToggle: (item) async {
+                    final changed = await toggleWatched(
+                      context,
+                      item,
+                      target: true,
+                      promptRating: false,
+                    );
+                    if (!changed || !mounted) return;
+                    final app = ScrobScope.of(context);
+                    _seenHistoryRevision = app.historyRevision;
+                    setState(() {
+                      _data = _data?.withoutNextUp(item);
+                    });
+                    _reload();
+                  },
                 ),
                 MediaRow(
                   title: 'Airing Today',
@@ -272,6 +333,49 @@ class _HomeData {
   final List<Map<String, dynamic>> trendingShows;
   final List<Map<String, dynamic>> nowPlaying;
   final List<Map<String, dynamic>> airingToday;
+
+  Map<String, dynamic> toJson() => {
+        'continueWatching': continueWatching,
+        'nextUp': nextUp,
+        'recentMovies': recentMovies,
+        'recentEpisodes': recentEpisodes,
+        'trendingMovies': trendingMovies,
+        'trendingShows': trendingShows,
+        'nowPlaying': nowPlaying,
+        'airingToday': airingToday,
+      };
+
+  factory _HomeData.fromJson(Map<String, dynamic> json) => _HomeData(
+        continueWatching: asMaps(json['continueWatching']),
+        nextUp: asMaps(json['nextUp']),
+        recentMovies: asMaps(json['recentMovies']),
+        recentEpisodes: asMaps(json['recentEpisodes']),
+        trendingMovies: asMaps(json['trendingMovies']),
+        trendingShows: asMaps(json['trendingShows']),
+        nowPlaying: asMaps(json['nowPlaying']),
+        airingToday: asMaps(json['airingToday']),
+      );
+
+  _HomeData withoutNextUp(Map<String, dynamic> item) {
+    final tmdb = item.i('tmdb_id');
+    final season = item.i('season_number');
+    final episode = item.i('episode_number');
+    return _HomeData(
+      continueWatching: continueWatching,
+      nextUp: nextUp
+          .where((e) =>
+              e.i('tmdb_id') != tmdb ||
+              e.i('season_number') != season ||
+              e.i('episode_number') != episode)
+          .toList(),
+      recentMovies: recentMovies,
+      recentEpisodes: recentEpisodes,
+      trendingMovies: trendingMovies,
+      trendingShows: trendingShows,
+      nowPlaying: nowPlaying,
+      airingToday: airingToday,
+    );
+  }
 }
 
 class _ContinueHero extends StatelessWidget {

@@ -116,6 +116,7 @@ class MediaCard extends StatelessWidget {
     this.width = 124,
     this.showSubtitle = true,
     this.onTap,
+    this.onWatchToggle,
     this.hero = false,
   });
 
@@ -123,6 +124,7 @@ class MediaCard extends StatelessWidget {
   final double width;
   final bool showSubtitle;
   final VoidCallback? onTap;
+  final Future<void> Function()? onWatchToggle;
   final bool hero;
 
   @override
@@ -223,6 +225,30 @@ class MediaCard extends StatelessWidget {
                       child: const Icon(Icons.check_rounded, size: 11, color: Colors.black),
                     ),
                   ),
+                if (onWatchToggle != null && !watched && !isPerson)
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: Material(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      shape: const CircleBorder(),
+                      child: Tooltip(
+                        message: 'Mark watched',
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => onWatchToggle!.call(),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -259,6 +285,7 @@ class MediaRow extends StatelessWidget {
     required this.title,
     required this.items,
     this.onSeeAll,
+    this.onWatchToggle,
     this.width = 124,
     this.height = 252,
   });
@@ -266,6 +293,7 @@ class MediaRow extends StatelessWidget {
   final String title;
   final List<Map<String, dynamic>> items;
   final VoidCallback? onSeeAll;
+  final Future<void> Function(Map<String, dynamic>)? onWatchToggle;
   final double width;
   final double height;
 
@@ -286,7 +314,13 @@ class MediaRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (_, i) => MediaCard(item: items[i], width: width),
+            itemBuilder: (_, i) => MediaCard(
+              item: items[i],
+              width: width,
+              onWatchToggle: onWatchToggle == null
+                  ? null
+                  : () => onWatchToggle!(items[i]),
+            ),
           ),
         ),
       ],

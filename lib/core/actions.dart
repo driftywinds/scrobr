@@ -24,6 +24,7 @@ Future<bool> toggleWatched(
   BuildContext context,
   Map<String, dynamic> media, {
   bool? target,
+  bool promptRating = true,
 }) async {
   final app = ScrobScope.of(context);
   final type = media.s('type') ?? 'movie';
@@ -63,7 +64,8 @@ Future<bool> toggleWatched(
           : type == 'movie'
               ? 'rate_prompt_movies'
               : null;
-      if (promptKey != null &&
+      if (promptRating &&
+          promptKey != null &&
           (app.settings?.b(promptKey) ?? false) &&
           (media.d('user_rating') ?? 0) <= 0) {
         await openRatingDialog(context, media);
