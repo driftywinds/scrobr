@@ -55,6 +55,10 @@ android {
                 // the keystore secret produces a properly signed APK instead.
                 signingConfigs.getByName("debug")
             }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 

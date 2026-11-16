@@ -1,6 +1,7 @@
 package com.dw.scrobr
 
 import android.content.Context
+import androidx.work.Configuration
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -10,19 +11,28 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 /**
- * Owns the single backup chain. WorkManager's one-off chain lets us run at a
- * chosen wall-clock time without the 15-minute periodic minimum, and survives
- * reboots.
+ * Owns the single backup chain. WorkManager is initialized here, on demand,
+ * rather than through the global startup provider.
  */
 object BackupScheduler {
     private const val PREFS = "FlutterSharedPreferences"
     private const val WORK_NAME = "scrobr_backup_chain"
 
+    private fun workManager(context: Context): WorkManager {
+        if (!WorkManager.isInitialized()) {
+            WorkManager.initialize(
+                context,
+                Configuration.Builder().build(),
+            )
+        }
+        return WorkManager.getInstance(context)
+    }
+
     fun scheduleNext(context: Context, append: Boolean) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val frequency = prefs.getString("flutter.scrobr_backup_frequency", "off") ?: "off"
         if (frequency == "off" || frequency.isEmpty()) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            workManager(context).cancelUniqueWork(WORK_NAME)
             return
         }
 
@@ -39,7 +49,7 @@ object BackupScheduler {
             .addTag(WORK_NAME)
             .build()
 
-        WorkManager.getInstance(context).enqueueUniqueWork(
+        workManager(context).enqueueUniqueWork(
             WORK_NAME,
             if (append) ExistingWorkPolicy.APPEND_OR_REPLACE else ExistingWorkPolicy.REPLACE,
             request,
@@ -55,7 +65,7 @@ object BackupScheduler {
             )
             .addTag(WORK_NAME)
             .build()
-        WorkManager.getInstance(context).enqueueUniqueWork(
+        workManager(context).enqueueUniqueWork(
             WORK_NAME,
             ExistingWorkPolicy.REPLACE,
             request,
