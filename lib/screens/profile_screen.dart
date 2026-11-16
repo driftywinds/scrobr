@@ -32,8 +32,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<Map<String, dynamic>> _load(int id) async =>
-      asMap(await ScrobScope.of(context).get('/profile/$id'));
+  Future<Map<String, dynamic>> _load(int id) async {
+    final app = ScrobScope.of(context);
+    final results = await Future.wait([
+      app.get('/profile/$id'),
+      app.tryGet('/profile/$id/stats'),
+    ]);
+    final profile = asMap(results[0]);
+    profile['_stats'] = asMap(results[1]);
+    return profile;
+  }
 
   void _reload() {
     final id = _loadedId;
@@ -390,79 +398,128 @@ class _ProfileBody extends StatelessWidget {
     final lists = profile.maps('lists');
     final followers = profile.maps('followers');
     final following = profile.maps('following');
+    final stats = asMap(profile['_stats']);
     final avatar = app.imageUrl(_avatar);
+    final banner = app.imageUrl(
+      profile.s('banner_url') ??
+          profile.s('banner_path') ??
+          profile.s('banner'),
+      size: 'w1280',
+    );
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 28),
       children: [
-        SizedBox(
-          height: 150,
-          child: Stack(
-            children: [
-              Container(
-                height: 100,
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      kAccent.withValues(alpha: 0.55),
-                      const Color(0xFF6366F1).withValues(alpha: 0.35),
-                      kSurface,
-                    ],
-                  ),
-                  border: Border.all(color: kBorder),
-                ),
-              ),
-              Positioned(
-                left: 32,
-                top: 58,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: kBg,
-                  ),
-                  child: UserAvatar(
-                    url: avatar,
-                    name: profile.s('display_name'),
-                    size: 84,
+        if (banner != null)
+          SizedBox(
+            height: 150,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: CachedArtwork(
+                        url: banner,
+                        fit: BoxFit.cover,
+                        placeholder: Container(color: kSurface),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                profile.s('display_name') ?? profile.s('username') ?? '',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '@${profile.s('username') ?? ''} · Joined ${fmtDate(profile.s('created_at'))}',
-                style: const TextStyle(fontSize: 12, color: kMuted),
-              ),
-              if (profile.s('bio') != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  profile.s('bio')!,
-                  style: const TextStyle(fontSize: 13, height: 1.45, color: kBody),
+                Positioned(
+                  left: 32,
+                  top: 58,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: kBg,
+                    ),
+                    child: UserAvatar(
+                      url: avatar,
+                      name: profile.s('display_name'),
+                      size: 84,
+                    ),
+                  ),
                 ),
               ],
-            ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+            child: Row(
+              children: [
+                UserAvatar(
+                  url: avatar,
+                  name: profile.s('display_name'),
+                  size: 72,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profile.s('display_name') ??
+                            profile.s('username') ??
+                            '',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '@${profile.s('username') ?? ''} · Joined ${fmtDate(profile.s('created_at'))}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: kMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        if (banner != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.s('display_name') ?? profile.s('username') ?? '',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '@${profile.s('username') ?? ''} · Joined ${fmtDate(profile.s('created_at'))}',
+                  style: const TextStyle(fontSize: 12, color: kMuted),
+                ),
+              ],
+            ),
+          ),
+        if (profile.s('bio') != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+            child: Text(
+              profile.s('bio')!,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: kBody,
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
@@ -511,13 +568,27 @@ class _ProfileBody extends StatelessWidget {
           decoration: panelDecoration(),
           child: Row(
             children: [
-              _Stat(label: 'Watched', value: profile.i('total_watched') ?? 0),
+              _Stat(
+                label: 'Watch time',
+                value: stats.isEmpty
+                    ? '—'
+                    : fmtMinutes(stats.i('total_watch_minutes')),
+              ),
               const _StatDivider(),
-              _Stat(label: 'Movies', value: profile.i('movies_watched') ?? 0),
+              _Stat(
+                label: 'Movies',
+                value: fmtCount(profile.i('movies_watched')),
+              ),
               const _StatDivider(),
-              _Stat(label: 'Shows', value: profile.i('shows_watched') ?? 0),
+              _Stat(
+                label: 'Shows',
+                value: fmtCount(profile.i('shows_watched')),
+              ),
               const _StatDivider(),
-              _Stat(label: 'Rated', value: profile.i('total_rated') ?? 0),
+              _Stat(
+                label: 'Rated',
+                value: fmtCount(profile.i('total_rated')),
+              ),
             ],
           ),
         ),
@@ -678,7 +749,7 @@ class _Stat extends StatelessWidget {
   const _Stat({required this.label, required this.value});
 
   final String label;
-  final int value;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
@@ -686,7 +757,7 @@ class _Stat extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            fmtCount(value),
+            value,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
