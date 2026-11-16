@@ -86,7 +86,10 @@ class BackupWorker(
 
     private fun prune(context: Context, treeUri: String) {
         val root = DocumentFile.fromTreeUri(context, Uri.parse(treeUri)) ?: return
-        val keep = prefs(context).getInt("flutter.scrobr_backup_keep", 7).coerceIn(1, 100)
+        val keep = prefs(context)
+            .getLong("flutter.scrobr_backup_keep", 7L)
+            .toInt()
+            .coerceIn(1, 100)
         val backups = root.listFiles()
             .filter { it.isFile && (it.name ?: "").startsWith("scrobr-backup-") }
             .sortedByDescending { it.lastModified() }

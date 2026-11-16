@@ -40,6 +40,13 @@ class _BackupScreenState extends State<BackupScreen> {
       _minute = prefs.getInt(backupMinuteKey) ?? 0;
       _keep = prefs.getInt(backupKeepKey) ?? 7;
     });
+    if (_frequency != backupFrequencyOff && _uri != null) {
+      try {
+        await BackupService.schedule();
+      } catch (_) {
+        // A stale schedule can be fixed by changing any option.
+      }
+    }
   }
 
   Future<void> _persistAndSchedule() async {
@@ -54,8 +61,13 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       await BackupService.schedule();
     } catch (e) {
-      _snack('Could not schedule backups: $e');
+      _snack('Could not schedule backups: ${_shortError(e)}');
     }
+  }
+
+  String _shortError(Object error) {
+    final text = '$error'.split('\n').first.trim();
+    return text.length > 180 ? '${text.substring(0, 180)}...' : text;
   }
 
   Future<void> _chooseFolder() async {
@@ -71,7 +83,7 @@ class _BackupScreenState extends State<BackupScreen> {
       });
       await _persistAndSchedule();
     } catch (e) {
-      _snack('Could not use that folder: $e');
+      _snack('Could not use that folder: ${_shortError(e)}');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -116,7 +128,7 @@ class _BackupScreenState extends State<BackupScreen> {
       await BackupService.backupNow();
       _snack('Backup queued');
     } catch (e) {
-      _snack('Could not start backup: $e');
+      _snack('Could not start backup: ${_shortError(e)}');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

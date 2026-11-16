@@ -36,8 +36,8 @@ object BackupScheduler {
             return
         }
 
-        val hour = prefs.getInt("flutter.scrobr_backup_hour", 3)
-        val minute = prefs.getInt("flutter.scrobr_backup_minute", 0)
+        val hour = prefs.getLong("flutter.scrobr_backup_hour", 3L).toInt()
+        val minute = prefs.getLong("flutter.scrobr_backup_minute", 0L).toInt()
         val delay = nextRunDelayMillis(frequency, hour, minute)
         val request = OneTimeWorkRequestBuilder<BackupWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
