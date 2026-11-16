@@ -1,0 +1,49 @@
+name: Android smoke
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.50.0"
+          cache: true
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Launch and capture crash
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r build/app/outputs/flutter-apk/app-debug.apk || exit 1
+            adb logcat -c
+            adb shell am start -n com.dw.scrobr/.MainActivity
+            sleep 25
+            adb logcat -d > logcat.txt
+            echo "--- crash lines ---"
+            grep -nE "FATAL EXCEPTION|AndroidRuntime|NoClassDefFoundError|ClassNotFoundException|WorkManager" logcat.txt | tail -80
+            if grep -q "FATAL EXCEPTION" logcat.txt; then
+              grep -A 60 "FATAL EXCEPTION" logcat.txt | while IFS= read -r line; do
+                echo "::error title=AndroidCrash::$line"
+              done
+              exit 1
+            fi
