@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
+import 'backup_screen.dart';
 import '../core/device_auth.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
@@ -1113,6 +1114,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           if (app.isAdmin) ...[
             const _Section('Administration'),
+            ListTile(
+              leading: const Icon(Icons.backup_outlined),
+              title: const Text('Automatic backups'),
+              subtitle: const Text('Scheduled local .bak backups'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => pushScreen(context, const BackupScreen()),
+            ),
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: const Text('Admin panel'),
