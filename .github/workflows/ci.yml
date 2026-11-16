@@ -30,3 +30,30 @@ jobs:
 
       - name: Test
         run: flutter test
+
+  android-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.50.0"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build apk --debug 2>&1 | tee /tmp/android-build.log || {
+            grep -nE '(^e: |error:|FAILURE:|What went wrong)' /tmp/android-build.log | while IFS= read -r line; do
+              echo "::error title=Android build::$line"
+            done
+            exit 1
+          }
