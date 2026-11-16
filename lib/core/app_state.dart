@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'accounts.dart';
 import 'api.dart';
 import 'format.dart';
 import 'session.dart';
@@ -34,12 +35,17 @@ class AppState extends ChangeNotifier {
   bool showLibraryTab = false;
   int calendarDays = 21;
   String? sessionError;
+  List<SavedAccount> _accounts = const [];
 
   bool get hasServer => server.isNotEmpty;
   bool get isLoggedIn => token != null || apiKey != null;
   bool get isApiKeyMode => token == null && apiKey != null;
   bool get isAdmin => me?.b('is_admin') ?? false;
   int? get userId => me?.i('id');
+  List<SavedAccount> get accounts => List<SavedAccount>.unmodifiable(_accounts);
+  String get currentAccountKey => userId == null
+      ? '$server|${apiKey ?? token ?? displayName}'
+      : '$server|$userId';
   String get displayName =>
       me?.s('display_name') ?? me?.s('username') ?? (isApiKeyMode ? 'API key' : 'Scrob user');
   String get origin => server;
@@ -77,9 +83,11 @@ class AppState extends ChangeNotifier {
     calendarDays = ((_prefs.getInt(_kCalendarDays) ?? 21).clamp(1, 90)).toInt();
     token = _prefs.getString(_kToken);
     apiKey = _prefs.getString(_kApiKey);
+    _accounts = SavedAccount.decode(_prefs.getString(accountsKey));
     if (hasServer && token != null && token!.isNotEmpty) {
       try {
         await _loadSession();
+        await _rememberCurrentAccount();
       } on ApiException catch (e) {
         if (e.isUnauthorized) {
           await _clearCredentials(notify: false);
@@ -141,6 +149,7 @@ class AppState extends ChangeNotifier {
     await _prefs.setString(_kToken, value);
     await _prefs.remove(_kApiKey);
     await _loadSession();
+    await _rememberCurrentAccount();
     notifyListeners();
   }
 
@@ -152,6 +161,12 @@ class AppState extends ChangeNotifier {
     apiKey = value;
     await _prefs.setString(_kApiKey, value);
     _client = null;
+    try {
+      await _loadSession();
+    } catch (_) {
+      // The profile is optional in API-key mode.
+    }
+    await _rememberCurrentAccount();
     notifyListeners();
   }
 
@@ -159,6 +174,7 @@ class AppState extends ChangeNotifier {
     if (token == null) return;
     try {
       await _loadSession();
+      await _rememberCurrentAccount();
     } on ApiException catch (e) {
       sessionError = e.message;
       if (e.isUnauthorized) await _clearCredentials(notify: false);
@@ -168,7 +184,96 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> logout() => _clearCredentials();
+  Future<void> logout() async {
+    await _forgetCurrentAccount();
+    await _clearCredentials();
+  }
+
+  Future<void> addAccount() async {
+    await _rememberCurrentAccount();
+    await _clearCredentials();
+  }
+
+  Future<void> switchAccount(SavedAccount account) async {
+    if (account.key == currentAccountKey) return;
+    final previousServer = server;
+    final previousToken = token;
+    final previousApiKey = apiKey;
+    final previousMe = me;
+    final previousSettings = settings;
+
+    await _clearCredentials(notify: false);
+    server = normalizeOrigin(account.server);
+    token = account.token;
+    apiKey = account.apiKey;
+    _client = null;
+    await _prefs.setString(_kServer, server);
+    if (account.token == null) {
+      await _prefs.remove(_kToken);
+    } else {
+      await _prefs.setString(_kToken, account.token!);
+    }
+    if (account.apiKey == null) {
+      await _prefs.remove(_kApiKey);
+    } else {
+      await _prefs.setString(_kApiKey, account.apiKey!);
+    }
+    try {
+      await _loadSession();
+      await _rememberCurrentAccount();
+      notifyListeners();
+    } catch (e) {
+      server = previousServer;
+      token = previousToken;
+      apiKey = previousApiKey;
+      me = previousMe;
+      settings = previousSettings;
+      _client = null;
+      await _prefs.setString(_kServer, server);
+      if (previousToken == null) {
+        await _prefs.remove(_kToken);
+      } else {
+        await _prefs.setString(_kToken, previousToken!);
+      }
+      if (previousApiKey == null) {
+        await _prefs.remove(_kApiKey);
+      } else {
+        await _prefs.setString(_kApiKey, previousApiKey!);
+      }
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> _rememberCurrentAccount() async {
+    if (!hasServer || (token == null && apiKey == null)) return;
+    final account = SavedAccount(
+      server: server,
+      name: displayName,
+      userId: userId,
+      token: token,
+      apiKey: apiKey,
+      avatarUrl: me?.s('avatar_url'),
+    );
+    final next = [..._accounts];
+    final index = next.indexWhere((item) => item.key == account.key);
+    if (index >= 0) {
+      next[index] = account;
+    } else {
+      next.add(account);
+    }
+    _accounts = next;
+    await _prefs.setString(accountsKey, SavedAccount.encode(next));
+  }
+
+  Future<void> _forgetCurrentAccount() async {
+    final next = _accounts
+        .where((account) => account.key != currentAccountKey)
+        .toList();
+    if (next.length == _accounts.length) return;
+    _accounts = next;
+    await _prefs.setString(accountsKey, SavedAccount.encode(next));
+  }
 
   Future<void> _clearCredentials({bool notify = true}) async {
     token = null;
@@ -449,6 +554,7 @@ class AppState extends ChangeNotifier {
       token = next;
       _client = ApiClient(baseUrl: proxyUrl, token: next);
       await _prefs.setString(_kToken, next);
+      await _rememberCurrentAccount();
       return true;
     } catch (_) {
       return false;
