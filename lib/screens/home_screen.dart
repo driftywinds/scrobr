@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onWatchToggle: (item) async {
                     final changed = await toggleWatched(
                       context,
-                      item,
+                      {...item, 'type': item.s('type') ?? 'episode'},
                       target: true,
                       promptRating: false,
                     );

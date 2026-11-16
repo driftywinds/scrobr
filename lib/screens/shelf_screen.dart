@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../core/actions.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
@@ -104,13 +105,60 @@ class NextUpScreen extends StatefulWidget {
 }
 
 class _NextUpScreenState extends State<NextUpScreen> {
+  final _search = TextEditingController();
   Future<List<Map<String, dynamic>>>? _future;
   bool _includeHidden = false;
+  bool _searching = false;
+  int _seenHistoryRevision = -1;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> _filter(List<Map<String, dynamic>> items) {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return items;
+    return items.where((item) {
+      final text = [
+        item.s('show_title'),
+        item.s('title'),
+        item.s('episode_name'),
+        if (item.i('season_number') != null)
+          's${item.i('season_number')}',
+        if (item.i('episode_number') != null)
+          'e${item.i('episode_number')}',
+      ].whereType<String>().join(' ').toLowerCase();
+      return text.contains(query);
+    }).toList();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final app = ScrobScope.of(context);
+    if (_seenHistoryRevision < 0) {
+      _seenHistoryRevision = app.historyRevision;
+    } else if (_seenHistoryRevision != app.historyRevision) {
+      _seenHistoryRevision = app.historyRevision;
+      if (mounted) setState(() => _future = _load());
+    }
     _future ??= _load();
+  }
+
+  Future<void> _markWatched(Map<String, dynamic> item) async {
+    final changed = await toggleWatched(
+      context,
+      {...item, 'type': item.s('type') ?? 'episode'},
+      target: true,
+      promptRating: false,
+    );
+    if (!changed || !mounted) return;
+    final app = ScrobScope.of(context);
+    _seenHistoryRevision = app.historyRevision;
+    setState(() => _future = _load());
   }
 
   Future<List<Map<String, dynamic>>> _load() async {
@@ -142,6 +190,21 @@ class _NextUpScreenState extends State<NextUpScreen> {
         title: const Text('Next Up'),
         actions: [
           IconButton(
+            tooltip: _searching ? 'Close search' : 'Search Next Up',
+            onPressed: () {
+              setState(() {
+                _searching = !_searching;
+                if (!_searching) {
+                  _search.clear();
+                  _query = '';
+                }
+              });
+            },
+            icon: Icon(
+              _searching ? Icons.search_off_rounded : Icons.search_rounded,
+            ),
+          ),
+          IconButton(
             tooltip: _includeHidden ? 'Hide hidden shows' : 'Show hidden shows',
             onPressed: () {
               setState(() => _includeHidden = !_includeHidden);
@@ -160,66 +223,106 @@ class _NextUpScreenState extends State<NextUpScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
-          }
-          if (snapshot.hasError) {
-            return ErrorView(
-              message: '${snapshot.error}',
-              onRetry: () => setState(() => _future = _load()),
-            );
-          }
-          final items = snapshot.data ?? const [];
-          if (items.isEmpty) {
-            return const EmptyState(
-              title: 'You are all caught up',
-              body: 'Watch an episode and the next one will appear here.',
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() => _future = _load());
-              await _future;
-            },
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final left = item.i('episodes_left');
-                return _WideMediaTile(
-                  media: item,
-                  subtitle:
-                      'S${item.i('season_number')}E${item.i('episode_number')} · ${item.s('show_title') ?? ''}${left != null ? ' · $left left' : ''}',
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      final showId = item.i('show_id');
-                      if (showId == null) return;
-                      if (value == 'hide') _hide(showId);
-                      if (value == 'unhide') _unhide(showId);
-                    },
-                    itemBuilder: (_) => [
-                      if (item.b('next_up_hidden'))
-                        const PopupMenuItem(
-                          value: 'unhide',
-                          child: Text('Unhide show'),
-                        )
-                      else
-                        const PopupMenuItem(
-                          value: 'hide',
-                          child: Text('Hide show'),
+      body: Column(
+        children: [
+          if (_searching)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              child: TextField(
+                controller: _search,
+                autofocus: true,
+                onChanged: (value) => setState(() => _query = value),
+                textInputAction: TextInputAction.search,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  hintText: 'Search shows or episodes',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          onPressed: () {
+                            _search.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: const Icon(Icons.close_rounded),
                         ),
-                    ],
+                ),
+              ),
+            ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LoadingView();
+                }
+                if (snapshot.hasError) {
+                  return ErrorView(
+                    message: '${snapshot.error}',
+                    onRetry: () => setState(() => _future = _load()),
+                  );
+                }
+                final all = snapshot.data ?? const [];
+                final items = _filter(all);
+                if (all.isEmpty) {
+                  return const EmptyState(
+                    title: 'You are all caught up',
+                    body:
+                        'Watch an episode and the next one will appear here.',
+                  );
+                }
+                if (items.isEmpty) {
+                  return const EmptyState(
+                    title: 'No matches',
+                    body: 'Try a show name or episode number.',
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() => _future = _load());
+                    await _future;
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final left = item.i('episodes_left');
+                      return _WideMediaTile(
+                        media: item,
+                        subtitle:
+                            'S${item.i('season_number')}E${item.i('episode_number')} · ${item.s('show_title') ?? ''}${left != null ? ' · $left left' : ''}',
+                        onWatchToggle: () => _markWatched(item),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            final showId = item.i('show_id');
+                            if (showId == null) return;
+                            if (value == 'hide') _hide(showId);
+                            if (value == 'unhide') _unhide(showId);
+                          },
+                          itemBuilder: (_) => [
+                            if (item.b('next_up_hidden'))
+                              const PopupMenuItem(
+                                value: 'unhide',
+                                child: Text('Unhide show'),
+                              )
+                            else
+                              const PopupMenuItem(
+                                value: 'hide',
+                                child: Text('Hide show'),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -473,6 +576,7 @@ class _WideMediaTile extends StatelessWidget {
     this.trailing,
     this.progress,
     this.onTap,
+    this.onWatchToggle,
   });
 
   final Map<String, dynamic> media;
@@ -480,6 +584,7 @@ class _WideMediaTile extends StatelessWidget {
   final Widget? trailing;
   final double? progress;
   final VoidCallback? onTap;
+  final Future<void> Function()? onWatchToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -496,7 +601,36 @@ class _WideMediaTile extends StatelessWidget {
             SizedBox(
               width: 62,
               height: 93,
-              child: Poster(url: poster, title: title, radius: 8),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Poster(url: poster, title: title, radius: 8),
+                  if (onWatchToggle != null && !media.b('watched'))
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: Material(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        shape: const CircleBorder(),
+                        child: Tooltip(
+                          message: 'Mark watched',
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => onWatchToggle!.call(),
+                            child: const Padding(
+                              padding: EdgeInsets.all(3),
+                              child: Icon(
+                                Icons.check_rounded,
+                                size: 15,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
