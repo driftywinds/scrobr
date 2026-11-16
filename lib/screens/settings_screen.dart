@@ -509,7 +509,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: TextField(
           controller: code,
           autofocus: true,
-          autocapitalize: TextCapitalization.characters,
+          textCapitalization: TextCapitalization.characters,
           decoration: const InputDecoration(
             labelText: 'Device code',
             hintText: 'Shown on the other device',
@@ -540,8 +540,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Approve this device?'),
           content: Text(
-            '${pending.s('client_name') ?? 'Unknown client'}
-'
+            '${pending.s('client_name') ?? 'Unknown client'}\n'
             'Scope: ${pending.s('scope') ?? 'unknown'}',
           ),
           actions: [
