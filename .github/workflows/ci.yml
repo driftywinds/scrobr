@@ -26,7 +26,15 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --no-fatal-infos 2>&1 | tee /tmp/analyze.log || {
+            grep -E "error -|warning -" /tmp/analyze.log | while IFS= read -r line; do
+              echo "::error title=Flutter analyze::$line"
+            done
+            exit 1
+          }
 
       - name: Test
         run: flutter test
