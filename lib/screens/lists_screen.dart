@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
 import '../core/format.dart';
+import '../core/list_imports.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
@@ -33,6 +34,85 @@ class _ListsScreenState extends State<ListsScreen> {
   }
 
   void _reload() => setState(() => _future = _load());
+
+  Future<void> _startImport(ListImportSource source) async {
+    final input = TextEditingController();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Import ${source.label}'),
+        content: TextField(
+          controller: input,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'List ID or URL',
+            hintText: source.hint,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, input.text.trim()),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+    input.dispose();
+    if (value == null || value.isEmpty || !mounted) return;
+    await _runImport(source, value);
+  }
+
+  Future<void> _runImport(ListImportSource source, String value) async {
+    final app = ScrobScope.of(context);
+    try {
+      final response = asMap(
+        await app.post(source.path, listImportBody(value)),
+      );
+      _reload();
+      final jobId = listImportJobId(response);
+      if (jobId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Import started')),
+        );
+        return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Import started')),
+      );
+      for (var attempt = 0; attempt < 120; attempt++) {
+        await Future<void>.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+        final job = asMap(
+          await app.get('/lists/import/jobs/$jobId'),
+        );
+        if (listImportFinished(job)) {
+          _reload();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(listImportSummary(job))),
+          );
+          return;
+        }
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Import is still running')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not import list: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _create() async {
     final name = TextEditingController();
@@ -122,11 +202,24 @@ class _ListsScreenState extends State<ListsScreen> {
       appBar: AppBar(
         title: const Text('Lists'),
         actions: [
-          if (_tab == 'mine')
+          if (_tab == 'mine') ...[
+            PopupMenuButton<ListImportSource>(
+              tooltip: 'Import a list',
+              icon: const Icon(Icons.playlist_add_rounded),
+              onSelected: _startImport,
+              itemBuilder: (_) => [
+                for (final source in listImportSources)
+                  PopupMenuItem(
+                    value: source,
+                    child: Text(source.label),
+                  ),
+              ],
+            ),
             IconButton(
               onPressed: _create,
               icon: const Icon(Icons.add_rounded),
             ),
+          ],
         ],
       ),
       body: Column(

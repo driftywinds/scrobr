@@ -9,9 +9,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
+import '../core/device_auth.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
+import '../core/tracker_imports.dart';
 import 'admin_screen.dart';
 import 'connections_screen.dart';
 import 'requests_screen.dart';
@@ -75,6 +77,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  Future<void> _importTracker(String kind) async {
+    final isTrakt = kind == 'trakt';
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['zip', 'json', 'csv'],
+    );
+    if (picked == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await picked.readAsBytes();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not read the selected file: $e')),
+        );
+      }
+      return;
+    }
+    try {
+      final response = asMap(await ScrobScope.of(context).postMultipart(
+        isTrakt ? traktImportPath : yamtrackImportPath,
+        field: 'file',
+        bytes: bytes,
+        filename: picked.name.isEmpty
+            ? (isTrakt ? 'trakt-export.zip' : 'yamtrack-export.zip')
+            : picked.name,
+        fields: isTrakt ? traktImportFields : yamtrackImportFields,
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response.s('message') ??
+                  (isTrakt ? 'Trakt import started' : 'Yamtrack import started'),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not import $kind: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _bingebasePush() async {
+    try {
+      final response = asMap(
+        await ScrobScope.of(context).post(bingebasePushPath),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.s('message') ?? 'Bingebase push complete'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not push to Bingebase: $e')),
+        );
+      }
     }
   }
 
@@ -429,6 +499,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
     code.dispose();
   }
 
+  Future<void> _approveDevice() async {
+    final app = ScrobScope.of(context);
+    final code = TextEditingController();
+    final entered = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Approve device login'),
+        content: TextField(
+          controller: code,
+          autofocus: true,
+          autocapitalize: TextCapitalization.characters,
+          decoration: const InputDecoration(
+            labelText: 'Device code',
+            hintText: 'Shown on the other device',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, code.text),
+            child: const Text('Check'),
+          ),
+        ],
+      ),
+    );
+    code.dispose();
+    final normalized = normalizeDeviceCode(entered ?? '');
+    if (normalized.isEmpty || !mounted) return;
+    try {
+      final pending = asMap(
+        await app.get('/auth/device/pending', {'user_code': normalized}),
+      );
+      if (!mounted) return;
+      final allowed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Approve this device?'),
+          content: Text(
+            '${pending.s('client_name') ?? 'Unknown client'}
+'
+            'Scope: ${pending.s('scope') ?? 'unknown'}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Deny'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Approve'),
+            ),
+          ],
+        ),
+      );
+      if (allowed == null || !mounted) return;
+      await app.post(
+        '/auth/device/approve',
+        deviceApproveBody(userCode: normalized, approve: allowed),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(allowed ? 'Device approved' : 'Device denied'),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not check device code: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _deviceGrants() async {
     final app = ScrobScope.of(context);
     try {
@@ -768,6 +915,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: _deviceGrants,
             ),
             ListTile(
+              leading: const Icon(Icons.verified_user_outlined),
+              title: const Text('Approve device login'),
+              subtitle: const Text('Enter the code shown on a new device'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: _approveDevice,
+            ),
+            ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: const Text('Sign out'),
               onTap: () async {
@@ -928,12 +1082,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
           ),
           ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: const Text('Import from Trakt'),
+            subtitle: const Text('Upload a Trakt export file'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _importTracker('trakt'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: const Text('Import from Yamtrack'),
+            subtitle: const Text('Upload a Yamtrack export file'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _importTracker('yamtrack'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_input_antenna_rounded),
+            title: const Text('Kodi / webhooks'),
+            subtitle: const Text('Configure media-server webhooks on the web'),
+            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+            onTap: _openWebConnections,
+          ),
+          ListTile(
             leading: const Icon(Icons.webhook_rounded),
-            title: const Text('Bingebase webhook'),
+            title: const Text('Bingebase'),
+            subtitle: const Text('Webhook setup opens the web settings'),
             trailing: TextButton(
-              onPressed: _openWebConnections,
-              child: const Text('Set'),
+              onPressed: _bingebasePush,
+              child: const Text('Push now'),
             ),
+            onTap: _openWebConnections,
           ),
           if (app.isAdmin) ...[
             const _Section('Administration'),

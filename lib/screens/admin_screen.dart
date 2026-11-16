@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/admin_tools.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
@@ -692,6 +693,43 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
     }
   }
 
+  Future<void> _testKey(
+    String path,
+    String key, {
+    String? pin,
+  }) async {
+    if (key.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter an API key first')),
+      );
+      return;
+    }
+    try {
+      final result = asMap(
+        await ScrobScope.of(context).post(
+          path,
+          apiKeyTestBody(key, pin: pin),
+        ),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.s('message') ??
+                result.s('detail') ??
+                (result.b('valid') ? 'Key is valid' : 'Key test completed'),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Key test failed: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -719,6 +757,35 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
           controller: _mdblist,
           obscureText: true,
           decoration: const InputDecoration(labelText: 'MDBList API key'),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            OutlinedButton(
+              onPressed: () => _testKey(
+                '/admin/settings/test-tmdb',
+                _tmdb.text,
+              ),
+              child: const Text('Test TMDB'),
+            ),
+            OutlinedButton(
+              onPressed: () => _testKey(
+                '/admin/settings/test-tvdb',
+                _tvdb.text,
+                pin: _tvdbPin.text,
+              ),
+              child: const Text('Test TVDB'),
+            ),
+            OutlinedButton(
+              onPressed: () => _testKey(
+                '/admin/settings/test-mdblist',
+                _mdblist.text,
+              ),
+              child: const Text('Test MDBList'),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         const SectionHeader(title: 'Radarr / Sonarr requests'),

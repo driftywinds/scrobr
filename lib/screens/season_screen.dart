@@ -4,6 +4,7 @@ import '../core/actions.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
+import '../core/season_collect.dart';
 import '../core/theme.dart';
 import '../widgets/comments.dart';
 import '../widgets/trakt_comments.dart';
@@ -332,6 +333,48 @@ class _SeasonScreenState extends State<SeasonScreen> {
                           widget.seasonNumber,
                         );
                         if (ok) _reload();
+                      },
+                    ),
+                    _SmallAction(
+                      icon: season.b('season_in_library')
+                          ? Icons.library_add_check_rounded
+                          : Icons.library_add_outlined,
+                      label: season.b('season_in_library')
+                          ? 'Uncollect season'
+                          : 'Collect season',
+                      onTap: () async {
+                        final app = ScrobScope.of(context);
+                        final order = season.s('episode_order');
+                        try {
+                          if (season.b('season_in_library')) {
+                            await app.delete(
+                              '/media/collect-season',
+                              seasonUncollectQuery(
+                                seriesTmdbId: widget.showTmdbId,
+                                seasonNumber: widget.seasonNumber,
+                                episodeOrder: order,
+                              ),
+                            );
+                          } else {
+                            await app.post(
+                              '/media/collect-season',
+                              seasonCollectBody(
+                                seriesTmdbId: widget.showTmdbId,
+                                seasonNumber: widget.seasonNumber,
+                                episodeOrder: order,
+                              ),
+                            );
+                          }
+                          if (mounted) _reload();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Could not update collection: $e'),
+                              ),
+                            );
+                          }
+                        }
                       },
                     ),
                     _SmallAction(

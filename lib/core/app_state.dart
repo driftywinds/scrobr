@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 import 'format.dart';
+import 'session.dart';
 
 const _kServer = 'scrobr_server';
 const _kToken = 'scrob_token';
@@ -208,6 +209,7 @@ class AppState extends ChangeNotifier {
 
   int? _followingListId;
   List<Map<String, dynamic>>? _followingItems;
+  Future<bool>? _renewingSession;
 
   bool _isFollowingList(Map<String, dynamic> list) =>
       (list.s('description') ?? '').contains(_kFollowingMarker);
@@ -426,11 +428,47 @@ class AppState extends ChangeNotifier {
             mimeType: mimeType,
           ));
 
+  Future<bool> _renewSession() {
+    final existing = _renewingSession;
+    if (existing != null) return existing;
+    final future = _doRenewSession();
+    _renewingSession = future;
+    future.whenComplete(() {
+      if (identical(_renewingSession, future)) _renewingSession = null;
+    });
+    return future;
+  }
+
+  Future<bool> _doRenewSession() async {
+    if (token == null || token!.isEmpty) return false;
+    try {
+      final oldClient = _client ??
+          ApiClient(baseUrl: proxyUrl, token: token, apiKey: apiKey);
+      final next = await renewSessionToken(oldClient);
+      if (next == null) return false;
+      token = next;
+      _client = ApiClient(baseUrl: proxyUrl, token: next);
+      await _prefs.setString(_kToken, next);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<dynamic> _guard(Future<dynamic> Function() request) async {
     try {
       return await request();
     } on ApiException catch (e) {
       if (e.isUnauthorized && token != null) {
+        final renewed = await _renewSession();
+        if (renewed) {
+          try {
+            return await request();
+          } on ApiException catch (retryError) {
+            if (retryError.isUnauthorized) await _clearCredentials();
+            rethrow;
+          }
+        }
         await _clearCredentials();
       }
       rethrow;
