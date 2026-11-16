@@ -233,12 +233,12 @@ class AppState extends ChangeNotifier {
       if (previousToken == null) {
         await _prefs.remove(_kToken);
       } else {
-        await _prefs.setString(_kToken, previousToken!);
+        await _prefs.setString(_kToken, previousToken);
       }
       if (previousApiKey == null) {
         await _prefs.remove(_kApiKey);
       } else {
-        await _prefs.setString(_kApiKey, previousApiKey!);
+        await _prefs.setString(_kApiKey, previousApiKey);
       }
       notifyListeners();
       rethrow;
