@@ -1011,7 +1011,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 );
-                if (ok == true) await app.logout();
+                if (ok == true) await signOut(context);
               },
             ),
           ],

@@ -118,6 +118,15 @@ void openStudio(
 void openSearch(BuildContext context, {String type = 'movie'}) =>
     pushScreen(context, SearchScreen(initialType: type));
 
+/// Clears the session and returns to the root route, where the login screen
+/// replaces the authenticated shell.
+Future<void> signOut(BuildContext context) async {
+  await ScrobScope.of(context).logout();
+  if (context.mounted) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+}
+
 void openExplore(BuildContext context, {String type = 'movie'}) =>
     pushScreen(context, ExploreScreen(initialType: type));
 

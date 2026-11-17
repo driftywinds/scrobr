@@ -141,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    if (ok == true) await app.logout();
+    if (ok == true) await signOut(context);
   }
 
   String? _avatarMime(String name) {
@@ -889,7 +889,7 @@ class _ApiKeyProfile extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 FilledButton.tonal(
-                  onPressed: () => app.logout(),
+                  onPressed: () => signOut(context),
                   child: const Text('Switch account'),
                 ),
               ],
