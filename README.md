@@ -19,8 +19,8 @@ and the main browsing, tracking, social and settings flows of the web UI.
 | <img src="play-store/03-progress.jpg" width="300" alt="Scrobr show progress"> | <img src="play-store/04-discover-movies.jpg" width="300" alt="Scrobr discover movies"> |
 | **Discover shows** | **History** |
 | <img src="play-store/05-discover-shows.jpg" width="300" alt="Scrobr discover shows"> | <img src="play-store/06-history.jpg" width="300" alt="Scrobr watch history"> |
-| **Profile** | |
-| <img src="play-store/07-profile.jpg" width="300" alt="Scrobr profile and stats"> | |
+| **Profile** | **Settings** |
+| <img src="play-store/07-profile.jpg" width="300" alt="Scrobr profile and stats"> | <img src="play-store/08-settings.jpg" width="300" alt="Scrobr settings and appearance"> |
 
 ## Features
 
