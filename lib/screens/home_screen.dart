@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/actions.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
+import '../core/movie_shelf.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
@@ -28,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _cacheRead = false;
   int _seenHistoryRevision = -1;
   String _tab = 'shows';
+  final Set<int> _checkedMovies = {};
 
   @override
   void didChangeDependencies() {
@@ -70,6 +72,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _watchlistEntries(AppState app) async {
+    final data = await app.tryGet('/lists');
+    if (data == null) return const [];
+    Map<String, dynamic>? watchlist;
+    for (final list in asMaps(asMap(data)['lists'])) {
+      if (list.b('is_watchlist')) {
+        watchlist = list;
+        break;
+      }
+    }
+    final id = watchlist?.i('id');
+    if (id == null) return const [];
+    final detail = await app.tryGet('/lists/$id');
+    if (detail == null) return const [];
+    return asMaps(asMap(detail)['items']);
+  }
+
   Future<_HomeData> _load() async {
     final app = ScrobScope.of(context);
     final results = await Future.wait([
@@ -80,6 +99,8 @@ class _HomeScreenState extends State<HomeScreen> {
         'page_size': 200,
       }),
       app.tryGet('/history/continue-watching', {'limit': 100}),
+      _watchlistEntries(app),
+      app.followingItems().catchError((_) => <Map<String, dynamic>>[]),
     ]);
     if (results.every((result) => result == null)) {
       throw Exception('Could not load your Up Next');
@@ -87,9 +108,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final data = _HomeData(
       shows: asMaps(asMap(results[0])['next_up']),
       progress: asMaps(asMap(results[1])['shows']),
-      movies: asMaps(asMap(results[2])['continue_watching'])
-          .where((entry) => asMap(entry['media']).s('type') == 'movie')
-          .toList(),
+      movies: buildMovieRows(
+        continueWatching: asMaps(asMap(results[2])['continue_watching']),
+        watchlist: asMaps(results[3]),
+        following: asMaps(results[4]),
+      ),
     );
     _data = data;
     _saveCache(app, data);
@@ -140,6 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
       promptRating: false,
     );
     if (!changed || !mounted) return;
+    final id = media.i('tmdb_id');
+    if (id != null) setState(() => _checkedMovies.add(id));
     _seenHistoryRevision = ScrobScope.of(context).historyRevision;
     await _reload();
   }
@@ -276,25 +301,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMovies(_HomeData data) {
-    if (data.movies.isEmpty) {
+    final movies = data.movies.where((entry) {
+      final id = asMap(entry['media']).i('tmdb_id');
+      return id == null || !_checkedMovies.contains(id);
+    }).toList();
+    if (movies.isEmpty) {
       return _EmptyUpNext(
-        title: 'No movies in progress',
+        title: 'No movies saved',
         body:
-            'Start watching a movie and it will appear here until you finish it.',
+            'Add a movie to your watchlist or follow it to see it here.',
         icon: Icons.movie_outlined,
       );
     }
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: data.movies.length,
+      itemCount: movies.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final entry = data.movies[index];
+        final entry = movies[index];
         final media = asMap(entry['media']);
         final pct = entry.d('progress_percent') ??
-            media.d('progress_percent') ??
-            0;
+            media.d('progress_percent');
         return UpNextTile(
           title: media.s('title') ?? '',
           posterUrl: ScrobScope.of(context).imageUrl(
@@ -302,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
             size: 'w185',
           ),
           subtitle: yearOf(media.s('release_date')),
-          progress: pct.toDouble(),
+          progress: pct?.toDouble(),
           onTap: () => openMedia(context, media),
           onCheck: () => _markMovieWatched(entry),
         );
