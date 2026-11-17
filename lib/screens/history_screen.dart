@@ -114,6 +114,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (media.i('id') != null) 'id': media.i('id'),
         'media_type': media.s('type'),
       });
+      if (media.s('type') == 'movie') {
+        final tmdb = media.i('tmdb_id');
+        if (tmdb != null) app.noteMovieWatched(tmdb, false);
+      }
       _reload();
     } catch (e) {
       if (mounted) {

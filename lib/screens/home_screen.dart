@@ -11,6 +11,7 @@ import '../core/movie_shelf.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/movie_poster_tile.dart';
 import '../widgets/up_next_tile.dart';
 import 'discover_screen.dart';
 import 'requests_screen.dart';
@@ -340,14 +341,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMovies() {
     if (!_moviesLoaded && _movies.isEmpty) {
-      return const LoadingView();
+      return const PosterGridSkeleton();
     }
     if (_moviesError != null && _movies.isEmpty) {
       return ErrorView(message: '$_moviesError', onRetry: _reload);
     }
+    final app = ScrobScope.of(context);
     final movies = _movies.where((entry) {
-      final id = asMap(entry['media']).i('tmdb_id');
-      return id == null || !_checkedMovies.contains(id);
+      final media = asMap(entry['media']);
+      final id = media.i('tmdb_id');
+      if (id == null) return true;
+      return !_checkedMovies.contains(id) &&
+          !app.isMovieWatched(id) &&
+          !media.b('watched');
     }).toList();
     if (movies.isEmpty) {
       return _EmptyUpNext(
@@ -357,24 +363,22 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.movie_outlined,
       );
     }
-    return ListView.separated(
+    return GridView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 150,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 10,
+        childAspectRatio: 2 / 3,
+      ),
       itemCount: movies.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final entry = movies[index];
         final media = asMap(entry['media']);
-        final pct = entry.d('progress_percent') ??
-            media.d('progress_percent');
-        return UpNextTile(
+        return MoviePosterTile(
           title: media.s('title') ?? '',
-          posterUrl: ScrobScope.of(context).imageUrl(
-            posterPathFor(media),
-            size: 'w185',
-          ),
-          subtitle: yearOf(media.s('release_date')),
-          progress: pct?.toDouble(),
+          posterUrl: app.imageUrl(posterPathFor(media), size: 'w185'),
           onTap: () => openMedia(context, media),
           onCheck: () => _markMovieWatched(entry),
         );

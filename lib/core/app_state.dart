@@ -40,6 +40,7 @@ class AppState extends ChangeNotifier {
   int calendarDays = 21;
   String accentId = defaultAccentId;
   String? accentSolidId;
+  final Set<int> _watchedMovieIds = {};
   String? sessionError;
   List<SavedAccount> _accounts = const [];
 
@@ -298,6 +299,7 @@ class AppState extends ChangeNotifier {
     _followingItems = null;
     await _prefs.remove(_kToken);
     await _prefs.remove(_kApiKey);
+    _watchedMovieIds.clear();
     await _prefs.remove(_kFollowingListId);
     await _prefs.remove(_kFollowingMirror);
     if (notify) notifyListeners();
@@ -322,6 +324,16 @@ class AppState extends ChangeNotifier {
     calendarDays = value.clamp(1, 90).toInt();
     await _prefs.setInt(_kCalendarDays, calendarDays);
     notifyListeners();
+  }
+
+  bool isMovieWatched(int tmdbId) => _watchedMovieIds.contains(tmdbId);
+
+  void noteMovieWatched(int tmdbId, bool watched) {
+    if (watched) {
+      _watchedMovieIds.add(tmdbId);
+    } else {
+      _watchedMovieIds.remove(tmdbId);
+    }
   }
 
   Future<bool> setCalendarNotifications(bool enabled) async {

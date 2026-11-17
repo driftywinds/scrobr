@@ -44,6 +44,10 @@ Future<bool> toggleWatched(
         body['tmdb_id'] = media.i('tmdb_id');
       }
       await app.post('/history', body);
+      if (type == 'movie') {
+        final tmdb = media.i('tmdb_id');
+        if (tmdb != null) app.noteMovieWatched(tmdb, true);
+      }
       app.bumpHistory();
     } else {
       final id = media.i('id');
@@ -54,6 +58,10 @@ Future<bool> toggleWatched(
         if (id == null && tmdb != null) 'tmdb_id': tmdb,
         'media_type': type,
       });
+      if (type == 'movie') {
+        final tmdb = media.i('tmdb_id');
+        if (tmdb != null) app.noteMovieWatched(tmdb, false);
+      }
       app.bumpHistory();
     }
     HapticFeedback.selectionClick();
