@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
-import '../core/swipe_navigation.dart';
+import '../widgets/swipe_pages.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 
@@ -14,92 +14,118 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
+const _historyTypes = ['', 'movie', 'episode'];
+
+/// Paged history for one tab. Each tab keeps its own list so adjacent tabs can
+/// be shown side by side while swiping.
+class _Feed {
+  final events = <Map<String, dynamic>>[];
+  final scroll = ScrollController();
+  int page = 1;
+  int totalPages = 1;
+  bool loading = false;
+  bool started = false;
+  String? error;
+}
+
 class _HistoryScreenState extends State<HistoryScreen> {
-  final _scroll = ScrollController();
   final _search = TextEditingController();
-  final List<Map<String, dynamic>> _events = [];
-  int _page = 1;
-  int _totalPages = 1;
-  bool _loading = false;
-  bool _started = false;
+  final Map<String, _Feed> _feeds = {
+    for (final type in _historyTypes) type: _Feed(),
+  };
   int _seenRevision = -1;
   bool _searching = false;
-  String? _error;
+  bool _initialised = false;
   String _type = '';
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    for (final type in _historyTypes) {
+      final feed = _feeds[type]!;
+      feed.scroll.addListener(() {
+        if (!feed.scroll.hasClients) return;
+        final position = feed.scroll.position;
+        if (position.pixels > position.maxScrollExtent - 500) {
+          _load(type);
+        }
+      });
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final app = ScrobScope.of(context);
-    if (!_started) {
-      _started = true;
+    if (!_initialised) {
+      _initialised = true;
       _seenRevision = app.historyRevision;
-      _load(reset: true);
     } else if (_seenRevision != app.historyRevision) {
       _seenRevision = app.historyRevision;
-      _load(reset: true);
+      _invalidateAll();
     }
   }
 
   @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(() {
-      if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 500) {
-        _load();
+  void dispose() {
+    _search.dispose();
+    for (final feed in _feeds.values) {
+      feed.scroll.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Marks every tab stale. Tabs that are on screen (or kept alive next to it)
+  /// reload themselves the next time they are built.
+  void _invalidateAll() {
+    setState(() {
+      for (final feed in _feeds.values) {
+        feed.started = false;
       }
     });
   }
 
-  @override
-  void dispose() {
-    _scroll.dispose();
-    _search.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load({bool reset = false}) async {
-    if (_loading) return;
-    if (!reset && _page > _totalPages) return;
+  Future<void> _load(String type, {bool reset = false}) async {
+    final feed = _feeds[type]!;
+    if (feed.loading) return;
+    if (!reset && feed.page > feed.totalPages) return;
+    feed.started = true;
     setState(() {
-      _loading = true;
+      feed.loading = true;
       if (reset) {
-        _page = 1;
-        _totalPages = 1;
-        _events.clear();
-        _error = null;
+        feed.page = 1;
+        feed.totalPages = 1;
+        feed.events.clear();
+        feed.error = null;
       }
     });
     try {
       final data = asMap(await ScrobScope.of(context).get('/history', {
-        'page': _page,
+        'page': feed.page,
         'page_size': 30,
-        if (_type.isNotEmpty) 'type': _type,
+        if (type.isNotEmpty) 'type': type,
         if (_query.isNotEmpty) 'q': _query,
       }));
       if (!mounted) return;
       setState(() {
-        _events.addAll(data.maps('results'));
-        _totalPages = data.i('total_pages') ?? 1;
-        _page += 1;
+        feed.events.addAll(data.maps('results'));
+        feed.totalPages = data.i('total_pages') ?? 1;
+        feed.page += 1;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => feed.error = '$e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => feed.loading = false);
     }
   }
 
   void _setType(String value) {
     if (value == _type) return;
     setState(() => _type = value);
-    _reload();
   }
 
-  void _reload() {
-    _load(reset: true);
-  }
+  void _reload() => _invalidateAll();
 
   Future<void> _deleteEvent(int id) async {
     try {
@@ -183,19 +209,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
           Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onHorizontalDragEnd: (details) {
-                const tabs = ['', 'movie', 'episode'];
-                final current = tabs.indexOf(_type);
-                final target = swipeTargetIndex(
-                  current,
-                  tabs.length,
-                  details.primaryVelocity ?? 0,
-                );
-                if (target != current) _setType(tabs[target]);
-              },
-              child: _buildList(),
+            child: SwipePages(
+              index: _historyTypes.indexOf(_type),
+              onIndexChanged: (i) => _setType(_historyTypes[i]),
+              itemCount: _historyTypes.length,
+              itemBuilder: (context, i) => _buildList(_historyTypes[i]),
             ),
           ),
         ],
@@ -203,8 +221,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildList() {
-    if (_events.isEmpty && _loading) {
+  Widget _buildList(String type) {
+    final feed = _feeds[type]!;
+    if (!feed.started && !feed.loading) {
+      // First time this tab is built (or it was invalidated): fetch it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !feed.started) _load(type, reset: true);
+      });
+    }
+    if (feed.events.isEmpty && feed.loading) {
       return ListView(
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -217,12 +242,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       );
     }
-    if (_events.isEmpty && _error != null) {
+    if (feed.events.isEmpty && feed.error != null) {
       return ListView(
-        children: [ErrorView(message: _error!, onRetry: _reload)],
+        children: [ErrorView(message: feed.error!, onRetry: () => _load(type, reset: true))],
       );
     }
-    if (_events.isEmpty) {
+    if (feed.events.isEmpty) {
       return ListView(
         children: const [
           EmptyState(
@@ -236,7 +261,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final today = DateTime(now.year, now.month, now.day);
     String? lastDate;
     final children = <Widget>[];
-    for (final event in _events) {
+    for (final event in feed.events) {
       final watchedAt =
           DateTime.tryParse(event.s('watched_at') ?? '')?.toLocal();
       final date = watchedAt == null
@@ -290,7 +315,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         onUnwatch: () => _unwatch(asMap(event['media'])),
       ));
     }
-    if (_loading) {
+    if (feed.loading) {
       children.add(
         const Padding(
           padding: EdgeInsets.all(16),
@@ -305,11 +330,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
     }
     return RefreshIndicator(
-      onRefresh: () async {
-        _reload();
-      },
+      onRefresh: () => _load(type, reset: true),
       child: ListView(
-        controller: _scroll,
+        controller: feed.scroll,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 24),
         children: children,

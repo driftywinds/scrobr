@@ -7,7 +7,7 @@ import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
-import '../core/swipe_navigation.dart';
+import '../widgets/swipe_pages.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
@@ -135,6 +135,101 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     }
   }
 
+  Widget _buildPage(String type) {
+    final future = _futures.putIfAbsent(type, () => _load(type));
+    return FutureBuilder<_DiscoverData>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const DashboardSkeleton();
+                }
+                if (snapshot.hasError) {
+                  return ErrorView(
+                    message: '${snapshot.error}',
+                    onRetry: _reload,
+                  );
+                }
+                final data = snapshot.data;
+                if (data == null) {
+                  return const EmptyState(title: 'Nothing to discover');
+                }
+                return RefreshIndicator(
+                  onRefresh: _reload,
+                  child: ListView(
+                    key: PageStorageKey<String>('discover-$type'),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 28),
+                    children: [
+                      MediaRow(
+                        title: 'Trending ${type == 'movie' ? 'Movies' : 'Shows'}',
+                        items: data.trending,
+                        onSeeAll: () => pushScreen(
+                          context,
+                          BrowseScreen.trending(type: type),
+                        ),
+                      ),
+                      MediaRow(
+                        title: 'Top Rated',
+                        items: data.topRated,
+                        onSeeAll: () => pushScreen(
+                          context,
+                          BrowseScreen.topRated(type: type),
+                        ),
+                      ),
+                      MediaRow(
+                        title: type == 'movie' ? 'Now Playing' : 'On Air This Week',
+                        items: data.nowPlaying,
+                      ),
+                      MediaRow(
+                        title: type == 'movie' ? 'Upcoming' : 'New Episodes',
+                        items: data.upcoming,
+                      ),
+                      MediaRow(title: 'For You', items: data.forYou),
+                      MediaRow(
+                        title: 'Hidden Gems',
+                        items: data.hiddenGems,
+                      ),
+                      MediaRow(
+                        title: 'On Your Services',
+                        items: data.streaming,
+                      ),
+                      if (type == 'movie')
+                        _TrailerRow(items: data.trailers),
+                      if (data.trending.isEmpty &&
+                          data.nowPlaying.isEmpty &&
+                          data.upcoming.isEmpty &&
+                          data.topRated.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: kSurface,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Metadata is not available',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'An admin needs a TMDB key in the Scrob admin settings to power Discover.',
+                                  style: TextStyle(color: kMuted, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+              );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,109 +265,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ),
           Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onHorizontalDragEnd: (details) {
-                const tabs = ['movie', 'series'];
-                final current = tabs.indexOf(_type);
-                final target = swipeTargetIndex(
-                  current,
-                  tabs.length,
-                  details.primaryVelocity ?? 0,
-                );
-                if (target != current) _setType(tabs[target]);
-              },
-              child: FutureBuilder<_DiscoverData>(
-              future: _futures[_type],
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const DashboardSkeleton();
-                }
-                if (snapshot.hasError) {
-                  return ErrorView(
-                    message: '${snapshot.error}',
-                    onRetry: _reload,
-                  );
-                }
-                final data = snapshot.data;
-                if (data == null) {
-                  return const EmptyState(title: 'Nothing to discover');
-                }
-                return RefreshIndicator(
-                  onRefresh: _reload,
-                  child: ListView(
-                    key: PageStorageKey<String>('discover-$_type'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 28),
-                    children: [
-                      MediaRow(
-                        title: 'Trending ${_type == 'movie' ? 'Movies' : 'Shows'}',
-                        items: data.trending,
-                        onSeeAll: () => pushScreen(
-                          context,
-                          BrowseScreen.trending(type: _type),
-                        ),
-                      ),
-                      MediaRow(
-                        title: 'Top Rated',
-                        items: data.topRated,
-                        onSeeAll: () => pushScreen(
-                          context,
-                          BrowseScreen.topRated(type: _type),
-                        ),
-                      ),
-                      MediaRow(
-                        title: _type == 'movie' ? 'Now Playing' : 'On Air This Week',
-                        items: data.nowPlaying,
-                      ),
-                      MediaRow(
-                        title: _type == 'movie' ? 'Upcoming' : 'New Episodes',
-                        items: data.upcoming,
-                      ),
-                      MediaRow(title: 'For You', items: data.forYou),
-                      MediaRow(
-                        title: 'Hidden Gems',
-                        items: data.hiddenGems,
-                      ),
-                      MediaRow(
-                        title: 'On Your Services',
-                        items: data.streaming,
-                      ),
-                      if (_type == 'movie')
-                        _TrailerRow(items: data.trailers),
-                      if (data.trending.isEmpty &&
-                          data.nowPlaying.isEmpty &&
-                          data.upcoming.isEmpty &&
-                          data.topRated.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: kSurface,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Metadata is not available',
-                                  style: TextStyle(fontWeight: FontWeight.w700),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'An admin needs a TMDB key in the Scrob admin settings to power Discover.',
-                                  style: TextStyle(color: kMuted, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-              ),
+            child: SwipePages(
+              index: _type == 'movie' ? 0 : 1,
+              onIndexChanged: (i) => _setType(i == 0 ? 'movie' : 'series'),
+              itemCount: 2,
+              itemBuilder: (context, i) =>
+                  _buildPage(i == 0 ? 'movie' : 'series'),
             ),
           ),
         ],
