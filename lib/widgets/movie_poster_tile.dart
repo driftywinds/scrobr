@@ -38,63 +38,78 @@ class _MoviePosterTileState extends State<MoviePosterTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Open ${widget.title}',
-      child: AspectRatio(
-        aspectRatio: 2 / 3,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Poster(url: widget.posterUrl, title: widget.title, radius: 0),
-              Positioned.fill(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(onTap: widget.onTap),
-                ),
-              ),
-              if (widget.onCheck != null)
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Semantics(
-                    button: true,
-                    label: 'Mark ${widget.title} watched',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Semantics(
+            button: true,
+            label: 'Open ${widget.title}',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Poster(url: widget.posterUrl, title: widget.title, radius: 0),
+                  Positioned.fill(
                     child: Material(
-                      color: Colors.black.withValues(alpha: 0.62),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: _busy ? null : _check,
-                        child: SizedBox(
-                          width: 44,
-                          height: 44,
-                          child: Center(
-                            child: _busy
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.check_rounded,
-                                    size: 22,
-                                    color: Colors.white,
-                                  ),
+                      color: Colors.transparent,
+                      child: InkWell(onTap: widget.onTap),
+                    ),
+                  ),
+                  if (widget.onCheck != null)
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: Semantics(
+                        button: true,
+                        label: 'Mark ${widget.title} watched',
+                        child: Material(
+                          color: Colors.black.withValues(alpha: 0.62),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: _busy ? null : _check,
+                            child: SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: Center(
+                                child: _busy
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.check_rounded,
+                                        size: 22,
+                                        color: Colors.white,
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 6),
+        Text(
+          widget.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11,
+            height: 1.15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -370,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
         maxCrossAxisExtent: 150,
         mainAxisSpacing: 12,
         crossAxisSpacing: 10,
-        childAspectRatio: 2 / 3,
+        childAspectRatio: 0.54,
       ),
       itemCount: movies.length,
       itemBuilder: (context, index) {
