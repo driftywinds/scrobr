@@ -36,6 +36,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<Map<String, dynamic>> _load() async {
     final app = ScrobScope.of(context);
+    // Server calendar and followed-show details are independent; fetch them
+    // together instead of waiting for one before starting the other.
+    final followedFuture = followedCalendarEntries(
+      app,
+      days: app.calendarDays,
+    ).catchError((_) => <Map<String, dynamic>>[]);
     final data = asMap(
       await app.get('/calendar', {'days': app.calendarDays}),
     );
@@ -48,20 +54,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
               '${entry.i('season_number')}:${entry.i('episode_number')}',
     };
 
-    try {
-      final followed = await followedCalendarEntries(
-        app,
-        days: app.calendarDays,
-      );
-      for (final entry in followed) {
-        final key = entry.s('media_type') == 'movie'
-            ? 'movie:${entry.i('tmdb_id')}'
-            : '${entry.i('show_tmdb_id') ?? entry.s('show_title')}:'
-                '${entry.i('season_number')}:${entry.i('episode_number')}';
-        if (seen.add(key)) merged.add(entry);
-      }
-    } catch (_) {
-      // A failed Following fetch must not make the whole calendar fail.
+    final followed = await followedFuture;
+    for (final entry in followed) {
+      final key = entry.s('media_type') == 'movie'
+          ? 'movie:${entry.i('tmdb_id')}'
+          : '${entry.i('show_tmdb_id') ?? entry.s('show_title')}:'
+              '${entry.i('season_number')}:${entry.i('episode_number')}';
+      if (seen.add(key)) merged.add(entry);
     }
 
     data['calendar'] = {...calendar, 'entries': merged};
