@@ -387,24 +387,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 _Shortcuts(onSelected: _openMenu),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 4, 8, 8),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 190,
-                        child: SegmentedTabs<String>(
-                          segments: const [
-                            ButtonSegment(value: 'shows', label: Text('Shows')),
-                            ButtonSegment(value: 'movies', label: Text('Movies')),
-                          ],
-                          selected: {_tab},
-                          onSelectionChanged: (value) {
-                            setState(() => _tab = value.first);
-                          },
-                        ),
-                      ),
-                      const Spacer(),
-                      _sortButton(shows: _tab == 'shows'),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tabsWidth =
+                          (constraints.maxWidth * 0.56).clamp(160.0, 260.0);
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: tabsWidth,
+                            child: SegmentedTabs<String>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: 'shows',
+                                  label: Text('Shows'),
+                                ),
+                                ButtonSegment(
+                                  value: 'movies',
+                                  label: Text('Movies'),
+                                ),
+                              ],
+                              selected: {_tab},
+                              onSelectionChanged: (value) {
+                                setState(() => _tab = value.first);
+                              },
+                            ),
+                          ),
+                          const Spacer(),
+                          _sortButton(shows: _tab == 'shows'),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 if (_sortLoading)
