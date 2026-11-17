@@ -99,14 +99,19 @@ class _MoviePosterTileState extends State<MoviePosterTile> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          widget.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 11,
-            height: 1.15,
-            fontWeight: FontWeight.w600,
+        // Reserve two lines so a long title cannot make its poster shorter
+        // than the rest of the grid.
+        SizedBox(
+          height: 30,
+          child: Text(
+            widget.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              height: 1.15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
