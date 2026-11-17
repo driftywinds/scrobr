@@ -27,13 +27,12 @@ web origin's proxy: `https://<host>/api/proxy/<backend-path>`.
 
 ## Live instance
 
-`https://scrob.003274.xyz` currently runs Scrob `2.38.0`. Test keys are in
-`.tmp/scrob.env` (gitignored). Never commit keys.
+Instance-specific values live in `.skills/local/scrob-api.md`, which is
+gitignored. If that file is missing after a fresh clone, ask the maintainer for
+the instance URL and test-account setup before running live probes.
 
-- Admin key belongs to user id 1 (`drifty`), useful for read-only data.
-- Base user key belongs to id 2 (`test`), use it for mutation tests.
-- Public data sample: `GET /api/proxy/media/trending/movies`,
-  `GET /api/proxy/profile/1`, `GET /api/proxy/history?page=1`.
+Test keys belong in `.tmp/scrob.env` (also gitignored). Never commit keys.
+Use admin credentials for read-only checks and the base user for mutations.
 
 ## Shapes worth remembering
 

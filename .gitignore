@@ -39,3 +39,7 @@ Thumbs.db
 
 # Local raw Play Store captures
 play-store/raw/
+
+# Machine-local skill values
+.skills/local/
+
