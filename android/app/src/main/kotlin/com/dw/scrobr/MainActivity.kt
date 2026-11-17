@@ -1,7 +1,10 @@
 package com.dw.scrobr
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
@@ -10,11 +13,27 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val channelName = "com.dw.scrobr/backup"
+    private val notificationsChannel = "com.dw.scrobr/notifications"
     private val pickRequest = 4711
+    private val notificationPermissionRequest = 4712
     private var pendingPick: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        CalendarNotifier.createChannel(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, notificationsChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setEnabled" -> {
+                        val enabled = call.argument<Boolean>("enabled") == true
+                        if (enabled) requestNotificationPermission()
+                        CalendarNotificationScheduler.setEnabled(this, enabled)
+                        result.success(hasNotificationPermission())
+                    }
+                    "permission" -> result.success(hasNotificationPermission())
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -37,6 +56,22 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !hasNotificationPermission()
+        ) {
+            requestPermissions(
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                notificationPermissionRequest,
+            )
+        }
     }
 
     private fun pickDirectory(result: MethodChannel.Result) {

@@ -1105,6 +1105,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             onTap: () => _chooseAccent(solid: true),
           ),
+          const _Section('Notifications'),
+          SwitchListTile(
+            title: const Text('Calendar releases'),
+            subtitle: const Text(
+              'Daily check at 09:00 for episodes and movies releasing today.',
+            ),
+            value: app.calendarNotifications,
+            onChanged: (value) => app.setCalendarNotifications(value),
+          ),
           const _Section('Library'),
           ListTile(
             leading: const Icon(Icons.dns_outlined),

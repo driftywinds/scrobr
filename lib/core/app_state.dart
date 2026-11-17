@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'accent.dart';
 import 'accounts.dart';
 import 'api.dart';
+import 'calendar_notifications.dart';
 import 'format.dart';
 import 'session.dart';
 
@@ -15,6 +16,7 @@ const _kToken = 'scrob_token';
 const _kApiKey = 'scrob_api_key';
 const _kShowLibrary = 'scrobr_show_library';
 const _kCalendarDays = 'scrobr_calendar_days';
+const _kCalendarNotifications = 'scrobr_calendar_notifications';
 const _kFollowingListId = 'scrobr_following_list_id';
 const _kFollowingMirror = 'scrobr_following_mirror';
 const kFollowingListName = 'Following · Calendar';
@@ -34,6 +36,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? settings;
   bool initialized = false;
   bool showLibraryTab = false;
+  bool calendarNotifications = false;
   int calendarDays = 21;
   String accentId = defaultAccentId;
   String? accentSolidId;
@@ -83,6 +86,8 @@ class AppState extends ChangeNotifier {
     _prefs = await SharedPreferences.getInstance();
     server = normalizeOrigin(_prefs.getString(_kServer) ?? '');
     showLibraryTab = _prefs.getBool(_kShowLibrary) ?? false;
+    calendarNotifications =
+        _prefs.getBool(_kCalendarNotifications) ?? false;
     calendarDays = ((_prefs.getInt(_kCalendarDays) ?? 21).clamp(1, 90)).toInt();
     accentId = _prefs.getString(accentPrefKey) ?? defaultAccentId;
     accentSolidId = _prefs.getString(accentSolidPrefKey);
@@ -317,6 +322,19 @@ class AppState extends ChangeNotifier {
     calendarDays = value.clamp(1, 90).toInt();
     await _prefs.setInt(_kCalendarDays, calendarDays);
     notifyListeners();
+  }
+
+  Future<bool> setCalendarNotifications(bool enabled) async {
+    calendarNotifications = enabled;
+    await _prefs.setBool(_kCalendarNotifications, enabled);
+    var granted = false;
+    try {
+      granted = await CalendarNotifications.setEnabled(enabled);
+    } catch (_) {
+      // A platform failure should not lose the user's preference.
+    }
+    notifyListeners();
+    return granted;
   }
 
   Future<void> setAccent(String id) async {

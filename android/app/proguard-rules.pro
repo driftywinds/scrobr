@@ -11,3 +11,6 @@
 -keep class com.dw.scrobr.BackupWorker {
     <init>(android.content.Context, androidx.work.WorkerParameters);
 }
+
+# WorkManager instantiates workers reflectively.
+-keep class com.dw.scrobr.CalendarNotificationWorker { *; }

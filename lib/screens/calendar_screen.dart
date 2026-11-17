@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/app_state.dart';
 import '../core/following_calendar.dart';
@@ -18,6 +21,8 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   Future<Map<String, dynamic>>? _future;
+  Map<String, dynamic>? _data;
+  bool _cacheRead = false;
   bool _refreshing = false;
   int _seenFollowingRevision = -1;
 
@@ -25,12 +30,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final app = ScrobScope.of(context);
+    if (!_cacheRead) {
+      _cacheRead = true;
+      _readCache(app);
+    }
     if (_future == null) {
       _seenFollowingRevision = app.followingRevision;
       _future = _load();
     } else if (_seenFollowingRevision != app.followingRevision) {
       _seenFollowingRevision = app.followingRevision;
       _future = _load();
+    }
+  }
+
+  String _cacheKey(AppState app) =>
+      'scrobr_calendar_${app.userId ?? 0}_${app.server.hashCode}_${app.calendarDays}';
+
+  Future<void> _readCache(AppState app) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey(app));
+      if (raw == null || raw.isEmpty || !mounted || _data != null) return;
+      setState(() => _data = asMap(jsonDecode(raw)));
+    } catch (_) {
+      // A corrupt cache should not block the network refresh.
+    }
+  }
+
+  Future<void> _saveCache(AppState app, Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey(app), jsonEncode(data));
+    } catch (_) {
+      // Cache writes are best-effort.
     }
   }
 
@@ -64,6 +96,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     data['calendar'] = {...calendar, 'entries': merged};
+    _data = data;
+    _saveCache(app, data);
     return data;
   }
 
@@ -131,17 +165,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
       body: FutureBuilder<Map<String, dynamic>>(
         future: _future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          final app = ScrobScope.of(context);
+          final data = snapshot.data ?? _data;
+          if (data == null &&
+              snapshot.connectionState == ConnectionState.waiting) {
             return const DashboardSkeleton();
           }
-          if (snapshot.hasError) {
+          if (data == null && snapshot.hasError) {
             return ErrorView(
               message: '${snapshot.error}',
               onRetry: _reload,
             );
           }
-          final app = ScrobScope.of(context);
-          final data = snapshot.data ?? const {};
+          if (data == null) {
+            return const EmptyState(title: 'Nothing airing');
+          }
           final calendar = asMap(data['calendar']);
           final entries = calendar.maps('entries');
           if (entries.isEmpty) {
