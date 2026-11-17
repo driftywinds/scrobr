@@ -11,6 +11,7 @@ import '../core/format.dart';
 import '../core/home_sort.dart';
 import '../core/movie_shelf.dart';
 import '../core/nav.dart';
+import '../core/swipe_navigation.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import '../widgets/movie_poster_tile.dart';
@@ -422,9 +423,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (_sortLoading)
                   const LinearProgressIndicator(minHeight: 2),
                 Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _reload,
-                    child: _tab == 'shows' ? _buildShows() : _buildMovies(),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragEnd: (details) {
+                      const tabs = ['shows', 'movies'];
+                      final current = tabs.indexOf(_tab);
+                      final target = swipeTargetIndex(
+                        current,
+                        tabs.length,
+                        details.primaryVelocity ?? 0,
+                      );
+                      if (target != current) {
+                        setState(() => _tab = tabs[target]);
+                      }
+                    },
+                    child: RefreshIndicator(
+                      onRefresh: _reload,
+                      child: _tab == 'shows' ? _buildShows() : _buildMovies(),
+                    ),
                   ),
                 ),
               ],

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
+import '../core/swipe_navigation.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 
@@ -90,6 +91,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  void _setType(String value) {
+    if (value == _type) return;
+    setState(() => _type = value);
+    _reload();
+  }
+
   void _reload() {
     _load(reset: true);
   }
@@ -172,13 +179,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ButtonSegment(value: 'episode', label: Text('Episodes')),
               ],
               selected: {_type},
-              onSelectionChanged: (value) {
-                setState(() => _type = value.first);
-                _reload();
-              },
+              onSelectionChanged: (value) => _setType(value.first),
             ),
           ),
-          Expanded(child: _buildList()),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: (details) {
+                const tabs = ['', 'movie', 'episode'];
+                final current = tabs.indexOf(_type);
+                final target = swipeTargetIndex(
+                  current,
+                  tabs.length,
+                  details.primaryVelocity ?? 0,
+                );
+                if (target != current) _setType(tabs[target]);
+              },
+              child: _buildList(),
+            ),
+          ),
         ],
       ),
     );

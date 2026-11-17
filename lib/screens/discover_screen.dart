@@ -7,6 +7,7 @@ import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
+import '../core/swipe_navigation.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
@@ -169,7 +170,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<_DiscoverData>(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: (details) {
+                const tabs = ['movie', 'series'];
+                final current = tabs.indexOf(_type);
+                final target = swipeTargetIndex(
+                  current,
+                  tabs.length,
+                  details.primaryVelocity ?? 0,
+                );
+                if (target != current) _setType(tabs[target]);
+              },
+              child: FutureBuilder<_DiscoverData>(
               future: _futures[_type],
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -259,6 +272,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   ),
                 );
               },
+              ),
             ),
           ),
         ],
