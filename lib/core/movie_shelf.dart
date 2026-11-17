@@ -23,6 +23,8 @@ List<Map<String, dynamic>> buildMovieRows({
     if (id == null || !seen.add(id)) return;
 
     final row = <String, dynamic>{'media': media};
+    final addedAt = entry.s('added_at') ?? media.s('added_at');
+    if (addedAt != null) row['added_at'] = addedAt;
     final progress =
         entry.d('progress_percent') ?? media.d('progress_percent');
     if (progress != null) row['progress_percent'] = progress;

@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/actions.dart';
 import '../core/app_state.dart';
+import '../core/concurrency.dart';
 import '../core/format.dart';
+import '../core/home_sort.dart';
 import '../core/movie_shelf.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
@@ -38,6 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
   int _seenHistoryRevision = -1;
   String _tab = 'shows';
   final Set<int> _checkedMovies = {};
+  HomeSort _showSort = HomeSort.lastWatched;
+  HomeSort _movieSort = HomeSort.recentlyAdded;
+  Map<int, String> _showAddedAt = {};
+  Map<int, Map<String, dynamic>> _showRatings = {};
+  bool _sortLoading = false;
+  int _randomSeed = 0;
 
   @override
   void didChangeDependencies() {
@@ -73,8 +81,21 @@ class _HomeScreenState extends State<HomeScreen> {
         if (moviesRaw != null && moviesRaw.isNotEmpty) {
           final cached = asMap(jsonDecode(moviesRaw));
           _movies = asMaps(cached['movies']);
+          _showAddedAt = {
+            for (final entry in asMap(cached['showAddedAt']).entries)
+              if (int.tryParse(entry.key) != null && entry.value is String)
+                int.parse(entry.key): entry.value as String,
+          };
           _moviesLoaded = true;
         }
+        _showSort = homeSortFromId(
+          prefs.getString('scrobr_shows_sort'),
+          HomeSort.lastWatched,
+        );
+        _movieSort = homeSortFromId(
+          prefs.getString('scrobr_movies_sort'),
+          HomeSort.recentlyAdded,
+        );
       });
     } catch (_) {
       // A corrupt cache should never block the network refresh.
@@ -151,19 +172,114 @@ class _HomeScreenState extends State<HomeScreen> {
         _watchlistEntries(app),
         app.followingItems().catchError((_) => <Map<String, dynamic>>[]),
       ]);
+      final watchlist = asMaps(results[0]);
+      final following = asMaps(results[1]);
       final movies = buildMovieRows(
         continueWatching: const [],
-        watchlist: asMaps(results[0]),
-        following: asMaps(results[1]),
+        watchlist: watchlist,
+        following: following,
       );
+      final addedAt = <int, String>{};
+      for (final entry in [...watchlist, ...following]) {
+        final media = asMap(entry['media']);
+        if (media.s('type') != 'series') continue;
+        final id = media.i('tmdb_id');
+        final date = entry.s('added_at') ?? media.s('added_at');
+        if (id == null || date == null) continue;
+        final current = addedAt[id];
+        if (current == null || date.compareTo(current) > 0) {
+          addedAt[id] = date;
+        }
+      }
       _movies = movies;
+      _showAddedAt = addedAt;
       _moviesLoaded = true;
-      _saveCache(_moviesCacheKey(app), {'movies': movies});
+      _saveCache(_moviesCacheKey(app), {
+        'movies': movies,
+        'showAddedAt': addedAt,
+      });
       if (mounted) setState(() {});
     } catch (e) {
       _moviesError = e;
       if (mounted) setState(() {});
     }
+  }
+
+  Future<void> _ensureShowRatings() async {
+    final app = ScrobScope.of(context);
+    final missing = <int>{};
+    for (final item in _shows) {
+      final id = item.i('show_tmdb_id') ?? item.i('tmdb_id');
+      if (id != null && !_showRatings.containsKey(id)) missing.add(id);
+    }
+    if (missing.isEmpty) return;
+    setState(() => _sortLoading = true);
+    final results = await mapConcurrent(
+      missing.toList(),
+      6,
+      (id) async => MapEntry(id, asMap(await app.tryGet('/shows/$id'))),
+    );
+    if (!mounted) return;
+    setState(() {
+      for (final entry in results) {
+        _showRatings[entry.key] = entry.value;
+      }
+      _sortLoading = false;
+    });
+  }
+
+  Future<void> _changeSort(HomeSort sort, {required bool shows}) async {
+    setState(() {
+      if (shows) {
+        _showSort = sort;
+      } else {
+        _movieSort = sort;
+      }
+      _randomSeed = DateTime.now().microsecondsSinceEpoch;
+      _sortLoading = shows &&
+          (sort == HomeSort.tmdbRating || sort == HomeSort.myRating);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      shows ? 'scrobr_shows_sort' : 'scrobr_movies_sort',
+      sort.id,
+    );
+    if (!mounted) return;
+    if (shows && (sort == HomeSort.tmdbRating || sort == HomeSort.myRating)) {
+      await _ensureShowRatings();
+    }
+    if (shows && sort == HomeSort.recentlyAdded) {
+      await _moviesFuture;
+      if (mounted) setState(() {});
+    }
+  }
+
+  PopupMenuButton<HomeSort> _sortButton({required bool shows}) {
+    final current = shows ? _showSort : _movieSort;
+    final options = shows ? showSortOptions : movieSortOptions;
+    return PopupMenuButton<HomeSort>(
+      tooltip: 'Sort',
+      icon: const Icon(Icons.sort_rounded),
+      onSelected: (value) => _changeSort(value, shows: shows),
+      itemBuilder: (_) => [
+        for (final option in options)
+          PopupMenuItem(
+            value: option,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: option == current
+                      ? const Icon(Icons.check_rounded, size: 18)
+                      : null,
+                ),
+                const SizedBox(width: 4),
+                Text(option.label),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   Future<void> _reload() async {
@@ -270,18 +386,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (app.isApiKeyMode) _ApiKeyBanner(),
                 _Shortcuts(onSelected: _openMenu),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                  child: SegmentedTabs<String>(
-                    segments: const [
-                      ButtonSegment(value: 'shows', label: Text('Shows')),
-                      ButtonSegment(value: 'movies', label: Text('Movies')),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 8, 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 190,
+                        child: SegmentedTabs<String>(
+                          segments: const [
+                            ButtonSegment(value: 'shows', label: Text('Shows')),
+                            ButtonSegment(value: 'movies', label: Text('Movies')),
+                          ],
+                          selected: {_tab},
+                          onSelectionChanged: (value) {
+                            setState(() => _tab = value.first);
+                          },
+                        ),
+                      ),
+                      const Spacer(),
+                      _sortButton(shows: _tab == 'shows'),
                     ],
-                    selected: {_tab},
-                    onSelectionChanged: (value) {
-                      setState(() => _tab = value.first);
-                    },
                   ),
                 ),
+                if (_sortLoading)
+                  const LinearProgressIndicator(minHeight: 2),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _reload,
@@ -309,13 +436,21 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final show in _progress)
         if (show.i('tmdb_id') != null) show.i('tmdb_id')!: show,
     };
+    final ordered = sortShows(
+      _shows,
+      sort: _showSort,
+      progress: progress,
+      ratings: _showRatings,
+      addedAt: _showAddedAt,
+      randomSeed: _randomSeed,
+    );
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: _shows.length,
+      itemCount: ordered.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final item = _shows[index];
+        final item = ordered[index];
         final showTmdb = item.i('show_tmdb_id') ?? item.i('tmdb_id');
         final stats = showTmdb == null ? null : progress[showTmdb];
         final season = item.i('season_number');
@@ -366,6 +501,11 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.movie_outlined,
       );
     }
+    final ordered = sortMovies(
+      movies,
+      sort: _movieSort,
+      randomSeed: _randomSeed,
+    );
     return GridView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
@@ -375,9 +515,9 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisSpacing: 10,
         childAspectRatio: 0.54,
       ),
-      itemCount: movies.length,
+      itemCount: ordered.length,
       itemBuilder: (context, index) {
-        final entry = movies[index];
+        final entry = ordered[index];
         final media = asMap(entry['media']);
         return MoviePosterTile(
           title: media.s('title') ?? '',
