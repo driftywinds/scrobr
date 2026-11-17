@@ -31,6 +31,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
   Future<void> _edit(Map<String, dynamic> list) async {
     final name = TextEditingController(text: list.s('name'));
     final description = TextEditingController(text: list.s('description'));
+    final isWatchlist = list.b('is_watchlist');
     var privacy = list.s('privacy_level') ?? 'private';
     final ok = await showDialog<bool>(
       context: context,
@@ -43,6 +44,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
               children: [
                 TextField(
                   controller: name,
+                  readOnly: isWatchlist,
                   decoration: const InputDecoration(labelText: 'Name'),
                 ),
                 const SizedBox(height: 8),
@@ -61,9 +63,19 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                     ),
                     DropdownMenuItem(value: 'public', child: Text('Public')),
                   ],
-                  onChanged: (v) => setState(() => privacy = v ?? 'private'),
+                  onChanged: isWatchlist
+                      ? null
+                      : (v) => setState(() => privacy = v ?? 'private'),
                   decoration: const InputDecoration(labelText: 'Privacy'),
                 ),
+                if (isWatchlist)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      'The watchlist is always private.',
+                      style: TextStyle(fontSize: 12, color: kMuted),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -86,13 +98,14 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       return;
     }
     try {
-      await ScrobScope.of(context).patch('/lists/${widget.listId}', {
+      final body = <String, dynamic>{
         'name': name.text.trim(),
         'description': description.text.trim().isEmpty
             ? null
             : description.text.trim(),
-        'privacy_level': privacy,
-      });
+      };
+      if (!isWatchlist) body['privacy_level'] = privacy;
+      await ScrobScope.of(context).patch('/lists/${widget.listId}', body);
       _reload();
     } catch (e) {
       if (mounted) {

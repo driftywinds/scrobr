@@ -27,10 +27,36 @@ class _ListsScreenState extends State<ListsScreen> {
 
   Future<List<Map<String, dynamic>>> _load() async {
     final app = ScrobScope.of(context);
-    final data = asMap(
-      await app.get(_tab == 'mine' ? '/lists' : '/lists/public'),
-    );
-    return data.maps('lists');
+    if (_tab == 'mine') {
+      final data = asMap(await app.get('/lists'));
+      return data.maps('lists');
+    }
+
+    // /lists/public intentionally excludes the caller's own lists. Merge the
+    // user's public lists back in so the Public tab reflects the privacy
+    // setting they just changed.
+    final own = asMap(await app.get('/lists')).maps('lists');
+    final ownPublic = own.where((list) => list.s('privacy_level') == 'public');
+    final community = <Map<String, dynamic>>[];
+    try {
+      final data = asMap(await app.get('/lists/public'));
+      community.addAll(data.maps('lists'));
+    } catch (_) {
+      // Own public lists are still useful when the community feed fails.
+    }
+    final seen = <int>{};
+    final merged = <Map<String, dynamic>>[];
+    for (final list in ownPublic) {
+      final id = list.i('id');
+      if (id == null || !seen.add(id)) continue;
+      merged.add({...list, 'username': app.displayName});
+    }
+    for (final list in community) {
+      final id = list.i('id');
+      if (id == null || !seen.add(id)) continue;
+      merged.add(list);
+    }
+    return merged;
   }
 
   void _reload() => setState(() => _future = _load());
