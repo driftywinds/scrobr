@@ -184,12 +184,18 @@ Future<bool> addToListDialog(
     final lists = data.maps('lists');
     final id = await showModalBottomSheet<int>(
       context: context,
-      builder: (context) => SafeArea(
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
               child: Text(
                 'Add to list',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
@@ -202,22 +208,30 @@ Future<bool> addToListDialog(
                   'No lists yet. Create one from the Lists screen.',
                   style: TextStyle(color: kMuted),
                 ),
-              ),
-            ...lists.map(
-              (list) => ListTile(
-                leading: Icon(
-                  list.b('is_watchlist')
-                      ? Icons.bookmark_rounded
-                      : Icons.list_alt_rounded,
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: lists.length,
+                  itemBuilder: (context, index) {
+                    final list = lists[index];
+                    return ListTile(
+                      leading: Icon(
+                        list.b('is_watchlist')
+                            ? Icons.bookmark_rounded
+                            : Icons.list_alt_rounded,
+                      ),
+                      title: Text(list.s('name') ?? ''),
+                      subtitle: Text(
+                        '${list.i('item_count') ?? 0} items',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      onTap: () => Navigator.pop(context, list.i('id')),
+                    );
+                  },
                 ),
-                title: Text(list.s('name') ?? ''),
-                subtitle: Text(
-                  '${list.i('item_count') ?? 0} items',
-                  style: const TextStyle(fontSize: 11),
-                ),
-                onTap: () => Navigator.pop(context, list.i('id')),
               ),
-            ),
             const SizedBox(height: 8),
           ],
         ),
