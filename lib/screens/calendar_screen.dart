@@ -424,10 +424,11 @@ class _DateHeader extends StatelessWidget {
                     children: [
                       Text(
                         '${d.day}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           height: 1.05,
                           fontWeight: FontWeight.w900,
+                          color: isToday ? kAccentOn : kText,
                         ),
                       ),
                       Text(
@@ -436,7 +437,7 @@ class _DateHeader extends StatelessWidget {
                           fontSize: 9,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.8,
-                          color: isToday ? Colors.white : kMuted,
+                          color: isToday ? kAccentOn : kMuted,
                         ),
                       ),
                     ],

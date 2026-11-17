@@ -149,7 +149,11 @@ ThemeData buildTheme() {
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected) ? kAccent : kSurface,
         ),
-        foregroundColor: const WidgetStatePropertyAll(Colors.white),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? kAccentOn
+              : Colors.white,
+        ),
         side: const WidgetStatePropertyAll(BorderSide(color: kBorderStrong)),
         textStyle: const WidgetStatePropertyAll(
           TextStyle(fontWeight: FontWeight.w700, fontSize: 13),

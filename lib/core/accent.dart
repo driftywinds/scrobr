@@ -68,6 +68,10 @@ AccentPreset activeAccent = accentPresets.first;
 
 Color get kAccent => activeAccent.primary;
 Color get kAccentSoft => activeAccent.soft;
+Color get kAccentOn =>
+    ThemeData.estimateBrightnessForColor(kAccent) == Brightness.dark
+        ? Colors.black
+        : Colors.white;
 LinearGradient get kAccentGradient => LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
