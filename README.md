@@ -12,6 +12,12 @@ and the main browsing, tracking, social and settings flows of the web UI.
 
 [Privacy policy](PRIVACY.md)
 
+[![Downloads](https://img.shields.io/github/downloads/driftywinds/scrobr/total?style=for-the-badge)](https://img.shields.io/github/downloads/driftywinds/scrobr/total?style=for-the-badge) [![Latest Release Downloads](https://img.shields.io/github/downloads/driftywinds/scrobr/latest/total?style=for-the-badge)](https://img.shields.io/github/downloads/driftywinds/scrobr/latest/total?style=for-the-badge) 
+
+[<img src="https://raw.githubusercontent.com/driftywinds/driftywinds/refs/heads/main/Images/custom_badge_obtainium.png"
+    alt="Get it on Obtanium"
+    height="75">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/driftywinds/scrobr)
+
 ## Screenshots
 
 | Home | Calendar |
