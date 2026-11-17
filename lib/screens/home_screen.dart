@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: kAccent.withValues(alpha: 0.3)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.key_rounded, size: 16, color: kAccentSoft),
                         SizedBox(width: 10),
@@ -455,7 +455,7 @@ class _ContinueHero extends StatelessWidget {
                             color: Colors.white.withValues(alpha: 0.12),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.play_arrow_rounded,

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'accent.dart';
 import 'accounts.dart';
 import 'api.dart';
 import 'format.dart';
@@ -34,6 +35,7 @@ class AppState extends ChangeNotifier {
   bool initialized = false;
   bool showLibraryTab = false;
   int calendarDays = 21;
+  String accentId = defaultAccentId;
   String? sessionError;
   List<SavedAccount> _accounts = const [];
 
@@ -81,6 +83,8 @@ class AppState extends ChangeNotifier {
     server = normalizeOrigin(_prefs.getString(_kServer) ?? '');
     showLibraryTab = _prefs.getBool(_kShowLibrary) ?? false;
     calendarDays = ((_prefs.getInt(_kCalendarDays) ?? 21).clamp(1, 90)).toInt();
+    accentId = _prefs.getString(accentPrefKey) ?? defaultAccentId;
+    applyAccent(accentId);
     token = _prefs.getString(_kToken);
     apiKey = _prefs.getString(_kApiKey);
     _accounts = SavedAccount.decode(_prefs.getString(accountsKey));
@@ -309,6 +313,13 @@ class AppState extends ChangeNotifier {
   Future<void> setCalendarDays(int value) async {
     calendarDays = value.clamp(1, 90).toInt();
     await _prefs.setInt(_kCalendarDays, calendarDays);
+    notifyListeners();
+  }
+
+  Future<void> setAccent(String id) async {
+    accentId = accentById(id).id;
+    applyAccent(accentId);
+    await _prefs.setString(accentPrefKey, accentId);
     notifyListeners();
   }
 

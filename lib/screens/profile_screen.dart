@@ -869,7 +869,7 @@ class _ApiKeyProfile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(Icons.key_rounded, color: kAccent),
                     SizedBox(width: 8),

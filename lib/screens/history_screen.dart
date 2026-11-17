@@ -235,7 +235,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     width: 7,
                     height: 7,
                     margin: const EdgeInsets.only(right: 8),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: kAccent,
                       shape: BoxShape.circle,
                     ),

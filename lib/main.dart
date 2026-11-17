@@ -21,16 +21,15 @@ class ScrobApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScrobScope(
       notifier: state,
-      child: MaterialApp(
-        title: 'Scrobr',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
-        home: ListenableBuilder(
-          listenable: state,
-          builder: (context, _) =>
-              state.isLoggedIn && state.hasServer
-                  ? const AppShell()
-                  : const LoginScreen(),
+      child: ListenableBuilder(
+        listenable: state,
+        builder: (context, _) => MaterialApp(
+          title: 'Scrobr',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(),
+          home: state.isLoggedIn && state.hasServer
+              ? const AppShell()
+              : const LoginScreen(),
         ),
       ),
     );

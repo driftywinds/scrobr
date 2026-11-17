@@ -343,7 +343,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.dns_rounded, color: kAccent),
+                        Icon(Icons.dns_rounded, color: kAccent),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(

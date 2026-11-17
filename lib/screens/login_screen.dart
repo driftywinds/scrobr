@@ -704,7 +704,7 @@ class _BrandHeader extends StatelessWidget {
               'assets/scrobr.svg',
               width: 84,
               height: 84,
-              placeholderBuilder: (_) => const Icon(
+              placeholderBuilder: (_) => Icon(
                 Icons.movie_filter_rounded,
                 size: 76,
                 color: kAccent,

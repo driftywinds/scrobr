@@ -385,7 +385,7 @@ class _ListEntry extends StatelessWidget {
                           color: kAccent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.video_library_outlined,
                           color: kAccentSoft,
                         ),
@@ -435,7 +435,7 @@ class _ListEntry extends StatelessWidget {
                     Row(
                       children: [
                         if (list.b('is_watchlist'))
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(right: 5),
                             child: Icon(
                               Icons.bookmark_rounded,
@@ -460,7 +460,7 @@ class _ListEntry extends StatelessWidget {
                     if (showOwner && list.s('username') != null)
                       Text(
                         '@${list.s('username')}',
-                        style: const TextStyle(fontSize: 11, color: kAccentSoft),
+                        style: TextStyle(fontSize: 11, color: kAccentSoft),
                       ),
                     if (list.s('description') != null)
                       Padding(

@@ -698,7 +698,7 @@ class _ShowBody extends StatelessWidget {
               (o) => ListTile(
                 title: Text(o.s('label') ?? o.s('key') ?? ''),
                 trailing: data.selectedOrder == o.s('key')
-                    ? const Icon(Icons.check, color: kAccent)
+                    ? Icon(Icons.check, color: kAccent)
                     : null,
                 onTap: () => Navigator.pop(context, o),
               ),

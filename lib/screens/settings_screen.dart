@@ -728,6 +728,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _chooseAccent() async {
+    final app = ScrobScope.of(context);
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 12),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                'Highlight colour',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
+            for (final preset in accentPresets)
+              ListTile(
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [preset.primary, preset.gradientEnd],
+                    ),
+                  ),
+                ),
+                title: Text(preset.name),
+                trailing: preset.id == app.accentId
+                    ? Icon(Icons.check_rounded, color: preset.primary)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, preset.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) await app.setAccent(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = ScrobScope.of(context);
@@ -743,7 +787,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: kSurface,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -1002,6 +1046,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (v) => _set('condense_history_by_show', v),
             ),
           ],
+          const _Section('Appearance'),
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Highlight colour'),
+            subtitle: Text(accentById(app.accentId).name),
+            trailing: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: kAccentGradient,
+              ),
+            ),
+            onTap: _chooseAccent,
+          ),
           const _Section('Library'),
           ListTile(
             leading: const Icon(Icons.dns_outlined),
@@ -1217,7 +1276,7 @@ List<Widget> groupSettingsTiles(BuildContext context, List<Widget> items) {
           clipBehavior: Clip.antiAlias,
           child: Theme(
             data: Theme.of(context).copyWith(
-              listTileTheme: const ListTileThemeData(
+              listTileTheme: ListTileThemeData(
                 iconColor: kAccentSoft,
                 contentPadding: EdgeInsets.symmetric(horizontal: 16),
               ),

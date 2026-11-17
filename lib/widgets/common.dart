@@ -363,7 +363,7 @@ class SectionHeader extends StatelessWidget {
           InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onSeeAll,
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -521,7 +521,7 @@ class ProgressBar extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: FractionallySizedBox(
           widthFactor: fraction.toDouble(),
-          child: const DecoratedBox(
+          child: DecoratedBox(
             decoration: BoxDecoration(gradient: kAccentGradient),
             child: SizedBox.expand(),
           ),

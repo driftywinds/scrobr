@@ -105,7 +105,7 @@ class _PersonScreenState extends State<PersonScreen> {
                       if (person.s('known_for_department') != null)
                         Text(
                           person.s('known_for_department')!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             color: kAccent,
                             fontWeight: FontWeight.w600,

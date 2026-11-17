@@ -127,7 +127,7 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                     children: [
                       Text(
                         'S${widget.seasonNumber}E${widget.episodeNumber} · ${show.s('title') ?? widget.showTitle ?? ''}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: kAccent,
                           fontWeight: FontWeight.w700,

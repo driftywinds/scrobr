@@ -307,15 +307,15 @@ class _ChartSection extends StatelessWidget {
 }
 
 class _BarChart extends StatelessWidget {
-  const _BarChart({
+  _BarChart({
     required this.values,
     required this.labels,
-    this.color = kAccent,
+    this.color,
   });
 
   final List<double> values;
   final List<String> labels;
-  final Color color;
+  final Color? color;
 
   static String _fmt(double v) {
     if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
@@ -326,6 +326,7 @@ class _BarChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final barColor = color ?? kAccent;
     final showValues = values.length <= 14;
     final step = values.length > 14 ? (values.length / 12).ceil() : 1;
     final gap = values.length > 14 ? 1.0 : 3.0;
@@ -371,8 +372,8 @@ class _BarChart extends StatelessWidget {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                color,
-                                color.withValues(alpha: 0.45),
+                                barColor,
+                                barColor.withValues(alpha: 0.45),
                               ],
                             ),
                             borderRadius: const BorderRadius.vertical(

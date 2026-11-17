@@ -150,7 +150,7 @@ class _AppShellState extends State<AppShell> {
                   Uri.tryParse(account.server)?.host ?? account.server,
                 ),
                 trailing: account.key == app.currentAccountKey
-                    ? const Icon(Icons.check_rounded, color: kAccent)
+                    ? Icon(Icons.check_rounded, color: kAccent)
                     : null,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -166,7 +166,7 @@ class _AppShellState extends State<AppShell> {
               ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.person_add_alt_1_rounded, color: kAccent),
+              leading: Icon(Icons.person_add_alt_1_rounded, color: kAccent),
               title: const Text('Add account'),
               subtitle: const Text('Sign in to another Scrob account'),
               onTap: () async {

@@ -166,7 +166,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.filter_alt_rounded, size: 15, color: kAccentSoft),
+                  Icon(Icons.filter_alt_rounded, size: 15, color: kAccentSoft),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

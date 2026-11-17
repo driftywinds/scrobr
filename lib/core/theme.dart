@@ -1,11 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'accent.dart';
+export 'accent.dart';
+
 // ── Palette ────────────────────────────────────────────────────────────────
 const kBg = Color(0xFF09090B);
 const kSurface = Color(0xFF18181B);
 const kCard = Color(0xFF27272A);
-const kAccent = Color(0xFF3B82F6);
-const kAccentSoft = Color(0xFF60A5FA);
 const kMuted = Color(0xFFB4B4BD);
 const kAmber = Color(0xFFFBBF24);
 const kDanger = Color(0xFFEF4444);
@@ -20,13 +21,6 @@ const kRadiusSm = 8.0;
 const kRadius = 12.0;
 const kRadiusLg = 16.0;
 const kPagePad = 16.0;
-
-/// Brand gradient used for hero accents and primary calls to action.
-const kAccentGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFF3B82F6), Color(0xFF6366F1)],
-);
 
 /// Subtle raised-surface decoration shared by cards, panels and tiles.
 BoxDecoration panelDecoration({
@@ -104,7 +98,7 @@ ThemeData buildTheme() {
     ),
     dividerColor: kBorderStrong,
     dividerTheme: const DividerThemeData(color: kBorder, thickness: 1, space: 1),
-    tabBarTheme: const TabBarThemeData(
+    tabBarTheme: TabBarThemeData(
       labelColor: Colors.white,
       unselectedLabelColor: kMuted,
       indicatorColor: kAccent,
@@ -199,7 +193,7 @@ ThemeData buildTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kRadius),
-        borderSide: const BorderSide(color: kAccent, width: 1.5),
+        borderSide: BorderSide(color: kAccent, width: 1.5),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
@@ -255,7 +249,7 @@ ThemeData buildTheme() {
       ),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
+    progressIndicatorTheme: ProgressIndicatorThemeData(
       color: kAccent,
       linearTrackColor: kCard,
     ),
