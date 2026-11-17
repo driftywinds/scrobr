@@ -121,10 +121,12 @@ void openSearch(BuildContext context, {String type = 'movie'}) =>
 /// Clears the session and returns to the root route, where the login screen
 /// replaces the authenticated shell.
 Future<void> signOut(BuildContext context) async {
-  await ScrobScope.of(context).logout();
-  if (context.mounted) {
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
+  final app = ScrobScope.of(context);
+  final navigator = Navigator.of(context, rootNavigator: true);
+  await app.logout();
+  // Capture the navigator before logout: the rebuild can dispose the calling
+  // route's context, which previously skipped this pop and left Settings open.
+  navigator.popUntil((route) => route.isFirst);
 }
 
 void openExplore(BuildContext context, {String type = 'movie'}) =>
