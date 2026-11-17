@@ -8,7 +8,9 @@ import '../core/nav.dart';
 import '../widgets/common.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.initialType = 'movie'});
+
+  final String initialType;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -31,6 +33,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    _type = widget.initialType;
     _focus.requestFocus();
     _scroll.addListener(() {
       if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 400) {

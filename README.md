@@ -10,7 +10,7 @@ The app talks to the Scrob backend through the same `/api/proxy` surface the
 PWA uses. It supports JWT username/password sessions, optional API-key sessions,
 and the main browsing, tracking, social and settings flows of the web UI.
 
-[Privacy policy](PRIVACY.md)
+[Privacy policy](PRIVACY.md) · [GNU AGPL v3](LICENSE)
 
 [![Downloads](https://img.shields.io/github/downloads/driftywinds/scrobr/total?style=for-the-badge)](https://img.shields.io/github/downloads/driftywinds/scrobr/total?style=for-the-badge) [![Latest Release Downloads](https://img.shields.io/github/downloads/driftywinds/scrobr/latest/total?style=for-the-badge)](https://img.shields.io/github/downloads/driftywinds/scrobr/latest/total?style=for-the-badge) 
 

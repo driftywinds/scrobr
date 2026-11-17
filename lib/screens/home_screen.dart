@@ -239,7 +239,10 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             tooltip: 'Search',
-            onPressed: () => openSearch(context),
+            onPressed: () => openSearch(
+              context,
+              type: _tab == 'movies' ? 'movie' : 'series',
+            ),
             icon: const Icon(Icons.search_rounded),
           ),
           PopupMenuButton<String>(
