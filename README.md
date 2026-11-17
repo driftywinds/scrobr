@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/scrobr.svg" width="112" alt="Scrobr logo">
+</p>
+
 # Scrobr
 
 Scrobr is a native Flutter client for [Scrob](https://github.com/ellite/scrob) — the
