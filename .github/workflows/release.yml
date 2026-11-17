@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
@@ -34,6 +34,9 @@ jobs:
           channel: stable
           flutter-version: "3.50.0"
           cache: true
+      - name: Install Android NDK
+        uses: ./.github/actions/install-android-ndk
+
 
       - name: Resolve version
         id: version
