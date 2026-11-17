@@ -575,7 +575,7 @@ class _Shortcuts extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(items[i].$2, size: 20, color: kAccentSoft),
+                        Icon(items[i].$2, size: 20, color: kAccentSolid),
                         const SizedBox(height: 5),
                         FittedBox(
                           fit: BoxFit.scaleDown,

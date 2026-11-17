@@ -39,7 +39,8 @@ ThemeData buildTheme() {
     seedColor: kAccent,
     brightness: Brightness.dark,
   ).copyWith(
-    primary: kAccent,
+    primary: kAccentSolid,
+    onPrimary: kAccentSolidOn,
     secondary: kAccentSoft,
     surface: kBg,
     onSurface: Colors.white,
@@ -101,7 +102,7 @@ ThemeData buildTheme() {
     tabBarTheme: TabBarThemeData(
       labelColor: Colors.white,
       unselectedLabelColor: kMuted,
-      indicatorColor: kAccent,
+      indicatorColor: kAccentSolid,
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: kBorder,
       labelStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
@@ -147,11 +148,11 @@ ThemeData buildTheme() {
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected) ? kAccent : kSurface,
+          (states) => states.contains(WidgetState.selected) ? kAccentSolid : kSurface,
         ),
         foregroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? kAccentOn
+              ? kAccentSolidOn
               : Colors.white,
         ),
         side: const WidgetStatePropertyAll(BorderSide(color: kBorderStrong)),
@@ -164,7 +165,7 @@ ThemeData buildTheme() {
       backgroundColor: kSurface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      indicatorColor: kAccent.withValues(alpha: 0.22),
+      indicatorColor: kAccentSolid.withValues(alpha: 0.22),
       indicatorShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -197,7 +198,7 @@ ThemeData buildTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kRadius),
-        borderSide: BorderSide(color: kAccent, width: 1.5),
+        borderSide: BorderSide(color: kAccentSolid, width: 1.5),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
@@ -237,7 +238,7 @@ ThemeData buildTheme() {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: kSurface,
-      selectedColor: kAccent.withValues(alpha: 0.3),
+      selectedColor: kAccentSolid.withValues(alpha: 0.3),
       side: const BorderSide(color: kBorderStrong),
       labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -249,12 +250,12 @@ ThemeData buildTheme() {
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (states) =>
-            states.contains(WidgetState.selected) ? kAccent : kCard,
+            states.contains(WidgetState.selected) ? kAccentSolid : kCard,
       ),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: kAccent,
+      color: kAccentSolid,
       linearTrackColor: kCard,
     ),
     tooltipTheme: TooltipThemeData(

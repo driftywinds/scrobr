@@ -728,7 +728,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _chooseAccent() async {
+  Future<void> _chooseAccent({required bool solid}) async {
     final app = ScrobScope.of(context);
     final selected = await showModalBottomSheet<String>(
       context: context,
@@ -738,13 +738,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           shrinkWrap: true,
           padding: const EdgeInsets.only(bottom: 12),
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
               child: Text(
-                'Highlight colour',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                solid ? 'Solid buttons' : 'Gradient highlight',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+            if (solid)
+              ListTile(
+                leading: const Icon(Icons.sync_rounded),
+                title: const Text('Match highlight'),
+                subtitle: const Text('Use the same preset as gradients'),
+                trailing: app.accentSolidId == null
+                    ? const Icon(Icons.check_rounded)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, 'match'),
+              ),
             for (final preset in accentPresets)
               ListTile(
                 leading: Container(
@@ -752,16 +765,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   height: 38,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [preset.primary, preset.gradientEnd],
-                    ),
+                    color: solid ? preset.solid : null,
+                    gradient: solid
+                        ? null
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [preset.primary, preset.gradientEnd],
+                          ),
                   ),
                 ),
                 title: Text(preset.name),
-                trailing: preset.id == app.accentId
-                    ? Icon(Icons.check_rounded, color: preset.primary)
+                trailing: (solid
+                        ? app.accentSolidId == preset.id
+                        : preset.id == app.accentId)
+                    ? Icon(
+                        Icons.check_rounded,
+                        color: solid ? preset.solid : preset.primary,
+                      )
                     : null,
                 onTap: () => Navigator.pop(sheetContext, preset.id),
               ),
@@ -769,7 +790,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
-    if (selected != null) await app.setAccent(selected);
+    if (selected == null) return;
+    if (solid) {
+      await app.setSolidAccent(selected == 'match' ? null : selected);
+    } else {
+      await app.setAccent(selected);
+    }
   }
 
   @override
@@ -1049,7 +1075,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const _Section('Appearance'),
           ListTile(
             leading: const Icon(Icons.palette_outlined),
-            title: const Text('Highlight colour'),
+            title: const Text('Gradient highlight'),
             subtitle: Text(accentById(app.accentId).name),
             trailing: Container(
               width: 34,
@@ -1059,7 +1085,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 gradient: kAccentGradient,
               ),
             ),
-            onTap: _chooseAccent,
+            onTap: () => _chooseAccent(solid: false),
+          ),
+          ListTile(
+            leading: const Icon(Icons.smart_button_outlined),
+            title: const Text('Solid buttons'),
+            subtitle: Text(
+              app.accentSolidId == null
+                  ? 'Matches highlight'
+                  : accentById(app.accentSolidId).name,
+            ),
+            trailing: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: kAccentSolid,
+              ),
+            ),
+            onTap: () => _chooseAccent(solid: true),
           ),
           const _Section('Library'),
           ListTile(

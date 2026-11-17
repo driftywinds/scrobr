@@ -36,6 +36,7 @@ class AppState extends ChangeNotifier {
   bool showLibraryTab = false;
   int calendarDays = 21;
   String accentId = defaultAccentId;
+  String? accentSolidId;
   String? sessionError;
   List<SavedAccount> _accounts = const [];
 
@@ -84,7 +85,9 @@ class AppState extends ChangeNotifier {
     showLibraryTab = _prefs.getBool(_kShowLibrary) ?? false;
     calendarDays = ((_prefs.getInt(_kCalendarDays) ?? 21).clamp(1, 90)).toInt();
     accentId = _prefs.getString(accentPrefKey) ?? defaultAccentId;
+    accentSolidId = _prefs.getString(accentSolidPrefKey);
     applyAccent(accentId);
+    applySolidAccent(accentSolidId);
     token = _prefs.getString(_kToken);
     apiKey = _prefs.getString(_kApiKey);
     _accounts = SavedAccount.decode(_prefs.getString(accountsKey));
@@ -320,6 +323,17 @@ class AppState extends ChangeNotifier {
     accentId = accentById(id).id;
     applyAccent(accentId);
     await _prefs.setString(accentPrefKey, accentId);
+    notifyListeners();
+  }
+
+  Future<void> setSolidAccent(String? id) async {
+    accentSolidId = id == null ? null : accentById(id).id;
+    applySolidAccent(accentSolidId);
+    if (accentSolidId == null) {
+      await _prefs.remove(accentSolidPrefKey);
+    } else {
+      await _prefs.setString(accentSolidPrefKey, accentSolidId!);
+    }
     notifyListeners();
   }
 

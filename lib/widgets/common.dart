@@ -843,7 +843,7 @@ class ActionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: active ? kAccent.withValues(alpha: 0.16) : kSurface,
+      color: active ? kAccentSolid.withValues(alpha: 0.16) : kSurface,
       borderRadius: BorderRadius.circular(kRadius),
       child: InkWell(
         borderRadius: BorderRadius.circular(kRadius),
@@ -854,7 +854,7 @@ class ActionPill extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(kRadius),
             border: Border.all(
-              color: active ? kAccent.withValues(alpha: 0.6) : kBorder,
+              color: active ? kAccentSolid.withValues(alpha: 0.6) : kBorder,
             ),
           ),
           child: Row(
@@ -968,7 +968,7 @@ class _SegmentCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: active ? kAccent : Colors.transparent,
+      color: active ? kAccentSolid : Colors.transparent,
       borderRadius: BorderRadius.circular(11),
       child: InkWell(
         borderRadius: BorderRadius.circular(11),
