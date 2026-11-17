@@ -10,7 +10,8 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
-import 'browse_screen.dart';
+import '../widgets/up_next_tile.dart';
+import 'discover_screen.dart';
 import 'requests_screen.dart';
 import 'shelf_screen.dart';
 
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   _HomeData? _data;
   bool _cacheRead = false;
   int _seenHistoryRevision = -1;
+  String _tab = 'shows';
 
   @override
   void didChangeDependencies() {
@@ -57,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _cacheKey(AppState app) =>
-      'scrobr_home_${app.userId ?? 0}_${app.server.hashCode}';
+      'scrobr_up_next_${app.userId ?? 0}_${app.server.hashCode}';
 
   Future<void> _saveCache(AppState app, _HomeData data) async {
     try {
@@ -71,27 +73,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<_HomeData> _load() async {
     final app = ScrobScope.of(context);
     final results = await Future.wait([
-      app.tryGet('/history/continue-watching', {'limit': 12}),
-      app.tryGet('/history/next-up', {'limit': 12}),
-      app.tryGet('/media/recently-added', {'type': 'movie', 'limit': 20}),
-      app.tryGet('/media/recently-added', {'type': 'episode', 'limit': 20}),
-      app.tryGet('/media/trending/movies'),
-      app.tryGet('/media/trending/shows'),
-      app.tryGet('/history/now-playing'),
-      app.tryGet('/media/airing-today/collected'),
+      app.tryGet('/history/next-up', {'limit': 100}),
+      app.tryGet('/history/progress', {
+        'type': 'watched',
+        'sort': 'recent',
+        'page_size': 200,
+      }),
+      app.tryGet('/history/continue-watching', {'limit': 100}),
     ]);
     if (results.every((result) => result == null)) {
-      throw Exception('Could not load your dashboard');
+      throw Exception('Could not load your Up Next');
     }
     final data = _HomeData(
-      continueWatching: asMaps(asMap(results[0])['continue_watching']),
-      nextUp: asMaps(asMap(results[1])['next_up']),
-      recentMovies: asMaps(asMap(results[2])['results']),
-      recentEpisodes: asMaps(asMap(results[3])['results']),
-      trendingMovies: asMaps(asMap(results[4])['results']),
-      trendingShows: asMaps(asMap(results[5])['results']),
-      nowPlaying: asMaps(asMap(results[6])['now_playing']),
-      airingToday: asMaps(asMap(results[7])['results']),
+      shows: asMaps(asMap(results[0])['next_up']),
+      progress: asMaps(asMap(results[1])['shows']),
+      movies: asMaps(asMap(results[2])['continue_watching'])
+          .where((entry) => asMap(entry['media']).s('type') == 'movie')
+          .toList(),
     );
     _data = data;
     _saveCache(app, data);
@@ -102,19 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final next = _load();
     setState(() => _future = next);
     await next;
-  }
-
-  Future<void> _clearSessions() async {
-    try {
-      await ScrobScope.of(context).delete('/history/sessions');
-      await _reload();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not clear sessions: $e')),
-        );
-      }
-    }
   }
 
   void _openMenu(String value) {
@@ -132,6 +117,31 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'settings':
         openSettings(context);
     }
+  }
+
+  Future<void> _markShowWatched(Map<String, dynamic> item) async {
+    final changed = await toggleWatched(
+      context,
+      {...item, 'type': 'episode'},
+      target: true,
+      promptRating: false,
+    );
+    if (!changed || !mounted) return;
+    _seenHistoryRevision = ScrobScope.of(context).historyRevision;
+    await _reload();
+  }
+
+  Future<void> _markMovieWatched(Map<String, dynamic> entry) async {
+    final media = asMap(entry['media']);
+    final changed = await toggleWatched(
+      context,
+      {...media, 'type': 'movie'},
+      target: true,
+      promptRating: false,
+    );
+    if (!changed || !mounted) return;
+    _seenHistoryRevision = ScrobScope.of(context).historyRevision;
+    await _reload();
   }
 
   @override
@@ -177,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final data = snapshot.data ?? _data;
           if (data == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const DashboardSkeleton();
+            return const _UpNextSkeleton();
           }
           if (data == null && snapshot.hasError) {
             return ErrorView(
@@ -188,353 +198,235 @@ class _HomeScreenState extends State<HomeScreen> {
           if (data == null) {
             return const EmptyState(title: 'Nothing to show yet');
           }
-          final hero = data.continueWatching.isNotEmpty
-              ? data.continueWatching.first
-              : null;
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 28),
-              children: [
-                if (app.isApiKeyMode)
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: kAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: kAccent.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.key_rounded, size: 16, color: kAccentSoft),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'API-key session: account, comments and admin screens are limited.',
-                            style: TextStyle(fontSize: 12, color: kMuted),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                _Shortcuts(onSelected: _openMenu),
-                if (hero != null) _ContinueHero(item: hero),
-                if (data.nowPlaying.isNotEmpty)
-                  _NowPlayingStrip(
-                    sessions: data.nowPlaying,
-                    onClear: _clearSessions,
-                  ),
-                MediaRow(
-                  title: 'Continue Watching',
-                  items: data.continueWatching
-                      .map((e) => asMap(e['media']))
-                      .toList(),
-                  onSeeAll: () => pushScreen(context, const ContinueWatchingScreen()),
-                ),
-                MediaRow(
-                  title: 'Next Up',
-                  items: data.nextUp,
-                  onSeeAll: () => pushScreen(context, const NextUpScreen()),
-                  onWatchToggle: (item) async {
-                    final changed = await toggleWatched(
-                      context,
-                      {...item, 'type': item.s('type') ?? 'episode'},
-                      target: true,
-                      promptRating: false,
-                    );
-                    if (!changed || !mounted) return;
-                    final app = ScrobScope.of(context);
-                    _seenHistoryRevision = app.historyRevision;
-                    setState(() {
-                      _data = _data?.withoutNextUp(item);
-                    });
-                    _reload();
+          return Column(
+            children: [
+              if (app.isApiKeyMode) _ApiKeyBanner(),
+              _Shortcuts(onSelected: _openMenu),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                child: SegmentedTabs<String>(
+                  segments: const [
+                    ButtonSegment(value: 'shows', label: Text('Shows')),
+                    ButtonSegment(value: 'movies', label: Text('Movies')),
+                  ],
+                  selected: {_tab},
+                  onSelectionChanged: (value) {
+                    setState(() => _tab = value.first);
                   },
                 ),
-                MediaRow(
-                  title: 'Airing Today',
-                  items: data.airingToday,
-                  onSeeAll: () => pushScreen(
-                    context,
-                    BrowseScreen.airingToday(),
-                  ),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _reload,
+                  child: _tab == 'shows'
+                      ? _buildShows(data)
+                      : _buildMovies(data),
                 ),
-                MediaRow(
-                  title: 'Recently Added Movies',
-                  items: data.recentMovies,
-                  onSeeAll: () => pushScreen(
-                    context,
-                    BrowseScreen.recentlyAdded(type: 'movie'),
-                  ),
-                ),
-                MediaRow(
-                  title: 'Recently Added Episodes',
-                  items: data.recentEpisodes,
-                  onSeeAll: () => pushScreen(
-                    context,
-                    BrowseScreen.recentlyAdded(type: 'episode'),
-                  ),
-                ),
-                MediaRow(
-                  title: 'Trending Movies',
-                  items: data.trendingMovies,
-                  onSeeAll: () => pushScreen(
-                    context,
-                    BrowseScreen.trending(type: 'movie'),
-                  ),
-                ),
-                MediaRow(
-                  title: 'Trending Shows',
-                  items: data.trendingShows,
-                  onSeeAll: () => pushScreen(
-                    context,
-                    BrowseScreen.trending(type: 'series'),
-                  ),
-                ),
-                if (data.continueWatching.isEmpty &&
-                    data.nextUp.isEmpty &&
-                    data.recentMovies.isEmpty &&
-                    data.recentEpisodes.isEmpty &&
-                    data.trendingMovies.isEmpty &&
-                    data.trendingShows.isEmpty)
-                  const EmptyState(
-                    title: 'Your dashboard is quiet',
-                    body:
-                        'Connect a media server in Settings, or add something from Discover.',
-                  ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildShows(_HomeData data) {
+    if (data.shows.isEmpty) {
+      return _EmptyUpNext(
+        title: 'You are all caught up',
+        body: 'Start a show and its next episode will appear here.',
+        icon: Icons.play_circle_outline_rounded,
+      );
+    }
+    final progress = {
+      for (final show in data.progress)
+        if (show.i('tmdb_id') != null) show.i('tmdb_id')!: show,
+    };
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: data.shows.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = data.shows[index];
+        final showTmdb = item.i('show_tmdb_id') ?? item.i('tmdb_id');
+        final stats = showTmdb == null ? null : progress[showTmdb];
+        final season = item.i('season_number');
+        final episode = item.i('episode_number');
+        final code = season == null || episode == null
+            ? null
+            : 'S${season.toString().padLeft(2, '0')}'
+                'E${episode.toString().padLeft(2, '0')}';
+        return UpNextTile(
+          title: item.s('show_title') ?? item.s('title') ?? '',
+          posterUrl: ScrobScope.of(context).imageUrl(
+            posterPathFor(item),
+            size: 'w185',
+          ),
+          episodeCode: code,
+          subtitle: item.s('episode_name') ?? item.s('title'),
+          watched: stats?.i('episodes_watched'),
+          total: stats?.i('episodes_total'),
+          progress: stats?.d('watch_pct'),
+          onTap: () => openMedia(context, {...item, 'type': 'episode'}),
+          onCheck: () => _markShowWatched(item),
+        );
+      },
+    );
+  }
+
+  Widget _buildMovies(_HomeData data) {
+    if (data.movies.isEmpty) {
+      return _EmptyUpNext(
+        title: 'No movies in progress',
+        body:
+            'Start watching a movie and it will appear here until you finish it.',
+        icon: Icons.movie_outlined,
+      );
+    }
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: data.movies.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final entry = data.movies[index];
+        final media = asMap(entry['media']);
+        final pct = entry.d('progress_percent') ??
+            media.d('progress_percent') ??
+            0;
+        return UpNextTile(
+          title: media.s('title') ?? '',
+          posterUrl: ScrobScope.of(context).imageUrl(
+            posterPathFor(media),
+            size: 'w185',
+          ),
+          subtitle: yearOf(media.s('release_date')),
+          progress: pct.toDouble(),
+          onTap: () => openMedia(context, media),
+          onCheck: () => _markMovieWatched(entry),
+        );
+      },
+    );
+  }
+}
+
+class _ApiKeyBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kAccent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kAccent.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.key_rounded, size: 16, color: kAccentSoft),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'API-key session: account, comments and admin screens are limited.',
+              style: TextStyle(fontSize: 12, color: kMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyUpNext extends StatelessWidget {
+  const _EmptyUpNext({
+    required this.title,
+    required this.body,
+    required this.icon,
+  });
+
+  final String title;
+  final String body;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(top: 54, bottom: 24),
+      children: [
+        EmptyState(title: title, body: body, icon: icon),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => pushScreen(context, const DiscoverScreen()),
+            icon: const Icon(Icons.explore_outlined),
+            label: const Text('Find something to watch'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UpNextSkeleton extends StatelessWidget {
+  const _UpNextSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        for (var i = 0; i < 6; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              children: [
+                const SkeletonBox(width: 72, height: 108, radius: 8),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonBox(width: 180, height: 16),
+                      SizedBox(height: 8),
+                      SkeletonBox(width: 130, height: 12),
+                      SizedBox(height: 10),
+                      SkeletonBox(width: 220, height: 10),
+                      SizedBox(height: 7),
+                      SkeletonBox(width: 220, height: 4),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
 
 class _HomeData {
   const _HomeData({
-    required this.continueWatching,
-    required this.nextUp,
-    required this.recentMovies,
-    required this.recentEpisodes,
-    required this.trendingMovies,
-    required this.trendingShows,
-    required this.nowPlaying,
-    required this.airingToday,
+    required this.shows,
+    required this.progress,
+    required this.movies,
   });
 
-  final List<Map<String, dynamic>> continueWatching;
-  final List<Map<String, dynamic>> nextUp;
-  final List<Map<String, dynamic>> recentMovies;
-  final List<Map<String, dynamic>> recentEpisodes;
-  final List<Map<String, dynamic>> trendingMovies;
-  final List<Map<String, dynamic>> trendingShows;
-  final List<Map<String, dynamic>> nowPlaying;
-  final List<Map<String, dynamic>> airingToday;
+  final List<Map<String, dynamic>> shows;
+  final List<Map<String, dynamic>> progress;
+  final List<Map<String, dynamic>> movies;
 
   Map<String, dynamic> toJson() => {
-        'continueWatching': continueWatching,
-        'nextUp': nextUp,
-        'recentMovies': recentMovies,
-        'recentEpisodes': recentEpisodes,
-        'trendingMovies': trendingMovies,
-        'trendingShows': trendingShows,
-        'nowPlaying': nowPlaying,
-        'airingToday': airingToday,
+        'shows': shows,
+        'progress': progress,
+        'movies': movies,
       };
 
   factory _HomeData.fromJson(Map<String, dynamic> json) => _HomeData(
-        continueWatching: asMaps(json['continueWatching']),
-        nextUp: asMaps(json['nextUp']),
-        recentMovies: asMaps(json['recentMovies']),
-        recentEpisodes: asMaps(json['recentEpisodes']),
-        trendingMovies: asMaps(json['trendingMovies']),
-        trendingShows: asMaps(json['trendingShows']),
-        nowPlaying: asMaps(json['nowPlaying']),
-        airingToday: asMaps(json['airingToday']),
+        shows: asMaps(json['shows']),
+        progress: asMaps(json['progress']),
+        movies: asMaps(json['movies']),
       );
-
-  _HomeData withoutNextUp(Map<String, dynamic> item) {
-    final tmdb = item.i('tmdb_id');
-    final season = item.i('season_number');
-    final episode = item.i('episode_number');
-    return _HomeData(
-      continueWatching: continueWatching,
-      nextUp: nextUp
-          .where((e) =>
-              e.i('tmdb_id') != tmdb ||
-              e.i('season_number') != season ||
-              e.i('episode_number') != episode)
-          .toList(),
-      recentMovies: recentMovies,
-      recentEpisodes: recentEpisodes,
-      trendingMovies: trendingMovies,
-      trendingShows: trendingShows,
-      nowPlaying: nowPlaying,
-      airingToday: airingToday,
-    );
-  }
-}
-
-class _ContinueHero extends StatelessWidget {
-  const _ContinueHero({required this.item});
-
-  final Map<String, dynamic> item;
-
-  @override
-  Widget build(BuildContext context) {
-    final app = ScrobScope.of(context);
-    final media = asMap(item['media']);
-    final backdrop = app.imageUrl(
-      media.s('show_backdrop_path') ?? media.s('backdrop_path'),
-      size: 'w780',
-    );
-    final title = media.s('show_title') ?? media.s('title') ?? '';
-    final episode = media.s('type') == 'episode'
-        ? 'S${media.i('season_number')}E${media.i('episode_number')} · ${media.s('title') ?? ''}'
-        : yearOf(media.s('release_date'));
-    final progress = item.d('progress_percent') ?? 0;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: kAccent.withValues(alpha: 0.12),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedArtwork(
-                      url: backdrop,
-                      fit: BoxFit.cover,
-                      placeholder: Container(color: kCard),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.25),
-                            Colors.transparent,
-                            kBg.withValues(alpha: 0.75),
-                            kBg,
-                          ],
-                          stops: const [0, 0.3, 0.7, 1],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.play_arrow_rounded,
-                                size: 13, color: kAccentSoft),
-                            SizedBox(width: 3),
-                            Text(
-                              'CONTINUE WATCHING',
-                              style: TextStyle(
-                                fontSize: 9,
-                                letterSpacing: 1.2,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 14,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          if (episode.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                episode,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: kMuted,
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(child: ProgressBar(value: progress)),
-                              const SizedBox(width: 10),
-                              Text(
-                                '${progress.round()}%',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned.fill(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(onTap: () => openMedia(context, media)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Equal-width row of quick links, so Lists / Calendar / Progress etc. are one
@@ -595,95 +487,6 @@ class _Shortcuts extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _NowPlayingStrip extends StatelessWidget {
-  const _NowPlayingStrip({required this.sessions, required this.onClear});
-
-  final List<Map<String, dynamic>> sessions;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    if (sessions.isEmpty) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.fromLTRB(14, 10, 6, 8),
-      decoration: BoxDecoration(
-        color: kGreen.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kGreen.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: kGreen,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'NOW PLAYING',
-                style: TextStyle(
-                  fontSize: 10,
-                  letterSpacing: 1.3,
-                  fontWeight: FontWeight.w800,
-                  color: kGreen,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                tooltip: 'Clear sessions',
-                onPressed: onClear,
-                icon: const Icon(Icons.close_rounded, size: 16, color: kMuted),
-              ),
-            ],
-          ),
-          ...sessions.map((session) {
-            final media = asMap(session['media']);
-            final title = media.s('show_title') ?? media.s('title') ?? 'Unknown';
-            final pct = session.d('progress_percent') ?? 0;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6, right: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '${pct.round()}%',
-                        style: const TextStyle(fontSize: 11, color: kMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  ProgressBar(value: pct, height: 3),
-                ],
-              ),
-            );
-          }),
         ],
       ),
     );
