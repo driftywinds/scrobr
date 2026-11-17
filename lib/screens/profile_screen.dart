@@ -124,7 +124,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    final app = ScrobScope.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -846,7 +845,6 @@ class _ApiKeyProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = ScrobScope.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
