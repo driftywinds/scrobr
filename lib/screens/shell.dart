@@ -69,6 +69,8 @@ class _AppShellState extends State<AppShell> {
           icon: _profileIcon(app),
           selectedIcon: _profileIcon(app, selected: true),
           label: 'Profile',
+          // The default label tooltip competes with our long-press gesture.
+          tooltip: '',
         ),
       ),
     ];
@@ -103,9 +105,11 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _profileIcon(AppState app, {bool selected = false}) {
-    final avatar = app.me == null
-        ? null
-        : app.imageUrl(app.me?.s('avatar_url'));
+    // `/auth/me` does not always include avatar_url, so fall back to the
+    // stable profile-avatar endpoint when we know the user id.
+    final avatarPath = app.me?.s('avatar_url') ??
+        (app.userId == null ? null : '/profile/avatar/${app.userId}');
+    final avatar = app.imageUrl(avatarPath);
     final picture = app.me == null
         ? Icon(selected ? Icons.person_rounded : Icons.person_outline_rounded)
         : UserAvatar(url: avatar, name: app.displayName, size: 26);
