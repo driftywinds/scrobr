@@ -16,7 +16,9 @@ and the main browsing, tracking, social and settings flows of the web UI.
 
 [<img src="https://raw.githubusercontent.com/driftywinds/driftywinds/refs/heads/main/Images/custom_badge_obtainium.png"
     alt="Get it on Obtanium"
-    height="75">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/driftywinds/scrobr)
+    height="75">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/driftywinds/scrobr) [<img src="assets/google-play-badge.png"
+    alt="Get it on Google Play"
+    height="75">](https://play.google.com/store/apps/details?id=com.dw.scrobr)
 
 ## Screenshots
 
