@@ -57,6 +57,25 @@ String? posterPathFor(Map<String, dynamic> item) {
       : (item.s('poster_path') ?? item.s('show_poster_path'));
 }
 
+/// Normalizes the type names different Scrob/TMDB payloads use for the same
+/// list-item kind. The lists API accepts only movie/series/episode/person.
+String? normalizedMediaType(Map<String, dynamic> item) {
+  final raw = (item.s('type') ?? item.s('media_type'))?.toLowerCase();
+  return switch (raw) {
+    'movie' => 'movie',
+    'series' || 'show' || 'tv' => 'series',
+    'episode' => 'episode',
+    'person' => 'person',
+    _ => item.s('first_air_date') != null ||
+            item['seasons_meta'] != null ||
+            item.s('show_tmdb_id') != null
+        ? 'series'
+        : item.s('release_date') != null
+            ? 'movie'
+            : null,
+  };
+}
+
 String fmtDate(String? iso) {
   if (iso == null || iso.isEmpty) return 'Unknown';
   final d = DateTime.tryParse(iso);

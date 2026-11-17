@@ -246,11 +246,18 @@ Future<bool> addToListDialog(
       ),
     );
     if (id == null) return false;
+    final type = normalizedMediaType(media);
+    final isEpisode = type == 'episode';
+    final tmdbId = isEpisode
+        ? (media.i('show_tmdb_id') ?? media.i('tmdb_id'))
+        : media.i('tmdb_id');
+    if (type == null || tmdbId == null) {
+      showSnack(context, 'Could not add to list: unknown media type');
+      return false;
+    }
     await app.post('/lists/$id/items', {
-      'tmdb_id': media.s('type') == 'episode'
-          ? media.i('show_tmdb_id')
-          : media.i('tmdb_id'),
-      'media_type': media.s('type') == 'episode' ? 'series' : media.s('type'),
+      'tmdb_id': tmdbId,
+      'media_type': isEpisode ? 'series' : type,
     });
     showSnack(context, 'Added to list');
     return true;
