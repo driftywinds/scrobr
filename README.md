@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="assets/scrobr.svg" width="112" alt="Scrobr logo">
-</p>
-
-# Scrobr
+<h1>
+  <img src="assets/scrobr-app-dark.svg" width="56" alt="Scrobr logo" align="middle">
+  Scrobr
+</h1>
 
 Scrobr is a native Flutter client for [Scrob](https://github.com/ellite/scrob) — the
 self-hosted media tracker (Letterboxd + Trakt for your own library).
