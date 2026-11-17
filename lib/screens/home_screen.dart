@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final tabsWidth =
-                          (constraints.maxWidth * 0.56).clamp(160.0, 260.0);
+                          (constraints.maxWidth * 0.56).clamp(160.0, 260.0).toDouble();
                       return Row(
                         children: [
                           SizedBox(
