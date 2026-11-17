@@ -24,8 +24,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<_HomeData>? _future;
-  _HomeData? _data;
+  Future<void>? _showsFuture;
+  Future<void>? _moviesFuture;
+  List<Map<String, dynamic>> _shows = const [];
+  List<Map<String, dynamic>> _progress = const [];
+  List<Map<String, dynamic>> _movies = const [];
+  bool _showsLoaded = false;
+  bool _moviesLoaded = false;
+  Object? _showsError;
+  Object? _moviesError;
   bool _cacheRead = false;
   int _seenHistoryRevision = -1;
   String _tab = 'shows';
@@ -45,28 +52,44 @@ class _HomeScreenState extends State<HomeScreen> {
       _seenHistoryRevision = app.historyRevision;
       _reload();
     }
-    _future ??= _load();
+    _showsFuture ??= _loadShows();
+    _moviesFuture ??= _loadMovies();
   }
 
   Future<void> _readCache(AppState app) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_cacheKey(app));
-      if (raw == null || raw.isEmpty || !mounted || _data != null) return;
-      final cached = _HomeData.fromJson(asMap(jsonDecode(raw)));
-      setState(() => _data = cached);
+      final showsRaw = prefs.getString(_showsCacheKey(app));
+      final moviesRaw = prefs.getString(_moviesCacheKey(app));
+      if (!mounted) return;
+      setState(() {
+        if (showsRaw != null && showsRaw.isNotEmpty) {
+          final cached = asMap(jsonDecode(showsRaw));
+          _shows = asMaps(cached['shows']);
+          _progress = asMaps(cached['progress']);
+          _showsLoaded = true;
+        }
+        if (moviesRaw != null && moviesRaw.isNotEmpty) {
+          final cached = asMap(jsonDecode(moviesRaw));
+          _movies = asMaps(cached['movies']);
+          _moviesLoaded = true;
+        }
+      });
     } catch (_) {
       // A corrupt cache should never block the network refresh.
     }
   }
 
-  String _cacheKey(AppState app) =>
-      'scrobr_up_next_${app.userId ?? 0}_${app.server.hashCode}';
+  String _showsCacheKey(AppState app) =>
+      'scrobr_up_next_shows_${app.userId ?? 0}_${app.server.hashCode}';
 
-  Future<void> _saveCache(AppState app, _HomeData data) async {
+  String _moviesCacheKey(AppState app) =>
+      'scrobr_up_next_movies_${app.userId ?? 0}_${app.server.hashCode}';
+
+  Future<void> _saveCache(String key, Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_cacheKey(app), jsonEncode(data.toJson()));
+      await prefs.setString(key, jsonEncode(data));
     } catch (_) {
       // Cache writes are best-effort.
     }
@@ -89,40 +112,65 @@ class _HomeScreenState extends State<HomeScreen> {
     return asMaps(asMap(detail)['items']);
   }
 
-  Future<_HomeData> _load() async {
+  Future<void> _loadShows() async {
     final app = ScrobScope.of(context);
-    final results = await Future.wait([
-      app.tryGet('/history/next-up', {'limit': 100}),
-      app.tryGet('/history/progress', {
-        'type': 'watched',
-        'sort': 'recent',
-        'page_size': 200,
-      }),
-      app.tryGet('/history/continue-watching', {'limit': 100}),
-      _watchlistEntries(app),
-      app.followingItems().catchError((_) => <Map<String, dynamic>>[]),
-    ]);
-    if (results.every((result) => result == null)) {
-      throw Exception('Could not load your Up Next');
+    _showsError = null;
+    try {
+      final results = await Future.wait([
+        app.tryGet('/history/next-up', {'limit': 100}),
+        app.tryGet('/history/progress', {
+          'type': 'watched',
+          'sort': 'recent',
+          'page_size': 200,
+        }),
+      ]);
+      if (results.every((result) => result == null)) {
+        throw Exception('Could not load your Up Next');
+      }
+      final shows = asMaps(asMap(results[0])['next_up']);
+      final progress = asMaps(asMap(results[1])['shows']);
+      _shows = shows;
+      _progress = progress;
+      _showsLoaded = true;
+      _saveCache(_showsCacheKey(app), {'shows': shows, 'progress': progress});
+      if (mounted) setState(() {});
+    } catch (e) {
+      _showsError = e;
+      if (mounted) setState(() {});
     }
-    final data = _HomeData(
-      shows: asMaps(asMap(results[0])['next_up']),
-      progress: asMaps(asMap(results[1])['shows']),
-      movies: buildMovieRows(
-        continueWatching: asMaps(asMap(results[2])['continue_watching']),
-        watchlist: asMaps(results[3]),
-        following: asMaps(results[4]),
-      ),
-    );
-    _data = data;
-    _saveCache(app, data);
-    return data;
+  }
+
+  Future<void> _loadMovies() async {
+    final app = ScrobScope.of(context);
+    _moviesError = null;
+    try {
+      // Start both list requests together. The Following list usually has its
+      // id cached, so this is normally one detail request per source.
+      final results = await Future.wait([
+        _watchlistEntries(app),
+        app.followingItems().catchError((_) => <Map<String, dynamic>>[]),
+      ]);
+      final movies = buildMovieRows(
+        continueWatching: const [],
+        watchlist: asMaps(results[0]),
+        following: asMaps(results[1]),
+      );
+      _movies = movies;
+      _moviesLoaded = true;
+      _saveCache(_moviesCacheKey(app), {'movies': movies});
+      if (mounted) setState(() {});
+    } catch (e) {
+      _moviesError = e;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _reload() async {
-    final next = _load();
-    setState(() => _future = next);
-    await next;
+    setState(() {
+      _showsFuture = _loadShows();
+      _moviesFuture = _loadMovies();
+    });
+    await Future.wait([_showsFuture!, _moviesFuture!]);
   }
 
   void _openMenu(String value) {
@@ -206,57 +254,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<_HomeData>(
-        future: _future,
-        builder: (context, snapshot) {
-          final data = snapshot.data ?? _data;
-          if (data == null &&
-              snapshot.connectionState == ConnectionState.waiting) {
-            return const _UpNextSkeleton();
-          }
-          if (data == null && snapshot.hasError) {
-            return ErrorView(
-              message: '${snapshot.error}',
-              onRetry: _reload,
-            );
-          }
-          if (data == null) {
-            return const EmptyState(title: 'Nothing to show yet');
-          }
-          return Column(
-            children: [
-              if (app.isApiKeyMode) _ApiKeyBanner(),
-              _Shortcuts(onSelected: _openMenu),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                child: SegmentedTabs<String>(
-                  segments: const [
-                    ButtonSegment(value: 'shows', label: Text('Shows')),
-                    ButtonSegment(value: 'movies', label: Text('Movies')),
-                  ],
-                  selected: {_tab},
-                  onSelectionChanged: (value) {
-                    setState(() => _tab = value.first);
-                  },
+      body: !_showsLoaded && _shows.isEmpty
+          ? (_showsError == null
+              ? const _UpNextSkeleton()
+              : ErrorView(
+                  message: '$_showsError',
+                  onRetry: _reload,
+                ))
+          : Column(
+              children: [
+                if (app.isApiKeyMode) _ApiKeyBanner(),
+                _Shortcuts(onSelected: _openMenu),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: SegmentedTabs<String>(
+                    segments: const [
+                      ButtonSegment(value: 'shows', label: Text('Shows')),
+                      ButtonSegment(value: 'movies', label: Text('Movies')),
+                    ],
+                    selected: {_tab},
+                    onSelectionChanged: (value) {
+                      setState(() => _tab = value.first);
+                    },
+                  ),
                 ),
-              ),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _reload,
-                  child: _tab == 'shows'
-                      ? _buildShows(data)
-                      : _buildMovies(data),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _reload,
+                    child: _tab == 'shows' ? _buildShows() : _buildMovies(),
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+              ],
+            ),
+
     );
   }
 
-  Widget _buildShows(_HomeData data) {
-    if (data.shows.isEmpty) {
+  Widget _buildShows() {
+    if (!_showsLoaded && _shows.isEmpty) {
+      return const LoadingView();
+    }
+    if (_shows.isEmpty) {
       return _EmptyUpNext(
         title: 'You are all caught up',
         body: 'Start a show and its next episode will appear here.',
@@ -264,16 +302,16 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     final progress = {
-      for (final show in data.progress)
+      for (final show in _progress)
         if (show.i('tmdb_id') != null) show.i('tmdb_id')!: show,
     };
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: data.shows.length,
+      itemCount: _shows.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final item = data.shows[index];
+        final item = _shows[index];
         final showTmdb = item.i('show_tmdb_id') ?? item.i('tmdb_id');
         final stats = showTmdb == null ? null : progress[showTmdb];
         final season = item.i('season_number');
@@ -300,8 +338,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMovies(_HomeData data) {
-    final movies = data.movies.where((entry) {
+  Widget _buildMovies() {
+    if (!_moviesLoaded && _movies.isEmpty) {
+      return const LoadingView();
+    }
+    if (_moviesError != null && _movies.isEmpty) {
+      return ErrorView(message: '$_moviesError', onRetry: _reload);
+    }
+    final movies = _movies.where((entry) {
       final id = asMap(entry['media']).i('tmdb_id');
       return id == null || !_checkedMovies.contains(id);
     }).toList();
@@ -433,29 +477,6 @@ class _UpNextSkeleton extends StatelessWidget {
   }
 }
 
-class _HomeData {
-  const _HomeData({
-    required this.shows,
-    required this.progress,
-    required this.movies,
-  });
-
-  final List<Map<String, dynamic>> shows;
-  final List<Map<String, dynamic>> progress;
-  final List<Map<String, dynamic>> movies;
-
-  Map<String, dynamic> toJson() => {
-        'shows': shows,
-        'progress': progress,
-        'movies': movies,
-      };
-
-  factory _HomeData.fromJson(Map<String, dynamic> json) => _HomeData(
-        shows: asMaps(json['shows']),
-        progress: asMaps(json['progress']),
-        movies: asMaps(json['movies']),
-      );
-}
 
 /// Equal-width row of quick links, so Lists / Calendar / Progress etc. are one
 /// tap away instead of hidden in the overflow menu.
