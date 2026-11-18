@@ -26,7 +26,7 @@ class ScrobApp extends StatelessWidget {
         builder: (context, _) => MaterialApp(
           title: 'Scrobr',
           debugShowCheckedModeBanner: false,
-          theme: buildTheme(),
+          theme: buildTheme(fontFamily: state.fontFamily),
           home: state.isLoggedIn && state.hasServer
               ? const AppShell()
               : const LoginScreen(),

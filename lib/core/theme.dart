@@ -34,7 +34,7 @@ BoxDecoration panelDecoration({
       border: border ? Border.all(color: kBorder) : null,
     );
 
-ThemeData buildTheme() {
+ThemeData buildTheme({String? fontFamily}) {
   final scheme = ColorScheme.fromSeed(
     seedColor: kAccent,
     brightness: Brightness.dark,
@@ -52,7 +52,6 @@ ThemeData buildTheme() {
 
   final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
   final textTheme = base.textTheme
-      .apply(bodyColor: kText, displayColor: kText)
       .copyWith(
         titleLarge: const TextStyle(
           fontWeight: FontWeight.w800,
@@ -65,21 +64,28 @@ ThemeData buildTheme() {
           color: kText,
         ),
         bodyMedium: const TextStyle(height: 1.4, color: kText),
+      )
+      .apply(
+        fontFamily: fontFamily,
+        bodyColor: kText,
+        displayColor: kText,
       );
 
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: scheme,
+    fontFamily: fontFamily,
     textTheme: textTheme,
     scaffoldBackgroundColor: kBg,
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: kBg,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
+        fontFamily: fontFamily,
         fontSize: 21,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.5,
@@ -105,8 +111,16 @@ ThemeData buildTheme() {
       indicatorColor: kAccentSolid,
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: kBorder,
-      labelStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-      unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      labelStyle: TextStyle(
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w800,
+        fontSize: 14,
+      ),
+      unselectedLabelStyle: TextStyle(
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
     ),
     listTileTheme: const ListTileThemeData(
       iconColor: kMuted,
@@ -119,7 +133,11 @@ ThemeData buildTheme() {
       style: FilledButton.styleFrom(
         minimumSize: const Size(64, 46),
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        textStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(kRadius),
         ),
@@ -130,7 +148,11 @@ ThemeData buildTheme() {
         minimumSize: const Size(64, 46),
         foregroundColor: kText,
         side: const BorderSide(color: kBorderStrong),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        textStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(kRadius),
         ),
@@ -139,7 +161,10 @@ ThemeData buildTheme() {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: kAccentSoft,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        textStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontWeight: FontWeight.w700,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(kRadiusSm),
         ),
@@ -156,8 +181,12 @@ ThemeData buildTheme() {
               : Colors.white,
         ),
         side: const WidgetStatePropertyAll(BorderSide(color: kBorderStrong)),
-        textStyle: const WidgetStatePropertyAll(
-          TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        textStyle: WidgetStatePropertyAll(
+          TextStyle(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
         ),
       ),
     ),
@@ -171,6 +200,7 @@ ThemeData buildTheme() {
       ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
+          fontFamily: fontFamily,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: states.contains(WidgetState.selected) ? Colors.white : kMuted,
@@ -187,7 +217,7 @@ ThemeData buildTheme() {
       filled: true,
       fillColor: kSurface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      hintStyle: const TextStyle(color: kMuted),
+      hintStyle: TextStyle(fontFamily: fontFamily, color: kMuted),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(kRadius),
         borderSide: BorderSide.none,
@@ -204,7 +234,11 @@ ThemeData buildTheme() {
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: kCard,
-      contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+      contentTextStyle: TextStyle(
+        fontFamily: fontFamily,
+        color: Colors.white,
+        fontSize: 13,
+      ),
       actionTextColor: kAccentSoft,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(kRadius),
@@ -234,13 +268,17 @@ ThemeData buildTheme() {
         borderRadius: BorderRadius.circular(kRadius),
         side: const BorderSide(color: kBorderStrong),
       ),
-      textStyle: const TextStyle(fontSize: 14, color: kText),
+      textStyle: TextStyle(fontFamily: fontFamily, fontSize: 14, color: kText),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: kSurface,
       selectedColor: kAccentSolid.withValues(alpha: 0.3),
       side: const BorderSide(color: kBorderStrong),
-      labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      labelStyle: TextStyle(
+        fontFamily: fontFamily,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     switchTheme: SwitchThemeData(
@@ -264,7 +302,11 @@ ThemeData buildTheme() {
         borderRadius: BorderRadius.circular(kRadiusSm),
         border: Border.all(color: kBorderStrong),
       ),
-      textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+      textStyle: TextStyle(
+        fontFamily: fontFamily,
+        color: Colors.white,
+        fontSize: 12,
+      ),
     ),
   );
 }

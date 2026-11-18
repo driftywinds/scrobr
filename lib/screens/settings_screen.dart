@@ -11,6 +11,7 @@ import '../core/api.dart';
 import '../core/app_state.dart';
 import 'backup_screen.dart';
 import '../core/device_auth.dart';
+import '../core/fonts.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
@@ -728,6 +729,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _chooseFont() async {
+    final app = ScrobScope.of(context);
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 12),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                'Font',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
+            for (final font in appFonts)
+              ListTile(
+                title: Text(
+                  font.label,
+                  style: font.family == null
+                      ? null
+                      : TextStyle(fontFamily: font.family),
+                ),
+                subtitle: Text(
+                  font.family == null
+                      ? 'Default app font'
+                      : 'Allo by Josh Puckett',
+                ),
+                trailing: app.fontId == font.id
+                    ? const Icon(Icons.check_rounded)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, font.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) await app.setFont(selected);
+  }
+
   Future<void> _chooseAccent({required bool solid}) async {
     final app = ScrobScope.of(context);
     final selected = await showModalBottomSheet<String>(
@@ -1104,6 +1147,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             onTap: () => _chooseAccent(solid: true),
+          ),
+          ListTile(
+            leading: const Icon(Icons.text_fields_rounded),
+            title: const Text('Font'),
+            subtitle: Text(appFontById(app.fontId).label),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: _chooseFont,
           ),
           const _Section('Notifications'),
           SwitchListTile(

@@ -168,3 +168,9 @@ opens the password-only screens when you sign in normally.
 Deliberately out of scope: OIDC/SSO login and in-app video playback. Provider
 linking (Jellyfin/Plex/Emby/Nuvio/Stremio/ARVIO and the cloud trackers) is done
 in the Scrob web UI; the app opens that page and manages existing connections.
+
+
+## Fonts
+
+The optional Allo typeface is by Josh Puckett and is bundled under the SIL Open
+Font License 1.1. See [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt).

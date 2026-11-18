@@ -8,6 +8,7 @@ import 'accent.dart';
 import 'accounts.dart';
 import 'api.dart';
 import 'calendar_notifications.dart';
+import 'fonts.dart';
 import 'format.dart';
 import 'session.dart';
 
@@ -19,6 +20,7 @@ const _kCalendarDays = 'scrobr_calendar_days';
 const _kCalendarNotifications = 'scrobr_calendar_notifications';
 const _kFollowingListId = 'scrobr_following_list_id';
 const _kFollowingMirror = 'scrobr_following_mirror';
+const _kFontId = 'scrobr_font_id';
 const kFollowingListName = 'Following · Calendar';
 const _kFollowingMarker = 'Calendar follows created by Scrobr.';
 
@@ -40,6 +42,7 @@ class AppState extends ChangeNotifier {
   int calendarDays = 21;
   String accentId = defaultAccentId;
   String? accentSolidId;
+  String fontId = 'system';
   final Set<int> _watchedMovieIds = {};
   String? sessionError;
   List<SavedAccount> _accounts = const [];
@@ -55,6 +58,7 @@ class AppState extends ChangeNotifier {
       : '$server|$userId';
   String get displayName =>
       me?.s('display_name') ?? me?.s('username') ?? (isApiKeyMode ? 'API key' : 'Scrob user');
+  String? get fontFamily => appFontById(fontId).family;
   String get origin => server;
   String get proxyUrl => hasServer ? '$server/api/proxy' : '';
 
@@ -92,6 +96,7 @@ class AppState extends ChangeNotifier {
     calendarDays = ((_prefs.getInt(_kCalendarDays) ?? 21).clamp(1, 90)).toInt();
     accentId = _prefs.getString(accentPrefKey) ?? defaultAccentId;
     accentSolidId = _prefs.getString(accentSolidPrefKey);
+    fontId = appFontById(_prefs.getString(_kFontId)).id;
     applyAccent(accentId);
     applySolidAccent(accentSolidId);
     token = _prefs.getString(_kToken);
@@ -353,6 +358,12 @@ class AppState extends ChangeNotifier {
     accentId = accentById(id).id;
     applyAccent(accentId);
     await _prefs.setString(accentPrefKey, accentId);
+    notifyListeners();
+  }
+
+  Future<void> setFont(String id) async {
+    fontId = appFontById(id).id;
+    await _prefs.setString(_kFontId, fontId);
     notifyListeners();
   }
 

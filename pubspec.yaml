@@ -73,6 +73,20 @@ flutter:
     - assets/scrobr.svg
     - assets/scrobr-app.svg
 
+  fonts:
+    - family: Allo
+      fonts:
+        - asset: assets/fonts/Allo-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Allo-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Allo-Bold.otf
+          weight: 700
+        - asset: assets/fonts/Allo-ExtraBold.otf
+          weight: 800
+        - asset: assets/fonts/Allo-Black.otf
+          weight: 900
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
