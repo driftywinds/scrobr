@@ -573,6 +573,7 @@ class _ShowBody extends StatelessWidget {
                           showTmdbId: showId,
                           seasonNumber: number,
                           showTitle: title,
+                          cast: cast,
                         ),
                       );
                       reload();

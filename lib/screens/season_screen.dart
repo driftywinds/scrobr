@@ -17,11 +17,13 @@ class SeasonScreen extends StatefulWidget {
     required this.showTmdbId,
     required this.seasonNumber,
     this.showTitle,
+    this.cast = const [],
   });
 
   final int showTmdbId;
   final int seasonNumber;
   final String? showTitle;
+  final List<Map<String, dynamic>> cast;
 
   @override
   State<SeasonScreen> createState() => _SeasonScreenState();
@@ -307,6 +309,8 @@ class _SeasonScreenState extends State<SeasonScreen> {
                     ),
                   ),
                 ),
+              if (widget.cast.isNotEmpty)
+                PeopleRow(title: 'Series cast', people: widget.cast),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 child: ActionGrid(
