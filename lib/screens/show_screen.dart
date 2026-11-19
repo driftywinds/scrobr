@@ -258,6 +258,7 @@ class _ShowBody extends StatelessWidget {
     final inRewatch = rewatch.isNotEmpty;
     final watchPct = show.d('watch_pct') ?? 0;
     final networks = show.maps('networks');
+    final cast = show.maps('cast');
     final showId = show.i('tmdb_id');
 
     return CustomScrollView(
@@ -525,6 +526,10 @@ class _ShowBody extends StatelessWidget {
             ),
           ),
         ),
+        if (cast.isNotEmpty)
+          SliverToBoxAdapter(
+            child: PeopleRow(title: 'Cast', people: cast),
+          ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
