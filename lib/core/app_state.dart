@@ -10,6 +10,7 @@ import 'api.dart';
 import 'calendar_notifications.dart';
 import 'fonts.dart';
 import 'format.dart';
+import 'home_shortcuts.dart';
 import 'session.dart';
 
 const _kServer = 'scrobr_server';
@@ -21,6 +22,7 @@ const _kCalendarNotifications = 'scrobr_calendar_notifications';
 const _kFollowingListId = 'scrobr_following_list_id';
 const _kFollowingMirror = 'scrobr_following_mirror';
 const _kFontId = 'scrobr_font_id';
+const _kHomeShortcuts = 'scrobr_home_shortcuts';
 const kFollowingListName = 'Following · Calendar';
 const _kFollowingMarker = 'Calendar follows created by Scrobr.';
 
@@ -43,6 +45,8 @@ class AppState extends ChangeNotifier {
   String accentId = defaultAccentId;
   String? accentSolidId;
   String fontId = 'system';
+  List<String> homeShortcutOrder = [...defaultHomeShortcutIds];
+  Set<String> hiddenHomeShortcuts = {};
   final Set<int> _watchedMovieIds = {};
   String? sessionError;
   List<SavedAccount> _accounts = const [];
@@ -97,6 +101,7 @@ class AppState extends ChangeNotifier {
     accentId = _prefs.getString(accentPrefKey) ?? defaultAccentId;
     accentSolidId = _prefs.getString(accentSolidPrefKey);
     fontId = appFontById(_prefs.getString(_kFontId)).id;
+    _loadHomeShortcuts();
     applyAccent(accentId);
     applySolidAccent(accentSolidId);
     token = _prefs.getString(_kToken);
@@ -364,6 +369,34 @@ class AppState extends ChangeNotifier {
   Future<void> setFont(String id) async {
     fontId = appFontById(id).id;
     await _prefs.setString(_kFontId, fontId);
+    notifyListeners();
+  }
+
+  void _loadHomeShortcuts() {
+    final raw = _prefs.getString(_kHomeShortcuts);
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final data = asMap(jsonDecode(raw));
+      homeShortcutOrder = normalizeHomeShortcutOrder(data['order']);
+      hiddenHomeShortcuts = normalizeHiddenHomeShortcuts(data['hidden']);
+    } catch (_) {
+      // Keep the defaults if a stored value is malformed.
+    }
+  }
+
+  Future<void> saveHomeShortcuts(
+    List<String> order,
+    Set<String> hidden,
+  ) async {
+    homeShortcutOrder = normalizeHomeShortcutOrder(order);
+    hiddenHomeShortcuts = normalizeHiddenHomeShortcuts(hidden);
+    await _prefs.setString(
+      _kHomeShortcuts,
+      jsonEncode({
+        'order': homeShortcutOrder,
+        'hidden': hiddenHomeShortcuts.toList(),
+      }),
+    );
     notifyListeners();
   }
 

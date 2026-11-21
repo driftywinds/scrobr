@@ -18,6 +18,7 @@ import '../core/theme.dart';
 import '../core/tracker_imports.dart';
 import 'admin_screen.dart';
 import 'connections_screen.dart';
+import 'home_shortcuts_screen.dart';
 import 'requests_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -1154,6 +1155,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(appFontById(app.fontId).label),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: _chooseFont,
+          ),
+          const _Section('Home'),
+          ListTile(
+            leading: const Icon(Icons.dashboard_customize_outlined),
+            title: const Text('Home shortcuts'),
+            subtitle: const Text('Reorder or hide the quick links'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => pushScreen(context, const HomeShortcutsScreen()),
           ),
           const _Section('Notifications'),
           SwitchListTile(

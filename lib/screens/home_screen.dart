@@ -8,6 +8,7 @@ import '../core/actions.dart';
 import '../core/app_state.dart';
 import '../core/concurrency.dart';
 import '../core/format.dart';
+import '../core/home_shortcuts.dart';
 import '../core/home_sort.dart';
 import '../core/movie_shelf.dart';
 import '../core/nav.dart';
@@ -644,22 +645,31 @@ class _UpNextSkeleton extends StatelessWidget {
 }
 
 
-/// Equal-width row of quick links, so Lists / Calendar / Progress etc. are one
-/// tap away instead of hidden in the overflow menu.
+/// Equal-width row of quick links, so enabled shortcuts are one tap away
+/// instead of hidden in the overflow menu. Hidden cards are omitted entirely;
+/// the remaining cards expand evenly to fill the row.
 class _Shortcuts extends StatelessWidget {
   const _Shortcuts({required this.onSelected});
 
   final ValueChanged<String> onSelected;
 
+  static const _icons = {
+    'lists': Icons.view_list_rounded,
+    'calendar': Icons.calendar_month_rounded,
+    'progress': Icons.timelapse_rounded,
+    'dropped': Icons.do_not_disturb_on_outlined,
+    'requests': Icons.download_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
-    const items = [
-      ('lists', Icons.view_list_rounded, 'Lists'),
-      ('calendar', Icons.calendar_month_rounded, 'Calendar'),
-      ('progress', Icons.timelapse_rounded, 'Progress'),
-      ('dropped', Icons.do_not_disturb_on_outlined, 'Dropped'),
-      ('requests', Icons.download_rounded, 'Requests'),
+    final app = ScrobScope.of(context);
+    final items = [
+      for (final id in app.homeShortcutOrder)
+        if (!app.hiddenHomeShortcuts.contains(id) && _icons[id] != null)
+          (id, _icons[id]!, homeShortcutLabel(id)),
     ];
+    if (items.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: Row(

@@ -1,21 +1,23 @@
 # Release APK workflow
 
-`.github/workflows/release.yml` supports both release triggers:
+Tag pushes (`v*`) run `.github/workflows/release-all-abis.yml`, not the plain
+`.github/workflows/release.yml` (which is now manual-only).
 
-- **workflow_dispatch**: `version` input (e.g. `v1.2.3`); falls back to the
-  selected ref's tag/name, then `0.0.0`.
-- **push tag** `v*`: the tag name is the version.
+- **push tag** `v*`: the tag name is the version; the release is a pre-release
+  by default and publishes split + universal APKs.
+- **workflow_dispatch**: `version` is optional and falls back to the selected
+  tag; the `prerelease` checkbox defaults to on.
 
-It runs on Ubuntu, sets up Flutter stable, runs `flutter pub get` and
-`flutter test`, then builds:
+Both workflows run on Ubuntu, set up Flutter stable, run `flutter pub get` and
+`flutter test`. The all-ABI workflow builds:
 
 ```sh
-flutter build apk --release --build-name "${VERSION#v}" --build-number "$GITHUB_RUN_NUMBER"
+flutter build apk --release --split-per-abi ...
+flutter build apk --release ...
 ```
 
-and uploads `build/app/outputs/flutter-apk/app-release.apk` as an artifact. It
-then creates/updates a GitHub Release tagged `v${VERSION}` with that APK for both
-manual dispatches and tag pushes.
+and publishes `armeabi-v7a`, `arm64-v8a`, `x86_64` and universal APKs to the
+GitHub Release tagged `v${VERSION}`.
 
 ## Signing with a base64 keystore
 

@@ -7,10 +7,6 @@ on:
         description: "Version tag to build (e.g. v1.2.3). Defaults to the selected ref."
         required: false
         type: string
-  push:
-    tags:
-      - "v*"
-
 permissions:
   contents: write
 

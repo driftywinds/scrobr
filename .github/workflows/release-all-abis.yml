@@ -4,9 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag to build (e.g. v1.2.3)"
-        required: true
+        description: "Version tag to build (e.g. v1.2.3). Defaults to the selected tag."
+        required: false
         type: string
+      prerelease:
+        description: "Mark the GitHub release as a pre-release"
+        required: false
+        type: boolean
+        default: true
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -42,8 +50,12 @@ jobs:
           set -euo pipefail
           raw="${{ inputs.version }}"
           if [ -z "$raw" ]; then
-            echo "::error::A version tag is required"
-            exit 1
+            if [ "${{ github.ref_type }}" = "tag" ]; then
+              raw="${{ github.ref_name }}"
+            else
+              echo "::error::A version tag is required"
+              exit 1
+            fi
           fi
           version="${raw#v}"
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
@@ -133,5 +145,5 @@ jobs:
             scrobr-${{ steps.version.outputs.version }}-armeabi-v7a.apk
             scrobr-${{ steps.version.outputs.version }}-x86_64.apk
           generate_release_notes: true
-          prerelease: false
-          make_latest: true
+          prerelease: ${{ github.event_name == 'push' || inputs.prerelease }}
+          make_latest: false
