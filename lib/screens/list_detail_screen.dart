@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
 import '../core/format.dart';
+import '../core/list_sort.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 
@@ -16,6 +17,8 @@ class ListDetailScreen extends StatefulWidget {
 
 class _ListDetailScreenState extends State<ListDetailScreen> {
   Future<Map<String, dynamic>>? _future;
+  ListSort _sort = ListSort.added;
+  int _randomSeed = 0;
 
   @override
   void didChangeDependencies() {
@@ -169,6 +172,32 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       appBar: AppBar(
         title: const Text('List'),
         actions: [
+          PopupMenuButton<ListSort>(
+            tooltip: 'Sort list',
+            icon: const Icon(Icons.sort_rounded),
+            onSelected: (value) => setState(() {
+              _sort = value;
+              _randomSeed = DateTime.now().microsecondsSinceEpoch;
+            }),
+            itemBuilder: (_) => [
+              for (final option in listSortOptions)
+                PopupMenuItem(
+                  value: option,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        child: option == _sort
+                            ? const Icon(Icons.check_rounded, size: 18)
+                            : null,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(option.label),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           FutureBuilder<Map<String, dynamic>>(
             future: _future,
             builder: (context, snapshot) {
@@ -209,7 +238,11 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
             );
           }
           final list = snapshot.data ?? const {};
-          final items = list.maps('items');
+          final items = sortListItems(
+            list.maps('items'),
+            sort: _sort,
+            randomSeed: _randomSeed,
+          );
           return RefreshIndicator(
             onRefresh: () async {
               _reload();
@@ -243,7 +276,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                       ],
                       const SizedBox(height: 6),
                       Text(
-                        '${list.i('item_count') ?? items.length} items · ${list.s('privacy_level') ?? ''}',
+                        '${list.i('item_count') ?? items.length} items · ${list.s('privacy_level') ?? ''} · ${_sort.label}',
                         style: const TextStyle(fontSize: 11, color: kMuted),
                       ),
                     ],
