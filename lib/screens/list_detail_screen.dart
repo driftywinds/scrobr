@@ -19,10 +19,17 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
   Future<Map<String, dynamic>>? _future;
   ListSort _sort = ListSort.added;
   int _randomSeed = 0;
+  bool _sortRestored = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_sortRestored) {
+      _sortRestored = true;
+      _sort = listSortFromId(
+        ScrobScope.of(context).listSortFor(widget.listId),
+      );
+    }
     _future ??= _load();
   }
 
@@ -175,10 +182,14 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           PopupMenuButton<ListSort>(
             tooltip: 'Sort list',
             icon: const Icon(Icons.sort_rounded),
-            onSelected: (value) => setState(() {
-              _sort = value;
-              _randomSeed = DateTime.now().microsecondsSinceEpoch;
-            }),
+            onSelected: (value) {
+              final app = ScrobScope.of(context);
+              setState(() {
+                _sort = value;
+                _randomSeed = DateTime.now().microsecondsSinceEpoch;
+              });
+              app.setListSortFor(widget.listId, value.id);
+            },
             itemBuilder: (_) => [
               for (final option in listSortOptions)
                 PopupMenuItem(

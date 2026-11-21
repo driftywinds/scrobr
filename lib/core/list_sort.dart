@@ -17,6 +17,13 @@ enum ListSort {
   final String label;
 }
 
+ListSort listSortFromId(String? id) {
+  for (final sort in ListSort.values) {
+    if (sort.id == id) return sort;
+  }
+  return ListSort.added;
+}
+
 const listSortOptions = [
   ListSort.added,
   ListSort.recent,

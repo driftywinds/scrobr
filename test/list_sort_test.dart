@@ -19,6 +19,13 @@ Map<String, dynamic> item(
     };
 
 void main() {
+  test('restores known sort ids and falls back to list order', () {
+    expect(listSortFromId('recent'), ListSort.recent);
+    expect(listSortFromId('year'), ListSort.year);
+    expect(listSortFromId('unknown'), ListSort.added);
+    expect(listSortFromId(null), ListSort.added);
+  });
+
   test('sorts list items by recent addition and title', () {
     final items = [
       item('Older', addedAt: '2026-01-01'),

@@ -384,6 +384,16 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  String? listSortFor(int listId) =>
+      _prefs.getString(_listSortKey(listId));
+
+  Future<void> setListSortFor(int listId, String sortId) async {
+    await _prefs.setString(_listSortKey(listId), sortId);
+  }
+
+  String _listSortKey(int listId) =>
+      'scrobr_list_sort:${server}|${userId ?? 'anon'}:$listId';
+
   Future<void> saveHomeShortcuts(
     List<String> order,
     Set<String> hidden,
