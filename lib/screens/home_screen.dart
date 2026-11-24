@@ -13,7 +13,9 @@ import '../core/home_sort.dart';
 import '../core/movie_shelf.dart';
 import '../core/nav.dart';
 import '../widgets/swipe_pages.dart';
+import '../widgets/watch_sync_sheet.dart';
 import '../core/theme.dart';
+import '../core/watch_sync.dart';
 import '../widgets/common.dart';
 import '../widgets/movie_poster_tile.dart';
 import '../widgets/up_next_tile.dart';
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _seenListRevision = -1;
   String _tab = 'shows';
   final Set<int> _checkedMovies = {};
+  final Set<String> _checkedShows = {};
   HomeSort _showSort = HomeSort.lastWatched;
   HomeSort _movieSort = HomeSort.recentlyAdded;
   Map<int, String> _showAddedAt = {};
@@ -326,30 +329,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _markShowWatched(Map<String, dynamic> item) async {
-    final changed = await toggleWatched(
-      context,
-      {...item, 'type': 'episode'},
-      target: true,
-      promptRating: false,
-    );
-    if (!changed || !mounted) return;
-    _seenHistoryRevision = ScrobScope.of(context).historyRevision;
-    await _reload();
+    final app = ScrobScope.of(context);
+    if (!app.queueWatch({...item, 'type': 'episode'})) return;
+    final key = watchKeyFor({...item, 'type': 'episode'});
+    if (key != null && mounted) {
+      setState(() => _checkedShows.add(key));
+    }
   }
 
   Future<void> _markMovieWatched(Map<String, dynamic> entry) async {
     final media = asMap(entry['media']);
-    final changed = await toggleWatched(
-      context,
-      {...media, 'type': 'movie'},
-      target: true,
-      promptRating: false,
-    );
-    if (!changed || !mounted) return;
+    final app = ScrobScope.of(context);
+    if (!app.queueWatch({...media, 'type': 'movie'})) return;
     final id = media.i('tmdb_id');
-    if (id != null) setState(() => _checkedMovies.add(id));
-    _seenHistoryRevision = ScrobScope.of(context).historyRevision;
-    await _reload();
+    if (id != null && mounted) setState(() => _checkedMovies.add(id));
   }
 
   @override
@@ -381,6 +374,23 @@ class _HomeScreenState extends State<HomeScreen> {
               if (mounted) _reload();
             },
             icon: const Icon(Icons.search_rounded),
+          ),
+          IconButton(
+            tooltip: 'Sync status',
+            onPressed: () => showWatchSyncSheet(context),
+            icon: Badge(
+              isLabelVisible: app.watchPendingCount > 0,
+              label: Text('${app.watchPendingCount}'),
+              child: Icon(
+                app.watchSyncing
+                    ? Icons.sync_rounded
+                    : app.watchPendingCount > 0
+                        ? Icons.schedule_rounded
+                        : app.watchSyncError != null
+                            ? Icons.cloud_off_rounded
+                            : Icons.cloud_done_outlined,
+              ),
+            ),
           ),
           PopupMenuButton<String>(
             onSelected: _openMenu,
@@ -475,8 +485,19 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final show in _progress)
         if (show.i('tmdb_id') != null) show.i('tmdb_id')!: show,
     };
+    final visibleShows = _shows.where((item) {
+      final key = watchKeyFor({...item, 'type': 'episode'});
+      return key == null || !_checkedShows.contains(key);
+    }).toList();
+    if (visibleShows.isEmpty) {
+      return _EmptyUpNext(
+        title: 'You are all caught up',
+        body: 'Queued episodes will sync after a short pause.',
+        icon: Icons.cloud_done_outlined,
+      );
+    }
     final ordered = sortShows(
-      _shows,
+      visibleShows,
       sort: _showSort,
       progress: progress,
       ratings: _showRatings,

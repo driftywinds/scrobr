@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -12,6 +13,7 @@ import 'fonts.dart';
 import 'format.dart';
 import 'home_shortcuts.dart';
 import 'session.dart';
+import 'watch_sync.dart';
 
 const _kServer = 'scrobr_server';
 const _kToken = 'scrob_token';
@@ -48,6 +50,14 @@ class AppState extends ChangeNotifier {
   List<String> homeShortcutOrder = [...defaultHomeShortcutIds];
   Set<String> hiddenHomeShortcuts = {};
   final Set<int> _watchedMovieIds = {};
+  final List<QueuedWatch> _watchQueue = [];
+  final List<QueuedWatch> _watchSending = [];
+  List<QueuedWatch> lastWatchBatch = const [];
+  DateTime? watchFlushAt;
+  DateTime? lastWatchSyncAt;
+  String? watchSyncError;
+  bool watchSyncing = false;
+  Timer? _watchTimer;
   String? sessionError;
   List<SavedAccount> _accounts = const [];
 
@@ -310,6 +320,7 @@ class AppState extends ChangeNotifier {
     await _prefs.remove(_kToken);
     await _prefs.remove(_kApiKey);
     _watchedMovieIds.clear();
+    _clearWatchQueue();
     await _prefs.remove(_kFollowingListId);
     await _prefs.remove(_kFollowingMirror);
     if (notify) notifyListeners();
@@ -337,6 +348,91 @@ class AppState extends ChangeNotifier {
   }
 
   bool isMovieWatched(int tmdbId) => _watchedMovieIds.contains(tmdbId);
+
+  List<QueuedWatch> get watchQueue => List.unmodifiable(_watchQueue);
+  List<QueuedWatch> get watchSending => List.unmodifiable(_watchSending);
+  int get watchPendingCount => _watchQueue.length + _watchSending.length;
+
+  /// Optimistically queues one watched episode/movie. The first queue item
+  /// starts a 5-second idle timer; each later item restarts it.
+  bool queueWatch(Map<String, dynamic> media) {
+    final key = watchKeyFor(media);
+    final body = watchBodyFor(media);
+    if (key == null || body == null) return false;
+    if (_watchQueue.any((action) => action.key == key) ||
+        _watchSending.any((action) => action.key == key)) {
+      return true;
+    }
+    _watchQueue.add(
+      QueuedWatch(key: key, label: watchLabelFor(media), body: body),
+    );
+    _scheduleWatchFlush();
+    notifyListeners();
+    return true;
+  }
+
+  void _scheduleWatchFlush() {
+    _watchTimer?.cancel();
+    watchFlushAt = DateTime.now().add(const Duration(seconds: 5));
+    _watchTimer = Timer(const Duration(seconds: 5), () {
+      flushWatchQueue();
+    });
+  }
+
+  Future<void> flushWatchQueue() async {
+    if (watchSyncing) return;
+    _watchTimer?.cancel();
+    _watchTimer = null;
+    watchFlushAt = null;
+    if (_watchQueue.isEmpty) {
+      notifyListeners();
+      return;
+    }
+    final batch = List<QueuedWatch>.of(_watchQueue);
+    _watchQueue.clear();
+    _watchSending.addAll(batch);
+    watchSyncing = true;
+    watchSyncError = null;
+    notifyListeners();
+
+    final failed = <QueuedWatch>[];
+    var sent = 0;
+    for (var i = 0; i < batch.length; i++) {
+      final action = batch[i];
+      try {
+        await client.post('/history', action.body);
+        sent++;
+        _watchSending.remove(action);
+        notifyListeners();
+      } catch (e) {
+        watchSyncError = '$e';
+        failed.addAll(batch.sublist(i));
+        break;
+      }
+    }
+    _watchSending.clear();
+    watchSyncing = false;
+    lastWatchBatch = batch;
+    lastWatchSyncAt = DateTime.now();
+    _watchQueue.insertAll(0, failed);
+    if (_watchQueue.isNotEmpty && failed.isEmpty) {
+      _scheduleWatchFlush();
+    }
+    notifyListeners();
+    if (sent > 0) bumpHistory();
+  }
+
+  void _clearWatchQueue() {
+    _watchTimer?.cancel();
+    _watchTimer = null;
+    _watchQueue.clear();
+    _watchSending.clear();
+    lastWatchBatch = const [];
+    watchFlushAt = null;
+    lastWatchSyncAt = null;
+    watchSyncError = null;
+    watchSyncing = false;
+  }
 
   void noteMovieWatched(int tmdbId, bool watched) {
     if (watched) {
