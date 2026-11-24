@@ -115,8 +115,9 @@ void openStudio(
       StudioScreen(id: id, isNetwork: isNetwork),
     );
 
-void openSearch(BuildContext context, {String type = 'movie'}) =>
-    pushScreen(context, SearchScreen(initialType: type));
+Future<void> openSearch(BuildContext context, {String type = 'movie'}) async {
+  await pushScreen(context, SearchScreen(initialType: type));
+}
 
 /// Clears the session and returns to the root route, where the login screen
 /// replaces the authenticated shell.
