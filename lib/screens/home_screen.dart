@@ -40,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Object? _moviesError;
   bool _cacheRead = false;
   int _seenHistoryRevision = -1;
+  int _seenFollowingRevision = -1;
+  int _seenListRevision = -1;
   String _tab = 'shows';
   final Set<int> _checkedMovies = {};
   HomeSort _showSort = HomeSort.lastWatched;
@@ -57,12 +59,26 @@ class _HomeScreenState extends State<HomeScreen> {
       _cacheRead = true;
       _readCache(app);
     }
+    var needsReload = false;
     if (_seenHistoryRevision < 0) {
       _seenHistoryRevision = app.historyRevision;
     } else if (_seenHistoryRevision != app.historyRevision) {
       _seenHistoryRevision = app.historyRevision;
-      _reload();
+      needsReload = true;
     }
+    if (_seenFollowingRevision < 0) {
+      _seenFollowingRevision = app.followingRevision;
+    } else if (_seenFollowingRevision != app.followingRevision) {
+      _seenFollowingRevision = app.followingRevision;
+      needsReload = true;
+    }
+    if (_seenListRevision < 0) {
+      _seenListRevision = app.listRevision;
+    } else if (_seenListRevision != app.listRevision) {
+      _seenListRevision = app.listRevision;
+      needsReload = true;
+    }
+    if (needsReload) _reload();
     _showsFuture ??= _loadShows();
     _moviesFuture ??= _loadMovies();
   }
@@ -357,10 +373,13 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             tooltip: 'Search',
-            onPressed: () => openSearch(
-              context,
-              type: _tab == 'movies' ? 'movie' : 'series',
-            ),
+            onPressed: () async {
+              await openSearch(
+                context,
+                type: _tab == 'movies' ? 'movie' : 'series',
+              );
+              if (mounted) _reload();
+            },
             icon: const Icon(Icons.search_rounded),
           ),
           PopupMenuButton<String>(

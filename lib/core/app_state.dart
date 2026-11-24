@@ -712,6 +712,7 @@ class AppState extends ChangeNotifier {
   int avatarVersion = 0;
   int historyRevision = 0;
   int followingRevision = 0;
+  int listRevision = 0;
 
   void bumpHistory() {
     historyRevision++;
@@ -720,6 +721,11 @@ class AppState extends ChangeNotifier {
 
   void bumpFollowing() {
     followingRevision++;
+    notifyListeners();
+  }
+
+  void bumpLists() {
+    listRevision++;
     notifyListeners();
   }
 

@@ -188,6 +188,21 @@ Future<bool> addToListDialog(
 ) async {
   final app = ScrobScope.of(context);
   try {
+    final type = normalizedMediaType(media);
+    final isEpisode = type == 'episode';
+    final tmdbId = isEpisode
+        ? (media.i('show_tmdb_id') ?? media.i('tmdb_id'))
+        : media.i('tmdb_id');
+    if (type == null || tmdbId == null) {
+      showSnack(context, 'Could not add to list: unknown media type');
+      return false;
+    }
+    var memberships = _intSet(media['in_lists']);
+    if (isEpisode) {
+      // Episodes are added as their series, so check the series' lists.
+      final show = asMap(await app.tryGet('/shows/$tmdbId'));
+      memberships = _intSet(show['in_lists']);
+    }
     final data = asMap(await app.get('/lists'));
     final lists = data.maps('lists');
     final id = await showModalBottomSheet<int>(
@@ -224,6 +239,7 @@ Future<bool> addToListDialog(
                   itemCount: lists.length,
                   itemBuilder: (context, index) {
                     final list = lists[index];
+                    final already = memberships.contains(list.i('id'));
                     return ListTile(
                       leading: Icon(
                         list.b('is_watchlist')
@@ -232,9 +248,17 @@ Future<bool> addToListDialog(
                       ),
                       title: Text(list.s('name') ?? ''),
                       subtitle: Text(
-                        '${list.i('item_count') ?? 0} items',
+                        already
+                            ? '${list.i('item_count') ?? 0} items · Already in list'
+                            : '${list.i('item_count') ?? 0} items',
                         style: const TextStyle(fontSize: 11),
                       ),
+                      trailing: already
+                          ? const Icon(
+                              Icons.check_circle_rounded,
+                              color: kGreen,
+                            )
+                          : null,
                       onTap: () => Navigator.pop(context, list.i('id')),
                     );
                   },
@@ -246,19 +270,11 @@ Future<bool> addToListDialog(
       ),
     );
     if (id == null) return false;
-    final type = normalizedMediaType(media);
-    final isEpisode = type == 'episode';
-    final tmdbId = isEpisode
-        ? (media.i('show_tmdb_id') ?? media.i('tmdb_id'))
-        : media.i('tmdb_id');
-    if (type == null || tmdbId == null) {
-      showSnack(context, 'Could not add to list: unknown media type');
-      return false;
-    }
     await app.post('/lists/$id/items', {
       'tmdb_id': tmdbId,
       'media_type': isEpisode ? 'series' : type,
     });
+    app.bumpLists();
     showSnack(context, 'Added to list');
     return true;
   } catch (e) {
@@ -476,3 +492,12 @@ Future<bool> requestMedia(
   }
 }
 
+
+
+Set<int> _intSet(dynamic value) {
+  if (value is! Iterable) return <int>{};
+  return {
+    for (final item in value)
+      if (asInt(item) != null) asInt(item)!,
+  };
+}
