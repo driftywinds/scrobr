@@ -276,8 +276,8 @@ Future<bool> addToListDialog(
       ),
     );
     if (choice == null) return false;
-    final targetType = isEpisode ? 'series' : type!;
-    final targetId = tmdbId!;
+    final targetType = isEpisode ? 'series' : type;
+    final targetId = tmdbId;
     if (choice.remove) {
       await _removeFromList(app, choice.listId, targetType, targetId);
       app.bumpLists();

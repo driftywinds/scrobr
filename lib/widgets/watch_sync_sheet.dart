@@ -227,19 +227,19 @@ class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.action,
     required this.icon,
-    this.color = kAccentSoft,
+    this.color,
   });
 
   final QueuedWatch action;
   final IconData icon;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: color),
+            Icon(icon, size: 16, color: color ?? kAccentSoft),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
