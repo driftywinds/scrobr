@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
+import '../core/app_time.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
@@ -25,7 +26,7 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Future<Map<String, dynamic>> _load() async {
-    final now = DateTime.now();
+    final now = AppTime.now();
     String? since;
     if (_range == 'year') {
       since = DateTime(now.year, 1, 1).toIso8601String().substring(0, 10);

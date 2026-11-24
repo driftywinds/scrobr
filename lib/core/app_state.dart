@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'accent.dart';
 import 'accounts.dart';
 import 'api.dart';
+import 'app_time.dart';
 import 'calendar_notifications.dart';
 import 'fonts.dart';
 import 'format.dart';
@@ -24,6 +25,7 @@ const _kCalendarNotifications = 'scrobr_calendar_notifications';
 const _kFollowingListId = 'scrobr_following_list_id';
 const _kFollowingMirror = 'scrobr_following_mirror';
 const _kFontId = 'scrobr_font_id';
+const _kTimeZone = 'scrobr_time_zone';
 const _kHomeShortcuts = 'scrobr_home_shortcuts';
 const kFollowingListName = 'Following · Calendar';
 const _kFollowingMarker = 'Calendar follows created by Scrobr.';
@@ -47,6 +49,7 @@ class AppState extends ChangeNotifier {
   String accentId = defaultAccentId;
   String? accentSolidId;
   String fontId = 'system';
+  String? timeZoneId;
   List<String> homeShortcutOrder = [...defaultHomeShortcutIds];
   Set<String> hiddenHomeShortcuts = {};
   final Set<int> _watchedMovieIds = {};
@@ -111,6 +114,9 @@ class AppState extends ChangeNotifier {
     accentId = _prefs.getString(accentPrefKey) ?? defaultAccentId;
     accentSolidId = _prefs.getString(accentSolidPrefKey);
     fontId = appFontById(_prefs.getString(_kFontId)).id;
+    final storedZone = _prefs.getString(_kTimeZone);
+    timeZoneId = AppTime.isValidZone(storedZone) ? storedZone : null;
+    AppTime.initialize(timeZoneId);
     _loadHomeShortcuts();
     applyAccent(accentId);
     applySolidAccent(accentSolidId);
@@ -465,6 +471,17 @@ class AppState extends ChangeNotifier {
   Future<void> setFont(String id) async {
     fontId = appFontById(id).id;
     await _prefs.setString(_kFontId, fontId);
+    notifyListeners();
+  }
+
+  Future<void> setTimeZone(String? id) async {
+    timeZoneId = AppTime.isValidZone(id) ? id : null;
+    AppTime.initialize(timeZoneId);
+    if (timeZoneId == null) {
+      await _prefs.remove(_kTimeZone);
+    } else {
+      await _prefs.setString(_kTimeZone, timeZoneId!);
+    }
     notifyListeners();
   }
 

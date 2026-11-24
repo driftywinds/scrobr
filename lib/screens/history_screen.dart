@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
+import '../core/app_time.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../widgets/swipe_pages.dart';
@@ -257,13 +258,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       );
     }
-    final now = DateTime.now();
+    final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
     String? lastDate;
     final children = <Widget>[];
     for (final event in feed.events) {
-      final watchedAt =
-          DateTime.tryParse(event.s('watched_at') ?? '')?.toLocal();
+      final watchedAt = AppTime.parse(event.s('watched_at'));
       final date = watchedAt == null
           ? 'Unknown date'
           : DateTime(watchedAt.year, watchedAt.month, watchedAt.day) == today

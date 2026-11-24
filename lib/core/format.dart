@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import 'app_time.dart';
+
 String? asString(dynamic v) => v == null ? null : v.toString();
 
 int? asInt(dynamic v) {
@@ -78,14 +80,14 @@ String? normalizedMediaType(Map<String, dynamic> item) {
 
 String fmtDate(String? iso) {
   if (iso == null || iso.isEmpty) return 'Unknown';
-  final d = DateTime.tryParse(iso);
+  final d = AppTime.parse(iso);
   if (d == null) return iso;
   return DateFormat('d MMM yyyy').format(d);
 }
 
 String fmtDateTime(String? iso, {bool use24h = false}) {
   if (iso == null || iso.isEmpty) return '';
-  final d = DateTime.tryParse(iso);
+  final d = AppTime.parse(iso);
   if (d == null) return iso;
   return DateFormat(use24h ? 'd MMM yyyy, HH:mm' : 'd MMM yyyy, h:mm a').format(d);
 }

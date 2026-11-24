@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
+import '../core/app_time.dart';
 import 'backup_screen.dart';
 import '../core/device_auth.dart';
 import '../core/fonts.dart';
@@ -19,6 +20,7 @@ import '../core/tracker_imports.dart';
 import 'admin_screen.dart';
 import 'connections_screen.dart';
 import 'home_shortcuts_screen.dart';
+import 'time_zone_screen.dart';
 import 'requests_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -1155,6 +1157,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(appFontById(app.fontId).label),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: _chooseFont,
+          ),
+          ListTile(
+            leading: const Icon(Icons.public_rounded),
+            title: const Text('Time zone'),
+            subtitle: Text(AppTime.label),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => pushScreen(context, const TimeZoneScreen()),
           ),
           const _Section('Home'),
           ListTile(
