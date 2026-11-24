@@ -14,7 +14,6 @@ import '../core/nav.dart';
 import '../widgets/swipe_pages.dart';
 import '../widgets/watch_sync_sheet.dart';
 import '../core/theme.dart';
-import '../core/watch_sync.dart';
 import '../widgets/common.dart';
 import '../widgets/movie_poster_tile.dart';
 import '../widgets/up_next_tile.dart';
@@ -45,7 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _seenListRevision = -1;
   String _tab = 'shows';
   final Set<int> _checkedMovies = {};
-  final Set<String> _checkedShows = {};
+  final Map<int, Map<String, dynamic>?> _showOverrides = {};
+  final Map<String, List<Map<String, dynamic>>> _seasonCache = {};
   HomeSort _showSort = HomeSort.lastWatched;
   HomeSort _movieSort = HomeSort.recentlyAdded;
   Map<int, String> _showAddedAt = {};
@@ -174,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _shows = shows;
       _progress = progress;
       _showsLoaded = true;
+      _showOverrides.clear();
       _saveCache(_showsCacheKey(app), {'shows': shows, 'progress': progress});
       if (mounted) setState(() {});
     } catch (e) {
@@ -330,10 +331,116 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _markShowWatched(Map<String, dynamic> item) async {
     final app = ScrobScope.of(context);
     if (!app.queueWatch({...item, 'type': 'episode'})) return;
-    final key = watchKeyFor({...item, 'type': 'episode'});
-    if (key != null && mounted) {
-      setState(() => _checkedShows.add(key));
+    final showId = item.i('show_tmdb_id') ?? item.i('tmdb_id');
+    if (showId == null) return;
+    final season = item.i('season_number') ?? 1;
+    final episode = item.i('episode_number') ?? 0;
+    // Keep the show visible while the real next episode is looked up. This
+    // placeholder is replaced as soon as the season data arrives.
+    if (mounted) {
+      setState(() {
+        _showOverrides[showId] = {
+          ...item,
+          'type': 'episode',
+          'season_number': season,
+          'episode_number': episode + 1,
+          'episode_name': 'Finding next episode…',
+          'title': 'Finding next episode…',
+          'tmdb_id': null,
+          'watched': false,
+        };
+      });
     }
+    try {
+      final next = await _nextEpisode(item);
+      if (!mounted) return;
+      setState(() {
+        // Null means the series has no next episode, so remove the row then.
+        _showOverrides[showId] = next;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _showOverrides[showId] = {
+          ...item,
+          'episode_name': 'Could not load next episode',
+          'title': 'Could not load next episode',
+          'tmdb_id': null,
+          'watched': false,
+        };
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>?> _nextEpisode(
+    Map<String, dynamic> item,
+  ) async {
+    final app = ScrobScope.of(context);
+    final showId = item.i('show_tmdb_id');
+    final season = item.i('season_number');
+    final episode = item.i('episode_number');
+    if (showId == null || season == null || episode == null) return null;
+
+    Map<String, dynamic> merge(Map<String, dynamic> next) => {
+          ...item,
+          ...next,
+          'type': 'episode',
+          'show_tmdb_id': showId,
+          'show_title': item.s('show_title') ?? item.s('title'),
+          'show_poster_path': item.s('show_poster_path'),
+          'watched': false,
+        };
+
+    final current = await _seasonEpisodes(showId, season);
+    for (final next in current) {
+      final number = next.i('episode_number');
+      if (number != null &&
+          number > episode &&
+          !next.b('watched') &&
+          _isAired(next)) {
+        return merge(next);
+      }
+    }
+
+    final show = asMap(await app.tryGet('/shows/$showId'));
+    final seasons = show.maps('seasons_meta')
+      ..sort(
+        (a, b) => (a.i('season_number') ?? 0).compareTo(
+          b.i('season_number') ?? 0,
+        ),
+      );
+    for (final meta in seasons) {
+      final number = meta.i('season_number');
+      if (number == null || number <= season) continue;
+      final episodes = await _seasonEpisodes(showId, number);
+      for (final next in episodes) {
+        if (!next.b('watched') && _isAired(next)) return merge(next);
+      }
+    }
+    return null;
+  }
+
+  bool _isAired(Map<String, dynamic> episode) {
+    final airDate = DateTime.tryParse(episode.s('air_date') ?? '');
+    if (airDate == null) return true;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return !DateTime(airDate.year, airDate.month, airDate.day).isAfter(today);
+  }
+
+  Future<List<Map<String, dynamic>>> _seasonEpisodes(
+    int showId,
+    int season,
+  ) async {
+    final key = '$showId:$season';
+    final cached = _seasonCache[key];
+    if (cached != null) return cached;
+    final data = asMap(
+      await ScrobScope.of(context).get('/shows/$showId/season/$season'),
+    );
+    final episodes = data.maps('episodes');
+    _seasonCache[key] = episodes;
+    return episodes;
   }
 
   Future<void> _markMovieWatched(Map<String, dynamic> entry) async {
@@ -484,10 +591,16 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final show in _progress)
         if (show.i('tmdb_id') != null) show.i('tmdb_id')!: show,
     };
-    final visibleShows = _shows.where((item) {
-      final key = watchKeyFor({...item, 'type': 'episode'});
-      return key == null || !_checkedShows.contains(key);
-    }).toList();
+    final visibleShows = <Map<String, dynamic>>[];
+    for (final item in _shows) {
+      final showId = item.i('show_tmdb_id') ?? item.i('tmdb_id');
+      if (showId != null && _showOverrides.containsKey(showId)) {
+        final override = _showOverrides[showId];
+        if (override != null) visibleShows.add(override);
+      } else {
+        visibleShows.add(item);
+      }
+    }
     if (visibleShows.isEmpty) {
       return _EmptyUpNext(
         title: 'You are all caught up',
@@ -530,7 +643,9 @@ class _HomeScreenState extends State<HomeScreen> {
           total: stats?.i('episodes_total'),
           progress: stats?.d('watch_pct'),
           onTap: () => openMedia(context, {...item, 'type': 'episode'}),
-          onCheck: () => _markShowWatched(item),
+          onCheck: item.i('tmdb_id') == null
+              ? null
+              : () => _markShowWatched(item),
         );
       },
     );
