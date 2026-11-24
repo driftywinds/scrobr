@@ -276,15 +276,17 @@ Future<bool> addToListDialog(
       ),
     );
     if (choice == null) return false;
+    final targetType = isEpisode ? 'series' : type!;
+    final targetId = tmdbId!;
     if (choice.remove) {
-      await _removeFromList(app, choice.listId, isEpisode ? 'series' : type, tmdbId);
+      await _removeFromList(app, choice.listId, targetType, targetId);
       app.bumpLists();
       showSnack(context, 'Removed from list');
       return true;
     }
     await app.post('/lists/${choice.listId}/items', {
-      'tmdb_id': tmdbId,
-      'media_type': isEpisode ? 'series' : type,
+      'tmdb_id': targetId,
+      'media_type': targetType,
     });
     app.bumpLists();
     showSnack(context, 'Added to list');
