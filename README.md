@@ -10,6 +10,10 @@ The app talks to the Scrob backend through the same `/api/proxy` surface the
 PWA uses. It supports JWT username/password sessions, optional API-key sessions,
 and the main browsing, tracking, social and settings flows of the web UI.
 
+**Tested against Scrob 2.39.1**, the current upstream release. Scrobr talks only
+to the public `/api/proxy` endpoints the PWA uses, so it does not bundle or
+require a specific Scrob server version.
+
 [Privacy policy](PRIVACY.md) · [GNU AGPL v3](LICENSE)
 
 [![Downloads](https://img.shields.io/github/downloads/driftywinds/scrobr/total?style=for-the-badge)](https://img.shields.io/github/downloads/driftywinds/scrobr/total?style=for-the-badge) [![Latest Release Downloads](https://img.shields.io/github/downloads/driftywinds/scrobr/latest/total?style=for-the-badge)](https://img.shields.io/github/downloads/driftywinds/scrobr/latest/total?style=for-the-badge) 
@@ -37,8 +41,13 @@ and the main browsing, tracking, social and settings flows of the web UI.
 - First launch asks for your own Scrob server URL and verifies it before saving.
   Password login with TOTP/backup-code challenge, "stay logged in", registration
   and API-key sign-in.
-- Dashboard: continue watching, next up, airing today, now playing, recently
-  added and trending rows.
+- Home: swipeable Shows | Movies tabs, per-tab sorting (last watched, recently
+  added, title, TMDB rating, my rating, year and random), and a customisable
+  quick-shortcut row.
+- Optimistic watch actions from Home: mark several episodes without waiting for
+  each server sync; the row advances to the next real episode and the queued
+  marks flush after 5 seconds of inactivity. A sync icon shows pending, sending
+  and last-batch state.
 - Discover: trending, now playing / on air, upcoming / new episodes, top rated,
   for you, hidden gems and streaming rows for movies and shows.
 - Follow movies and shows into a private "Following · Calendar" list.
@@ -58,8 +67,8 @@ and the main browsing, tracking, social and settings flows of the web UI.
   collect/request, drop/undrop, rewatch, trailer launch and timed manual
   watching sessions.
 - Watch history with date grouping, filters, per-entry delete and unwatch.
-- Lists (watchlist, private/friends/public), create/edit/delete and item
-  management.
+- Lists (watchlist, private/friends/public), create/edit/delete, per-list
+  sorting and add/remove toggles with membership checks.
 - Profiles with follow/unfollow, top rated and recently watched rows with
   paginated “see all” pages, stats charts (watch time, activity, ratings,
   weekdays, genres) and public profiles.
@@ -69,7 +78,10 @@ and the main browsing, tracking, social and settings flows of the web UI.
   apps, native ZIP data export/import, manage-on-web links for
   providers/integrations and an admin panel for settings, users, requests,
   maintenance and database backup/restore.
-- Release APK workflows: pre-release universal builds on `v*` tags/manual dispatch, and a manual all-ABI release workflow.
+- Appearance: system or Allo font, gradient/solid accent colours, and a time
+  zone override with the full IANA list. The default follows the phone zone.
+- Release APK workflows: `v*` tags publish pre-release split + universal APKs
+  through the all-ABI workflow; the universal-only workflow is manual.
 
 ## Run
 
@@ -100,37 +112,34 @@ exclusions.
 - Bottom tabs are built lazily on first visit.
 - API calls time out after 20 seconds; binary and multipart calls share the
   same 401 handling as normal requests.
+- Home watch actions are optimistic and queued locally; the queue flushes after
+  5 seconds of inactivity and is not persisted across a force-close.
+- Timestamps are rendered in the phone time zone by default, or an optional
+  IANA override, using the bundled `timezone` database.
 - CI runs `flutter analyze --no-fatal-infos` and `flutter test` on pull requests
   and pushes to `main` (`.github/workflows/ci.yml`).
 
 ## Release workflow
 
-`.github/workflows/release.yml` builds the universal APK on:
-
-- `workflow_dispatch` with a version tag input (defaults to the ref name), or
-- a pushed tag such as `v1.2.3`.
-
-The tag version is passed to Flutter as `--build-name`; the workflow uploads
-`scrobr-<version>-universal.apk` as a build artifact and publishes it as a
-**pre-release** (including for manual dispatches).
-
-`.github/workflows/release-all-abis.yml` is manual-dispatch only and requires a
-version tag. It builds four APKs:
+Pushing a `v*` tag runs `.github/workflows/release-all-abis.yml`. It builds four
+APKs and publishes them as a **pre-release**:
 
 - `scrobr-<version>-universal.apk`
 - `scrobr-<version>-arm64-v8a.apk`
 - `scrobr-<version>-armeabi-v7a.apk`
 - `scrobr-<version>-x86_64.apk`
 
-It publishes them as a full release (promoting an existing pre-release for the
-same tag when applicable) and marks it latest. Use the normal workflow for
-testing/pre-releases and this one for the final multi-architecture release.
+The all-ABI workflow can also be run manually. Its `version` input is optional
+(falling back to the selected tag), and `prerelease` defaults to on.
+
+`.github/workflows/release.yml` is now **manual-dispatch only**. It builds the
+universal APK and is useful for a one-off test build; it no longer runs on tag
+pushes.
 
 `.github/workflows/release-bundle.yml` is manual-dispatch only and requires a
 version tag. It builds a signed `scrobr-<version>.aab` for Google Play, uploads
 it as a workflow artifact, and attaches it to the GitHub release as a
-pre-release. Run the bundle workflow before the all-ABI workflow if both should
-share the same final release.
+pre-release.
 
 ### Signing
 
@@ -158,7 +167,8 @@ The workflow decodes it to `android/app/release.keystore`, writes the ignored
 The backend OpenAPI document is admin-only (`GET /openapi.json`). A local
 snapshot can be regenerated under the ignored `.tmp/` directory when needed.
 See `.skills/scrob-api/SKILL.md` for the API workflow and
-`.skills/flutter-android/SKILL.md` for the local toolchain. Build outputs,
+`.skills/flutter-android/SKILL.md` for the local toolchain. The app is
+developed against **Scrob 2.39.1**; the server and its API remain fixed. Build outputs,
 Flutter/Gradle caches and `.tmp/` are disposable and are not committed.
 
 API keys can read/write data endpoints, but account, comments, connections and

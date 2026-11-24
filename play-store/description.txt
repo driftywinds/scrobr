@@ -3,7 +3,7 @@ Scrobr is a fast, native Android client for Scrob, the self-hosted media tracker
 IMPORTANT: Scrobr is a client, not a media server or a hosted service. You need your own Scrob server and an account on it. Scrobr connects directly to the server address you enter. It does not provide, host or operate a Scrob server.
 
 YOUR HOME, BUILT AROUND WHAT'S NEXT
-The home screen is a vertical Up Next list, not a wall of sideways carousels. See the next unwatched episode for every show you're watching, with the poster, season and episode details, your progress through the show and a check button to mark the current episode watched. Switch to the Movies tab to pick up films you've started. Mark something watched and the list moves on to the next thing.
+The home screen is a vertical Up Next list, not a wall of sideways carousels. See the next unwatched episode for every show you're watching, with the poster, season and episode details, your progress through the show and a check button. Mark an episode and the row advances immediately to the next real episode, including the next season; it queues the server sync so you can mark several episodes in one go. Switch to the Movies tab for films on your watchlist or Following list. Sort either tab, swipe between them, and choose which quick shortcuts appear on Home.
 
 A CALENDAR THAT KEEPS UP
 See episodes and movie releases for the next 7 to 90 days, grouped by date. Shows and movies you follow are merged into the calendar even when they are not collected. Optional local notifications can alert you when something from your calendar releases today, without sending your data to a push service.
@@ -20,7 +20,7 @@ YOUR WHOLE LIBRARY
 • Open an optional Library tab with sorting, filters, saved presets and infinite scrolling.
 
 LISTS AND PROGRESS
-Create and manage custom lists, keep a watchlist, and add movies or shows to any list from its page. Follow your progress per show with watched and collected views. The Lists, Progress, Dropped and Requests screens are one tap from Home.
+Create and manage custom lists, keep a watchlist, and add or remove movies and shows from any list. Each list remembers its own sort order and shows which lists already contain the item. Follow your progress per show with watched and collected views. The Lists, Progress, Dropped and Requests screens are one tap from Home.
 
 IMPORTS, BACKUPS AND CONNECTIONS
 • Import a Scrob ZIP export, a Trakt export or a Yamtrack export.
@@ -35,10 +35,11 @@ MADE FOR YOUR ACCOUNT
 • Approve device logins and review connected apps.
 • Switch between multiple saved Scrob accounts.
 • Choose a gradient highlight colour and a separate solid-button colour, including the Scrobr gold palette.
+• Switch between the system font and Allo, and override the display time zone with the full IANA list.
 
 PRIVATE BY DESIGN
 Scrobr has no developer-operated backend, no adverts, no analytics, no tracking SDKs and no crash reporting. Your session, preferences and caches stay on your device, and app data goes directly to the Scrob server you configure. See the full privacy policy at https://github.com/driftywinds/scrobr/blob/main/PRIVACY.md.
 
-Scrobr is an independent open-source client. Scrob itself is separate self-hosted software. Some server and admin features may require a password session or administrator access.
+Scrobr is an independent open-source client, tested against Scrob 2.39.1. Scrob itself is separate self-hosted software. Some server and admin features may require a password session or administrator access.
 
 Support, bug reports and feature requests: https://github.com/driftywinds/scrobr/issues

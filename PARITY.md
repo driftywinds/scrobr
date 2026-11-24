@@ -2,26 +2,26 @@
 
 The app is a native Flutter client over `/api/proxy`; it does not embed the web
 UI or bundle any server address. The user supplies and verifies their own Scrob
-server on first launch.
+server on first launch. Developed and tested against **Scrob 2.39.1**.
 
 ## Native screens
 
 | Web area | Android |
 | --- | --- |
 | `/login`, `/register`, `/forgot-password` | First-run server URL verification, password login, TOTP/backup-code challenge, registration, reset email; `AutofillGroup` hints |
-| `/` dashboard | Continue watching, Next Up, Airing Today, Now Playing, Recently Added, Trending |
+| `/` dashboard | Swipeable Shows/Movies Home, Next Up with optimistic next-episode advancement, watch queue, per-tab sorting, custom shortcuts |
 | `/discover`, `/movies`, `/shows` | Discover rows and native Explore with Popular/Top Rated/Trending plus genre, year, rating, watch, list and my-rating filters |
 | `/search` | Movies, shows, people |
 | `/trending/movies`, `/trending/shows` | Native browse pages |
 | `/history`, `/continue-watching` | Native with filters, manual scrobble, delete, session clear |
 | `/next-up` | Native, hidden Next Up toggle |
 | `/calendar` | Native day range |
-| `/lists`, `/list/{id}` | Native CRUD, add/remove, reorder, privacy |
+| `/lists`, `/list/{id}` | Native CRUD, add/remove toggle, reorder, privacy, per-list sorting |
 | `/profile`, `/profile/{id}` | Native stats, follow, avatar upload/removal, top-rated/recent “see all”, language/genre profile fields |
 | `/stats` | Native watch time, activity, ratings, weekdays, genres |
 | `/progress`, `/dropped` | Native |
-| movie/episode/show/season/person/network/studio/collection pages | Native detail, cast, recommendations, comments, Trakt comments, ratings, watch state, lists, requests |
-| `/settings`, `/user-settings` | Preferences, API key, password/email/2FA, connected apps, native ZIP export/import |
+| movie/episode/show/season/person/network/studio/collection pages | Native detail, cast (including series and season pages), recommendations, comments, Trakt comments, ratings, watch state, lists, requests |
+| `/settings`, `/user-settings` | Preferences, API key, password/email/2FA, connected apps, native ZIP export/import, font and IANA time-zone override |
 | `/connections` | Native list/sync/push/toggles/schedules/library selection; **linking is web-only by requirement** |
 | `/admin` | Native settings, users (create/reset/disable 2FA/delete), requests, cache, metadata heal, database backup/restore |
 | `/about` | Native About with server/version/source links |

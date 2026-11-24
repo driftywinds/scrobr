@@ -1,7 +1,8 @@
 # Scrob API workflow
 
-Scrob backend + PWA: <https://github.com/ellite/scrob>. This app talks to the
-web origin's proxy: `https://<host>/api/proxy/<backend-path>`.
+Scrob backend + PWA: <https://github.com/ellite/scrob>. This app is developed and
+tested against **Scrob 2.39.1**. It talks to the web origin's proxy:
+`https://<host>/api/proxy/<backend-path>`.
 
 ## Auth
 

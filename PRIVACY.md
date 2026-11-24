@@ -1,6 +1,6 @@
 # Scrobr Privacy Policy
 
-**Effective date:** 17 November 2026
+**Effective date:** 24 November 2026
 
 Scrobr is an Android client for Scrob, self-hosted media tracking software.
 This policy explains what the Scrobr app does with data. It does not describe
@@ -24,8 +24,9 @@ Scrobr stores the following in the app's private Android storage:
 - The address of the Scrob server you enter.
 - Account details you choose to save, including usernames, session tokens and,
   if you use API-key sign-in, the API key.
-- App preferences such as theme colours, calendar length, library visibility
-  and notification settings.
+- App preferences such as theme colours, font choice, time-zone display
+  override, Home shortcut layout, calendar length, library visibility and
+  notification settings.
 - Local caches, including the calendar, Up Next rows, lists and images, so the
   app opens faster and can show recent data after a refresh.
 - Backup status information. Backup files are written only to the folder you
