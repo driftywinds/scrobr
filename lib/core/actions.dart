@@ -205,7 +205,7 @@ Future<bool> addToListDialog(
     }
     final data = asMap(await app.get('/lists'));
     final lists = data.maps('lists');
-    final id = await showModalBottomSheet<int>(
+    final choice = await showModalBottomSheet<({int listId, bool remove})>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -240,6 +240,7 @@ Future<bool> addToListDialog(
                   itemBuilder: (context, index) {
                     final list = lists[index];
                     final already = memberships.contains(list.i('id'));
+                    final listId = list.i('id');
                     return ListTile(
                       leading: Icon(
                         list.b('is_watchlist')
@@ -249,7 +250,7 @@ Future<bool> addToListDialog(
                       title: Text(list.s('name') ?? ''),
                       subtitle: Text(
                         already
-                            ? '${list.i('item_count') ?? 0} items · Already in list'
+                            ? '${list.i('item_count') ?? 0} items · Already in list · Tap to remove'
                             : '${list.i('item_count') ?? 0} items',
                         style: const TextStyle(fontSize: 11),
                       ),
@@ -259,7 +260,12 @@ Future<bool> addToListDialog(
                               color: kGreen,
                             )
                           : null,
-                      onTap: () => Navigator.pop(context, list.i('id')),
+                      onTap: listId == null
+                          ? null
+                          : () => Navigator.pop(
+                                context,
+                                (listId: listId, remove: already),
+                              ),
                     );
                   },
                 ),
@@ -269,8 +275,14 @@ Future<bool> addToListDialog(
         ),
       ),
     );
-    if (id == null) return false;
-    await app.post('/lists/$id/items', {
+    if (choice == null) return false;
+    if (choice.remove) {
+      await _removeFromList(app, choice.listId, isEpisode ? 'series' : type, tmdbId);
+      app.bumpLists();
+      showSnack(context, 'Removed from list');
+      return true;
+    }
+    await app.post('/lists/${choice.listId}/items', {
       'tmdb_id': tmdbId,
       'media_type': isEpisode ? 'series' : type,
     });
@@ -493,6 +505,27 @@ Future<bool> requestMedia(
 }
 
 
+
+Future<void> _removeFromList(
+  AppState app,
+  int listId,
+  String mediaType,
+  int tmdbId,
+) async {
+  final detail = asMap(await app.get('/lists/$listId'));
+  int? itemId;
+  for (final item in asMaps(detail['items'])) {
+    final media = asMap(item['media']);
+    if (media.s('type') == mediaType && media.i('tmdb_id') == tmdbId) {
+      itemId = item.i('id');
+      break;
+    }
+  }
+  if (itemId == null) {
+    throw Exception('Item not found in list');
+  }
+  await app.delete('/lists/$listId/items/$itemId');
+}
 
 Set<int> _intSet(dynamic value) {
   if (value is! Iterable) return <int>{};
