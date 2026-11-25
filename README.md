@@ -182,5 +182,5 @@ in the Scrob web UI; the app opens that page and manages existing connections.
 
 ## Fonts
 
-The optional Allo typeface is by Josh Puckett and is bundled under the SIL Open
-Font License 1.1. See [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt).
+The optional **Allo 1.1.0** typeface is by Josh Puckett and is bundled under the
+SIL Open Font License 1.1. See [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt).
