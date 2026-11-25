@@ -38,11 +38,25 @@ class AppTime {
 
   static DateTime? parse(String? iso) {
     if (iso == null || iso.isEmpty) return null;
-    final parsed = DateTime.tryParse(iso);
+    var parsed = DateTime.tryParse(iso);
     if (parsed == null) return null;
     // Air dates and birthdays are calendar dates, not instants. Converting
     // those through a zone can move them to the previous/next day.
     if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(iso)) return parsed;
+    // Scrob stores UTC but serializes it without a trailing Z. A naive value
+    // would otherwise be read as phone-local time and shown unchanged.
+    if (!parsed.isUtc) {
+      parsed = DateTime.utc(
+        parsed.year,
+        parsed.month,
+        parsed.day,
+        parsed.hour,
+        parsed.minute,
+        parsed.second,
+        parsed.millisecond,
+        parsed.microsecond,
+      );
+    }
     return fromInstant(parsed);
   }
 

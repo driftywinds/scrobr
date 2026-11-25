@@ -19,6 +19,14 @@ void main() {
     );
   });
 
+  test('treats Scrob naive timestamps as UTC', () {
+    AppTime.initialize('Asia/Kolkata');
+    expect(
+      fmtDateTime('2026-11-25T10:33:00', use24h: true),
+      '25 Nov 2026, 16:03',
+    );
+  });
+
   test('does not shift date-only values through a zone', () {
     AppTime.initialize('Pacific/Kiritimati');
     expect(fmtDate('2020-01-01'), '1 Jan 2020');

@@ -181,7 +181,10 @@ class _WatchSyncSheetState extends State<WatchSyncSheet> {
                       ),
                     if (app.lastWatchBatch.isNotEmpty) ...[
                       _SyncSection(
-                        'Last batch · ${app.lastWatchSyncAt == null ? '—' : fmtDateTime(app.lastWatchSyncAt!.toIso8601String(), use24h: true)}',
+                        'Last batch · ${app.lastWatchSyncAt == null ? '—' : fmtDateTime(
+                          app.lastWatchSyncAt!.toUtc().toIso8601String(),
+                          use24h: true,
+                        )}',
                       ),
                       for (final action in app.lastWatchBatch)
                         _ActionRow(
