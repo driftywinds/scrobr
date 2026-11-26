@@ -54,7 +54,10 @@ class _MovieScreenState extends State<MovieScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
+            return Scaffold(
+              appBar: AppBar(),
+              body: const DetailSkeleton(),
+            );
           }
           if (snapshot.hasError) {
             return Scaffold(
@@ -106,7 +109,16 @@ class _MovieBody extends StatelessWidget {
     final cast = media.maps('cast');
     final crew = media.maps('crew');
     final collection = asMap(media['collection']);
-    final releaseDates = asMap(media['release_dates']);
+    // The API sends keys like digital/physical with null values for titles
+    // that have no such release. Showing "Digital: null" helps nobody, so only
+    // keep entries that carry a real date.
+    final releaseDates = <String, String>{
+      for (final entry in asMap(media['release_dates']).entries)
+        if (entry.value != null &&
+            '${entry.value}'.trim().isNotEmpty &&
+            '${entry.value}'.trim().toLowerCase() != 'null')
+          entry.key: '${entry.value}',
+    };
     final whereToWatch = media.maps('where_to_watch');
     final companies = media.maps('production_companies');
     final watched = media.b('watched');
@@ -236,9 +248,11 @@ class _MovieBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: ActionGrid(
+            child: Column(
               children: [
+                // One obvious main action; everything else is secondary.
                 _ActionPill(
+                  primary: !watched,
                   icon: watched ? Icons.check_circle : Icons.check_circle_outline,
                   label: watched ? 'Watched' : 'Mark watched',
                   active: watched,
@@ -247,62 +261,61 @@ class _MovieBody extends StatelessWidget {
                     () => toggleWatched(context, media),
                   ),
                 ),
-                _ActionPill(
-                  icon: Icons.star_outline_rounded,
-                  label: userRating != null && userRating > 0
-                      ? 'Rated ${fmtRating(userRating)}'
-                      : 'Rate',
-                  active: userRating != null && userRating > 0,
-                  onTap: () => _act(
-                    context,
-                    () => openRatingDialog(context, media),
-                  ),
-                ),
-                _ActionPill(
-                  icon: Icons.playlist_add_rounded,
-                  label: 'Add to list',
-                  onTap: () => _act(
-                    context,
-                    () => addToListDialog(context, media),
-                  ),
-                ),
-                _ActionPill(
-                  icon: media.b('in_library')
-                      ? Icons.library_add_check_rounded
-                      : Icons.library_add_outlined,
-                  label: media.b('in_library') ? 'In library' : 'Collect',
-                  active: media.b('in_library'),
-                  onTap: () => _act(
-                    context,
-                    () => toggleCollect(context, media),
-                  ),
-                ),
-                FollowAction(
-                  type: 'movie',
-                  tmdbId: media.i('tmdb_id'),
-                  onChanged: reload,
-                ),
-                _ActionPill(
-                  icon: Icons.timer_outlined,
-                  label: 'Session',
-                  onTap: () async {
-                    await startManualSession(context, media);
-                    reload();
-                  },
-                ),
-                if (media.b('request_enabled'))
-                  _ActionPill(
-                    icon: Icons.download_rounded,
-                    label: media.s('request_status') ?? 'Request',
-                    onTap: () => _act(
-                      context,
-                      () => requestMedia(context, media),
+                const SizedBox(height: 8),
+                ActionGrid(
+                  children: [
+                    _ActionPill(
+                      icon: userRating != null && userRating > 0
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      label: userRating != null && userRating > 0
+                          ? 'Rated ${fmtRating(userRating)}'
+                          : 'Rate',
+                      active: userRating != null && userRating > 0,
+                      onTap: () => _act(
+                        context,
+                        () => openRatingDialog(context, media),
+                      ),
                     ),
-                  ),
-                _ActionPill(
-                  icon: Icons.more_horiz_rounded,
-                  label: 'More',
-                  onTap: () => _more(context, media),
+                    _ActionPill(
+                      icon: Icons.playlist_add_rounded,
+                      label: 'Add to list',
+                      onTap: () => _act(
+                        context,
+                        () => addToListDialog(context, media),
+                      ),
+                    ),
+                    _ActionPill(
+                      icon: media.b('in_library')
+                          ? Icons.library_add_check_rounded
+                          : Icons.library_add_outlined,
+                      label: media.b('in_library') ? 'In library' : 'Collect',
+                      active: media.b('in_library'),
+                      onTap: () => _act(
+                        context,
+                        () => toggleCollect(context, media),
+                      ),
+                    ),
+                    FollowAction(
+                      type: 'movie',
+                      tmdbId: media.i('tmdb_id'),
+                      onChanged: reload,
+                    ),
+                    if (media.b('request_enabled'))
+                      _ActionPill(
+                        icon: Icons.download_rounded,
+                        label: media.s('request_status') ?? 'Request',
+                        onTap: () => _act(
+                          context,
+                          () => requestMedia(context, media),
+                        ),
+                      ),
+                    _ActionPill(
+                      icon: Icons.more_horiz_rounded,
+                      label: 'More',
+                      onTap: () => _more(context, media),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -366,7 +379,7 @@ class _MovieBody extends StatelessWidget {
                     (e) => Padding(
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Text(
-                        '${e.key[0].toUpperCase()}${e.key.substring(1)}: ${fmtDate('${e.value}')}',
+                        '${e.key.isEmpty ? '' : '${e.key[0].toUpperCase()}${e.key.substring(1).replaceAll('_', ' ')}'}: ${fmtDate(e.value)}',
                         style: const TextStyle(fontSize: 12, color: kMuted),
                       ),
                     ),
@@ -501,6 +514,12 @@ class _MovieBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('Start a watch session'),
+              subtitle: const Text('Track progress while you watch'),
+              onTap: () => Navigator.pop(context, 'session'),
+            ),
+            ListTile(
               leading: const Icon(Icons.do_not_disturb_on_outlined),
               title: Text(media.b('dropped') ? 'Undrop movie' : 'Drop movie'),
               onTap: () => Navigator.pop(context, 'drop'),
@@ -514,7 +533,11 @@ class _MovieBody extends StatelessWidget {
         ),
       ),
     );
-    if (action == 'drop') {
+    if (action == 'session') {
+      if (!context.mounted) return;
+      await startManualSession(context, media);
+      reload();
+    } else if (action == 'drop') {
       final changed = await toggleDrop(context, media);
       if (changed) reload();
     } else if (action == 'tmdb') {
@@ -538,17 +561,25 @@ class _ActionPill extends StatelessWidget {
     required this.icon,
     required this.label,
     this.active = false,
+    this.primary = false,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+  final bool primary;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ActionPill(icon: icon, label: label, active: active, onTap: onTap);
+    return ActionPill(
+      icon: icon,
+      label: label,
+      active: active,
+      primary: primary,
+      onTap: onTap,
+    );
   }
 }
 

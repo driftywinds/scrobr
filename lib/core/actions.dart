@@ -21,6 +21,38 @@ void showSnack(BuildContext context, String message) {
     );
 }
 
+/// Yes/No dialog for bulk or irreversible actions. Returns true only when the
+/// person explicitly confirms.
+Future<bool> confirmAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String confirmLabel = 'Confirm',
+  bool destructive = true,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: Text(
+            confirmLabel,
+            style: destructive ? const TextStyle(color: kDanger) : null,
+          ),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
 Future<bool> toggleWatched(
   BuildContext context,
   Map<String, dynamic> media, {

@@ -55,7 +55,10 @@ class _ShowScreenState extends State<ShowScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
+            return Scaffold(
+              appBar: AppBar(),
+              body: const DetailSkeleton(),
+            );
           }
           if (snapshot.hasError) {
             return Scaffold(
@@ -278,6 +281,14 @@ class _ShowBody extends StatelessWidget {
                     'Episode order${show.s('episode_order_label') != null ? ' · ${show.s('episode_order_label')}' : ''}',
                   ),
                 ),
+                if (watchPct > 0)
+                  const PopupMenuItem(
+                    value: 'unwatch_all',
+                    child: Text(
+                      'Unwatch all episodes',
+                      style: TextStyle(color: kDanger),
+                    ),
+                  ),
                 PopupMenuItem(
                   value: 'rewatch',
                   child: Text(inRewatch ? 'Cancel rewatch' : 'Start rewatch'),
@@ -453,62 +464,78 @@ class _ShowBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: ActionGrid(
+            child: Column(
               children: [
+                // One clear main action; the rest are secondary. "Unwatch
+                // all" lives in the ⋮ menu behind a confirmation so it can
+                // never be tapped by mistake next to the safe action.
                 _ShowAction(
+                  primary: watchPct < 100,
+                  active: watchPct >= 100,
                   icon: Icons.done_all_rounded,
-                  label: 'Mark all watched',
-                  onTap: showId == null
+                  label: watchPct >= 100 ? 'All watched' : 'Mark all watched',
+                  onTap: showId == null || watchPct >= 100
                       ? null
-                      : () => _act(
+                      : () async {
+                          final ok = await confirmAction(
+                            context,
+                            title: 'Mark every episode watched?',
+                            message:
+                                'All episodes of "$title" will be added to your history.',
+                            confirmLabel: 'Mark all',
+                            destructive: false,
+                          );
+                          if (!ok || !context.mounted) return;
+                          await _act(
                             context,
                             () => markShowWatched(context, showId),
-                          ),
+                          );
+                        },
                 ),
-                _ShowAction(
-                  icon: Icons.remove_done_rounded,
-                  label: 'Unwatch all',
-                  onTap: showId == null
-                      ? null
-                      : () => _act(
-                            context,
-                            () => unmarkShowWatched(context, showId),
-                          ),
-                ),
-                _ShowAction(
-                  icon: Icons.star_outline_rounded,
-                  label: show.d('user_rating') != null &&
-                          show.d('user_rating')! > 0
-                      ? 'Rated ${fmtRating(show.d('user_rating'))}'
-                      : 'Rate',
-                  onTap: () => _act(
-                    context,
-                    () => openRatingDialog(context, show),
-                  ),
-                ),
-                _ShowAction(
-                  icon: Icons.playlist_add_rounded,
-                  label: 'Add to list',
-                  onTap: () => _act(
-                    context,
-                    () => addToListDialog(context, show),
-                  ),
-                ),
-                _ShowAction(
-                  icon: show.b('in_library')
-                      ? Icons.library_add_check_rounded
-                      : Icons.library_add_outlined,
-                  label: show.b('in_library') ? 'In library' : 'Collect',
-                  active: show.b('in_library'),
-                  onTap: () => _act(
-                    context,
-                    () => toggleCollect(context, show),
-                  ),
-                ),
-                FollowAction(
-                  type: 'series',
-                  tmdbId: show.i('tmdb_id'),
-                  onChanged: reload,
+                const SizedBox(height: 8),
+                ActionGrid(
+                  children: [
+                    _ShowAction(
+                      icon: show.d('user_rating') != null &&
+                              show.d('user_rating')! > 0
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      label: show.d('user_rating') != null &&
+                              show.d('user_rating')! > 0
+                          ? 'Rated ${fmtRating(show.d('user_rating'))}'
+                          : 'Rate',
+                      active: show.d('user_rating') != null &&
+                          show.d('user_rating')! > 0,
+                      onTap: () => _act(
+                        context,
+                        () => openRatingDialog(context, show),
+                      ),
+                    ),
+                    _ShowAction(
+                      icon: Icons.playlist_add_rounded,
+                      label: 'Add to list',
+                      onTap: () => _act(
+                        context,
+                        () => addToListDialog(context, show),
+                      ),
+                    ),
+                    _ShowAction(
+                      icon: show.b('in_library')
+                          ? Icons.library_add_check_rounded
+                          : Icons.library_add_outlined,
+                      label: show.b('in_library') ? 'In library' : 'Collect',
+                      active: show.b('in_library'),
+                      onTap: () => _act(
+                        context,
+                        () => toggleCollect(context, show),
+                      ),
+                    ),
+                    FollowAction(
+                      type: 'series',
+                      tmdbId: show.i('tmdb_id'),
+                      onChanged: reload,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -527,10 +554,6 @@ class _ShowBody extends StatelessWidget {
             ),
           ),
         ),
-        if (cast.isNotEmpty)
-          SliverToBoxAdapter(
-            child: PeopleRow(title: 'Cast', people: cast),
-          ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
@@ -637,6 +660,10 @@ class _ShowBody extends StatelessWidget {
             ),
           );
         }),
+        if (cast.isNotEmpty)
+          SliverToBoxAdapter(
+            child: PeopleRow(title: 'Cast', people: cast),
+          ),
         if (data.recommendations.isNotEmpty)
           SliverToBoxAdapter(
             child: MediaRow(
@@ -671,6 +698,17 @@ class _ShowBody extends StatelessWidget {
     if (id == null) return;
     if (value == 'order') {
       await _chooseOrder(context, data);
+    } else if (value == 'unwatch_all') {
+      final ok = await confirmAction(
+        context,
+        title: 'Unwatch every episode?',
+        message:
+            'This clears the watched state of all episodes of "${show.s('title') ?? 'this show'}".',
+        confirmLabel: 'Unwatch all',
+      );
+      if (!ok || !context.mounted) return;
+      final changed = await unmarkShowWatched(context, id);
+      if (changed) reload();
     } else if (value == 'rewatch') {
       final changed = await toggleRewatch(
         context,
@@ -740,16 +778,24 @@ class _ShowAction extends StatelessWidget {
     required this.icon,
     required this.label,
     this.active = false,
+    this.primary = false,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+  final bool primary;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ActionPill(icon: icon, label: label, active: active, onTap: onTap);
+    return ActionPill(
+      icon: icon,
+      label: label,
+      active: active,
+      primary: primary,
+      onTap: onTap,
+    );
   }
 }

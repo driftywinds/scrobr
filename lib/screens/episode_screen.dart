@@ -55,7 +55,10 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
+            return Scaffold(
+              appBar: AppBar(),
+              body: const DetailSkeleton(),
+            );
           }
           if (snapshot.hasError) {
             return Scaffold(
@@ -88,13 +91,101 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
             (e) => (e.i('episode_number') ?? 0) > widget.episodeNumber,
           );
 
-          return CustomScrollView(
+          final hasStill = still != null && still.isNotEmpty;
+          final showName = show.s('title') ?? widget.showTitle ?? '';
+
+          // Previous / Next stay pinned to the bottom so you can step through
+          // a season without scrolling past cast and comments first. They
+          // replace the current page so Back still returns to the season.
+          void goTo(Map<String, dynamic> target) {
+            final number = target.i('episode_number');
+            if (number == null) return;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => EpisodeScreen(
+                  showTmdbId: widget.showTmdbId,
+                  seasonNumber: widget.seasonNumber,
+                  episodeNumber: number,
+                  showTitle: widget.showTitle,
+                  seasonTitle: widget.seasonTitle,
+                ),
+              ),
+            );
+          }
+
+          Widget? stepBar;
+          if (prev.isNotEmpty || next.isNotEmpty) {
+            stepBar = DecoratedBox(
+              decoration: const BoxDecoration(
+                color: kBg,
+                border: Border(top: BorderSide(color: kBorder)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: prev.isEmpty
+                            ? const SizedBox.shrink()
+                            : OutlinedButton.icon(
+                                onPressed: () => goTo(prev.last),
+                                icon: const Icon(Icons.chevron_left_rounded),
+                                label: Text(
+                                  'E${prev.last.i('episode_number') ?? ''}',
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: next.isEmpty
+                            ? const SizedBox.shrink()
+                            : OutlinedButton(
+                                onPressed: () => goTo(next.first),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        'Next · E${next.first.i('episode_number') ?? ''}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right_rounded),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Scaffold(
+            bottomNavigationBar: stepBar,
+            body: CustomScrollView(
             slivers: [
               SliverAppBar(
                 pinned: true,
-                expandedHeight: 240,
+                // Without a still image the hero would just be a black block,
+                // so collapse to a normal app bar that names the show.
+                expandedHeight: hasStill ? 220 : null,
                 backgroundColor: kBg,
-                flexibleSpace: FlexibleSpaceBar(
+                title: hasStill
+                    ? null
+                    : Text(
+                        showName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                flexibleSpace: !hasStill
+                    ? null
+                    : FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -126,12 +217,33 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'S${widget.seasonNumber}E${widget.episodeNumber} · ${show.s('title') ?? widget.showTitle ?? ''}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: kAccent,
-                          fontWeight: FontWeight.w700,
+                      InkWell(
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: () => openShow(context, widget.showTmdbId),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'S${widget.seasonNumber}E${widget.episodeNumber} · $showName',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: kAccentSoft,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 16,
+                                color: kAccentSoft,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -166,9 +278,10 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: ActionGrid(
+                  child: Column(
                     children: [
                       _EpisodeAction(
+                        primary: !watched,
                         icon: watched
                             ? Icons.check_circle
                             : Icons.check_circle_outline,
@@ -180,35 +293,40 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                           if (changed) _reload();
                         },
                       ),
-                      _EpisodeAction(
-                        icon: Icons.star_outline_rounded,
-                        label: detail.d('user_rating') != null &&
-                                detail.d('user_rating')! > 0
-                            ? 'Rated ${fmtRating(detail.d('user_rating'))}'
-                            : 'Rate',
-                        onTap: () async {
-                          final changed =
-                              await openRatingDialog(context, episode);
-                          if (changed) _reload();
-                        },
-                      ),
-                      _EpisodeAction(
-                        icon: Icons.playlist_add_rounded,
-                        label: 'Add show to list',
-                        onTap: () => addToListDialog(context, episode),
-                      ),
-                      _EpisodeAction(
-                        icon: Icons.timer_outlined,
-                        label: 'Session',
-                        onTap: () async {
-                          await startManualSession(context, episode);
-                          _reload();
-                        },
-                      ),
-                      _EpisodeAction(
-                        icon: Icons.open_in_new_rounded,
-                        label: 'Open show',
-                        onTap: () => openShow(context, widget.showTmdbId),
+                      const SizedBox(height: 8),
+                      ActionGrid(
+                        children: [
+                          _EpisodeAction(
+                            icon: detail.d('user_rating') != null &&
+                                    detail.d('user_rating')! > 0
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            label: detail.d('user_rating') != null &&
+                                    detail.d('user_rating')! > 0
+                                ? 'Rated ${fmtRating(detail.d('user_rating'))}'
+                                : 'Rate',
+                            active: detail.d('user_rating') != null &&
+                                detail.d('user_rating')! > 0,
+                            onTap: () async {
+                              final changed =
+                                  await openRatingDialog(context, episode);
+                              if (changed) _reload();
+                            },
+                          ),
+                          _EpisodeAction(
+                            icon: Icons.playlist_add_rounded,
+                            label: 'Add show to list',
+                            onTap: () => addToListDialog(context, episode),
+                          ),
+                          _EpisodeAction(
+                            icon: Icons.timer_outlined,
+                            label: 'Session',
+                            onTap: () async {
+                              await startManualSession(context, episode);
+                              _reload();
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -245,61 +363,6 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
                   ),
                 ),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-                  child: Row(
-                    children: [
-                      if (prev.isNotEmpty)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              final e = prev.last;
-                              final number = e.i('episode_number');
-                              if (number == null) return;
-                              pushScreen(
-                                context,
-                                EpisodeScreen(
-                                  showTmdbId: widget.showTmdbId,
-                                  seasonNumber: widget.seasonNumber,
-                                  episodeNumber: number,
-                                  showTitle: widget.showTitle,
-                                  seasonTitle: widget.seasonTitle,
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.chevron_left_rounded),
-                            label: const Text('Previous'),
-                          ),
-                        ),
-                      if (prev.isNotEmpty && next.isNotEmpty)
-                        const SizedBox(width: 8),
-                      if (next.isNotEmpty)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              final e = next.first;
-                              final number = e.i('episode_number');
-                              if (number == null) return;
-                              pushScreen(
-                                context,
-                                EpisodeScreen(
-                                  showTmdbId: widget.showTmdbId,
-                                  seasonNumber: widget.seasonNumber,
-                                  episodeNumber: number,
-                                  showTitle: widget.showTitle,
-                                  seasonTitle: widget.seasonTitle,
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.chevron_right_rounded),
-                            label: const Text('Next'),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
                 child: CommentsSection(
                   mediaType: 'episode',
                   tmdbId: detail.i('tmdb_id'),
@@ -318,6 +381,7 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 30)),
             ],
+            ),
           );
         },
       ),
@@ -346,17 +410,25 @@ class _EpisodeAction extends StatelessWidget {
     required this.icon,
     required this.label,
     this.active = false,
+    this.primary = false,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+  final bool primary;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ActionPill(icon: icon, label: label, active: active, onTap: onTap);
+    return ActionPill(
+      icon: icon,
+      label: label,
+      active: active,
+      primary: primary,
+      onTap: onTap,
+    );
   }
 }
 
