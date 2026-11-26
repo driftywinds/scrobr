@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme.dart';
@@ -17,7 +18,12 @@ class UpNextTile extends StatefulWidget {
     this.progress,
     this.onTap,
     this.onCheck,
+    this.loading = false,
   });
+
+  /// True while the next episode is being looked up after a check. Shows a
+  /// skeleton line instead of placeholder text and disables the check.
+  final bool loading;
 
   final String title;
   final String? posterUrl;
@@ -39,6 +45,7 @@ class _UpNextTileState extends State<UpNextTile> {
   Future<void> _check() async {
     final onCheck = widget.onCheck;
     if (onCheck == null || _busy) return;
+    HapticFeedback.lightImpact();
     setState(() => _busy = true);
     try {
       await onCheck();
@@ -113,7 +120,10 @@ class _UpNextTileState extends State<UpNextTile> {
                               ),
                             ),
                           ),
-                          if (widget.subtitle != null) ...[
+                          if (widget.loading) ...[
+                            const SizedBox(width: 8),
+                            const SkeletonBox(width: 110, height: 12, radius: 4),
+                          ] else if (widget.subtitle != null) ...[
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -157,10 +167,12 @@ class _UpNextTileState extends State<UpNextTile> {
                 Padding(
                   padding: const EdgeInsets.only(top: 30),
                   child: SizedBox(
-                    width: 42,
-                    height: 42,
-                    child: OutlinedButton(
-                      onPressed: _busy ? null : _check,
+                    width: 48,
+                    height: 48,
+                    child: Tooltip(
+                      message: 'Mark watched',
+                      child: OutlinedButton(
+                      onPressed: (_busy || widget.loading) ? null : _check,
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.zero,
                         shape: const CircleBorder(),
@@ -175,6 +187,7 @@ class _UpNextTileState extends State<UpNextTile> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.check_rounded, size: 21),
+                    ),
                     ),
                   ),
                 ),

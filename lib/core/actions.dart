@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'friendly_error.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -81,7 +82,7 @@ Future<bool> toggleWatched(
     }
     return true;
   } catch (e) {
-    showSnack(context, 'Could not update watch state: $e');
+    showSnack(context, 'Could not update watch state: ${friendlyError(e)}');
     return false;
   }
 }
@@ -177,7 +178,7 @@ Future<bool> openRatingDialog(
     }
     return true;
   } catch (e) {
-    showSnack(context, 'Could not save rating: $e');
+    showSnack(context, 'Could not save rating: ${friendlyError(e)}');
     return false;
   }
 }
@@ -292,7 +293,7 @@ Future<bool> addToListDialog(
     showSnack(context, 'Added to list');
     return true;
   } catch (e) {
-    showSnack(context, 'Could not add to list: $e');
+    showSnack(context, 'Could not add to list: ${friendlyError(e)}');
     return false;
   }
 }
@@ -314,7 +315,7 @@ Future<void> openTrailer(BuildContext context, Map<String, dynamic> media) async
       showSnack(context, 'Could not open trailer');
     }
   } catch (e) {
-    showSnack(context, 'Could not load trailer: $e');
+    showSnack(context, 'Could not load trailer: ${friendlyError(e)}');
   }
 }
 
@@ -362,7 +363,7 @@ Future<bool> toggleCollect(
     }
     return true;
   } catch (e) {
-    showSnack(context, 'Could not update library: $e');
+    showSnack(context, 'Could not update library: ${friendlyError(e)}');
     return false;
   }
 }
@@ -381,7 +382,7 @@ Future<bool> markSeasonWatched(
     showSnack(context, 'Season marked watched');
     return true;
   } catch (e) {
-    showSnack(context, 'Could not mark season: $e');
+    showSnack(context, 'Could not mark season: ${friendlyError(e)}');
     return false;
   }
 }
@@ -400,7 +401,7 @@ Future<bool> unmarkSeasonWatched(
     showSnack(context, 'Season marked unwatched');
     return true;
   } catch (e) {
-    showSnack(context, 'Could not update season: $e');
+    showSnack(context, 'Could not update season: ${friendlyError(e)}');
     return false;
   }
 }
@@ -414,7 +415,7 @@ Future<bool> markShowWatched(BuildContext context, int showTmdbId) async {
     showSnack(context, 'Show marked watched');
     return true;
   } catch (e) {
-    showSnack(context, 'Could not mark show: $e');
+    showSnack(context, 'Could not mark show: ${friendlyError(e)}');
     return false;
   }
 }
@@ -427,7 +428,7 @@ Future<bool> unmarkShowWatched(BuildContext context, int showTmdbId) async {
     showSnack(context, 'Show marked unwatched');
     return true;
   } catch (e) {
-    showSnack(context, 'Could not update show: $e');
+    showSnack(context, 'Could not update show: ${friendlyError(e)}');
     return false;
   }
 }
@@ -452,7 +453,7 @@ Future<bool> toggleRewatch(
     }
     return true;
   } catch (e) {
-    showSnack(context, 'Could not update rewatch: $e');
+    showSnack(context, 'Could not update rewatch: ${friendlyError(e)}');
     return false;
   }
 }
@@ -483,7 +484,7 @@ Future<bool> toggleDrop(
     }
     return true;
   } catch (e) {
-    showSnack(context, 'Could not update dropped: $e');
+    showSnack(context, 'Could not update dropped: ${friendlyError(e)}');
     return false;
   }
 }
@@ -501,7 +502,7 @@ Future<bool> requestMedia(
     showSnack(context, result.s('message') ?? 'Request sent');
     return true;
   } catch (e) {
-    showSnack(context, 'Could not send request: $e');
+    showSnack(context, 'Could not send request: ${friendlyError(e)}');
     return false;
   }
 }

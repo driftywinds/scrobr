@@ -11,6 +11,7 @@ import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'episode_screen.dart';
 import 'movie_screen.dart';
+import '../core/friendly_error.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -136,7 +137,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not refresh calendar: $e')),
+          SnackBar(content: Text('Could not refresh calendar: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -173,7 +174,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           }
           if (data == null && snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: _reload,
             );
           }

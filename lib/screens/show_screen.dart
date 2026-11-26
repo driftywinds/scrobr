@@ -9,6 +9,7 @@ import '../widgets/comments.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 import 'season_screen.dart';
+import '../core/friendly_error.dart';
 
 class ShowScreen extends StatefulWidget {
   const ShowScreen({super.key, required this.tmdbId});
@@ -60,7 +61,7 @@ class _ShowScreenState extends State<ShowScreen> {
             return Scaffold(
               appBar: AppBar(),
               body: ErrorView(
-                message: '${snapshot.error}',
+                message: friendlyError(snapshot.error),
                 onRetry: _reload,
               ),
             );
@@ -240,7 +241,7 @@ class _ShowBody extends StatelessWidget {
         '${watched ? 'Marked' : 'Unmarked'} ${ids.length} season(s)',
       );
     } catch (e) {
-      showSnack(context, 'Could not update seasons: $e');
+      showSnack(context, 'Could not update seasons: ${friendlyError(e)}');
     }
   }
 
@@ -729,7 +730,7 @@ class _ShowBody extends StatelessWidget {
       showSnack(context, 'Episode order updated');
       reload();
     } catch (e) {
-      showSnack(context, 'Could not change episode order: $e');
+      showSnack(context, 'Could not change episode order: ${friendlyError(e)}');
     }
   }
 }

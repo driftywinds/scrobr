@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class ProfileMediaScreen extends StatefulWidget {
   const ProfileMediaScreen({
@@ -78,7 +79,7 @@ class _ProfileMediaScreenState extends State<ProfileMediaScreen> {
         _page += 1;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/actions.dart';
@@ -6,6 +7,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class ContinueWatchingScreen extends StatefulWidget {
   const ContinueWatchingScreen({super.key});
@@ -46,11 +48,11 @@ class _ContinueWatchingScreenState extends State<ContinueWatchingScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
+            return const ListRowsSkeleton();
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: () => setState(() => _future = _load()),
             );
           }
@@ -255,11 +257,11 @@ class _NextUpScreenState extends State<NextUpScreen> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingView();
+                  return const ListRowsSkeleton();
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message: '${snapshot.error}',
+                    message: friendlyError(snapshot.error),
                     onRetry: () => setState(() => _future = _load()),
                   );
                 }
@@ -364,27 +366,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Progress'),
-        actions: [
-          IconButton(
-            tooltip: 'Hide complete',
-            onPressed: () {
-              setState(() => _hideComplete = !_hideComplete);
-              _reload();
-            },
-            icon: Icon(
-              _hideComplete
-                  ? Icons.filter_alt_rounded
-                  : Icons.filter_alt_outlined,
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Progress')),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
             child: SegmentedTabs<String>(segments: const [
                 ButtonSegment(value: 'watched', label: Text('Watched')),
                 ButtonSegment(value: 'collection', label: Text('Collected')),
@@ -396,22 +382,50 @@ class _ProgressScreenState extends State<ProgressScreen> {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilterChip(
+                label: const Text('Hide completed'),
+                avatar: Icon(
+                  _hideComplete
+                      ? Icons.check_rounded
+                      : Icons.visibility_off_outlined,
+                  size: 16,
+                ),
+                selected: _hideComplete,
+                showCheckmark: false,
+                onSelected: (value) {
+                  setState(() => _hideComplete = value);
+                  _reload();
+                },
+              ),
+            ),
+          ),
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingView();
+                  return const ListRowsSkeleton();
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message: '${snapshot.error}',
+                    message: friendlyError(snapshot.error),
                     onRetry: _reload,
                   );
                 }
                 final shows = snapshot.data ?? const [];
                 if (shows.isEmpty) {
-                  return const EmptyState(title: 'No progress to show');
+                  return EmptyState(
+                    title: _hideComplete
+                        ? 'Everything here is finished'
+                        : 'No progress to show',
+                    body: _hideComplete
+                        ? 'Turn off "Hide completed" to see finished shows.'
+                        : 'Start a show and its progress will appear here.',
+                  );
                 }
                 return RefreshIndicator(
                   onRefresh: () async {
@@ -434,8 +448,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
                           'title': show.s('title'),
                           'poster_path': show.s('poster_path'),
                         },
-                        subtitle:
-                            '$watched / $total episodes · ${pct.round()}%',
+                        subtitle: pct >= 100
+                            ? 'Completed · $total episodes'
+                            : '$watched / $total episodes · ${pct.round()}%',
                         progress: pct,
                         onTap: show.i('tmdb_id') == null
                             ? null
@@ -492,11 +507,11 @@ class _DroppedScreenState extends State<DroppedScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
+            return const ListRowsSkeleton();
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: () => setState(() => _future = _load()),
             );
           }
@@ -616,12 +631,15 @@ class _WideMediaTile extends StatelessWidget {
                           message: 'Mark watched',
                           child: InkWell(
                             customBorder: const CircleBorder(),
-                            onTap: () => onWatchToggle!.call(),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              onWatchToggle!.call();
+                            },
                             child: const Padding(
-                              padding: EdgeInsets.all(3),
+                              padding: EdgeInsets.all(7),
                               child: Icon(
                                 Icons.check_rounded,
-                                size: 15,
+                                size: 18,
                                 color: Colors.white,
                               ),
                             ),

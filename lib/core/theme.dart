@@ -284,13 +284,18 @@ ThemeData buildTheme({String? fontFamily}) {
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
         (states) =>
-            states.contains(WidgetState.selected) ? Colors.white : kMuted,
+            states.contains(WidgetState.selected) ? Colors.white : kBody,
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (states) =>
             states.contains(WidgetState.selected) ? kAccentSolid : kCard,
       ),
-      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+      // A visible outline when off, so on/off never relies on the thumb alone.
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? Colors.transparent
+            : const Color(0xFF71717A),
+      ),
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(
       color: kAccentSolid,

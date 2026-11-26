@@ -11,6 +11,7 @@ import '../widgets/swipe_pages.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
+import '../core/friendly_error.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -87,7 +88,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       if (!e.message.contains('no_sources')) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not pick: $e')),
+            SnackBar(content: Text('Could not pick: ${friendlyError(e)}')),
           );
         }
         return;
@@ -129,7 +130,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not pick: $e')),
+          SnackBar(content: Text('Could not pick: ${friendlyError(e)}')),
         );
       }
     }
@@ -145,7 +146,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message: '${snapshot.error}',
+                    message: friendlyError(snapshot.error),
                     onRetry: _reload,
                   );
                 }

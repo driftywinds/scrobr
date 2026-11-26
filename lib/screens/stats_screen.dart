@@ -5,6 +5,7 @@ import '../core/app_time.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key, required this.userId});
@@ -78,7 +79,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message: '${snapshot.error}',
+                    message: friendlyError(snapshot.error),
                     onRetry: _reload,
                   );
                 }

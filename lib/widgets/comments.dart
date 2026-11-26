@@ -4,6 +4,7 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import 'common.dart';
+import '../core/friendly_error.dart';
 
 class CommentsSection extends StatefulWidget {
   const CommentsSection({
@@ -134,7 +135,7 @@ class _CommentsSectionState extends State<CommentsSection> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save comment: $e')),
+          SnackBar(content: Text('Could not save comment: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -166,7 +167,7 @@ class _CommentsSectionState extends State<CommentsSection> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete comment: $e')),
+          SnackBar(content: Text('Could not delete comment: ${friendlyError(e)}')),
         );
       }
     }

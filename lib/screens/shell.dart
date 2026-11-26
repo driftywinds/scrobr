@@ -9,6 +9,7 @@ import 'history_screen.dart';
 import 'home_screen.dart';
 import 'library_screen.dart';
 import 'profile_screen.dart';
+import '../core/friendly_error.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -159,7 +160,7 @@ class _AppShellState extends State<AppShell> {
                   } catch (e) {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Could not switch account: $e')),
+                      SnackBar(content: Text('Could not switch account: ${friendlyError(e)}')),
                     );
                   }
                 },

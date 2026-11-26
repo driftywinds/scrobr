@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
+import '../core/friendly_error.dart';
 
 Future<void> startManualSession(
   BuildContext context,
@@ -47,7 +48,7 @@ Future<void> startManualSession(
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not start session: $e')),
+        SnackBar(content: Text('Could not start session: ${friendlyError(e)}')),
       );
     }
   }
@@ -124,7 +125,7 @@ class _ManualSessionDialogState extends State<ManualSessionDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not complete session: $e')),
+          SnackBar(content: Text('Could not complete session: ${friendlyError(e)}')),
         );
       }
     } finally {

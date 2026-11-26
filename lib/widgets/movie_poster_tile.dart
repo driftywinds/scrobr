@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../core/theme.dart';
 import 'common.dart';
 
 /// Poster-only tile for the Movies tab. The watched check sits in the
@@ -11,7 +13,11 @@ class MoviePosterTile extends StatefulWidget {
     required this.posterUrl,
     this.onTap,
     this.onCheck,
+    this.subtitle,
   });
+
+  /// Optional second line, e.g. the release year.
+  final String? subtitle;
 
   final String title;
   final String? posterUrl;
@@ -28,6 +34,7 @@ class _MoviePosterTileState extends State<MoviePosterTile> {
   Future<void> _check() async {
     final onCheck = widget.onCheck;
     if (onCheck == null || _busy) return;
+    HapticFeedback.lightImpact();
     setState(() => _busy = true);
     try {
       await onCheck();
@@ -102,16 +109,31 @@ class _MoviePosterTileState extends State<MoviePosterTile> {
         // Reserve two lines so a long title cannot make its poster shorter
         // than the rest of the grid.
         SizedBox(
-          height: 30,
-          child: Text(
-            widget.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11,
-              height: 1.15,
-              fontWeight: FontWeight.w600,
-            ),
+          height: widget.subtitle == null ? 30 : 42,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (widget.subtitle != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    widget.subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 10.5, color: kMuted),
+                  ),
+                ),
+            ],
           ),
         ),
       ],

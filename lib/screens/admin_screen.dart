@@ -12,6 +12,7 @@ import '../core/format.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'requests_screen.dart';
+import '../core/friendly_error.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -136,7 +137,7 @@ class _AdminScreenState extends State<AdminScreen>
         }
         if (snapshot.hasError) {
           return ErrorView(
-            message: '${snapshot.error}',
+            message: friendlyError(snapshot.error),
             onRetry: _reload,
           );
         }
@@ -169,7 +170,7 @@ class _AdminScreenState extends State<AdminScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not back up database: $e')),
+          SnackBar(content: Text('Could not back up database: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -225,7 +226,7 @@ class _AdminScreenState extends State<AdminScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not restore database: $e')),
+          SnackBar(content: Text('Could not restore database: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -297,7 +298,7 @@ class _AdminScreenState extends State<AdminScreen>
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not create user: $e')),
+            SnackBar(content: Text('Could not create user: ${friendlyError(e)}')),
           );
         }
       }
@@ -341,7 +342,7 @@ class _AdminScreenState extends State<AdminScreen>
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not reset password: $e')),
+            SnackBar(content: Text('Could not reset password: ${friendlyError(e)}')),
           );
         }
       }
@@ -377,7 +378,7 @@ class _AdminScreenState extends State<AdminScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not disable 2FA: $e')),
+          SnackBar(content: Text('Could not disable 2FA: ${friendlyError(e)}')),
         );
       }
     }
@@ -392,7 +393,7 @@ class _AdminScreenState extends State<AdminScreen>
         }
         if (snapshot.hasError) {
           return ErrorView(
-            message: '${snapshot.error}',
+            message: friendlyError(snapshot.error),
             onRetry: _reload,
           );
         }
@@ -461,7 +462,7 @@ class _AdminScreenState extends State<AdminScreen>
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Action failed: $e')),
+                        SnackBar(content: Text('Action failed: ${friendlyError(e)}')),
                       );
                     }
                   }
@@ -531,7 +532,7 @@ class _AdminScreenState extends State<AdminScreen>
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Could not clear cache: $e')),
+                      SnackBar(content: Text('Could not clear cache: ${friendlyError(e)}')),
                     );
                   }
                 }
@@ -555,7 +556,7 @@ class _AdminScreenState extends State<AdminScreen>
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Could not heal metadata: $e')),
+                      SnackBar(content: Text('Could not heal metadata: ${friendlyError(e)}')),
                     );
                   }
                 }
@@ -685,7 +686,7 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save settings: $e')),
+          SnackBar(content: Text('Could not save settings: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -724,7 +725,7 @@ class _AdminSettingsFormState extends State<_AdminSettingsForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Key test failed: $e')),
+          SnackBar(content: Text('Key test failed: ${friendlyError(e)}')),
         );
       }
     }

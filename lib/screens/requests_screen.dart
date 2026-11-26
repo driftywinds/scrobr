@@ -4,6 +4,7 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});
@@ -38,7 +39,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update request: $e')),
+          SnackBar(content: Text('Could not update request: ${friendlyError(e)}')),
         );
       }
     }
@@ -84,7 +85,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message: '${snapshot.error}',
+                    message: friendlyError(snapshot.error),
                     onRetry: _reload,
                   );
                 }

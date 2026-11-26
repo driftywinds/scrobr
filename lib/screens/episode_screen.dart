@@ -9,6 +9,7 @@ import '../widgets/comments.dart';
 import '../widgets/session.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class EpisodeScreen extends StatefulWidget {
   const EpisodeScreen({
@@ -60,7 +61,7 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
             return Scaffold(
               appBar: AppBar(),
               body: ErrorView(
-                message: '${snapshot.error}',
+                message: friendlyError(snapshot.error),
                 onRetry: _reload,
               ),
             );

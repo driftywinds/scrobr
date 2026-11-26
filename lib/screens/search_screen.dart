@@ -6,6 +6,7 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, this.initialType = 'movie'});
@@ -101,7 +102,7 @@ class _SearchScreenState extends State<SearchScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

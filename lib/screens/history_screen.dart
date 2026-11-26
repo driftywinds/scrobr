@@ -7,6 +7,7 @@ import '../core/nav.dart';
 import '../widgets/swipe_pages.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -115,7 +116,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         feed.page += 1;
       });
     } catch (e) {
-      if (mounted) setState(() => feed.error = '$e');
+      if (mounted) setState(() => feed.error = friendlyError(e));
     } finally {
       if (mounted) setState(() => feed.loading = false);
     }
@@ -135,10 +136,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete entry: $e')),
+          SnackBar(content: Text('Could not delete entry: ${friendlyError(e)}')),
         );
       }
     }
+  }
+
+  Future<void> _confirmUnwatch(Map<String, dynamic> media) async {
+    final title = media.s('show_title') ?? media.s('title') ?? 'this title';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unwatch title?'),
+        content: Text(
+          'This removes "$title" from your watched list. '
+          'To remove just one viewing, use "Delete entry" instead.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Unwatch', style: TextStyle(color: kDanger)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _unwatch(media);
   }
 
   Future<void> _unwatch(Map<String, dynamic> media) async {
@@ -156,7 +182,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not unwatch: $e')),
+          SnackBar(content: Text('Could not unwatch: ${friendlyError(e)}')),
         );
       }
     }
@@ -260,18 +286,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
+    String dateOf(Map<String, dynamic> event) {
+      final watchedAt = AppTime.parse(event.s('watched_at'));
+      if (watchedAt == null) return 'Unknown date';
+      final day = DateTime(watchedAt.year, watchedAt.month, watchedAt.day);
+      if (day == today) return 'Today';
+      if (day == today.subtract(const Duration(days: 1))) return 'Yesterday';
+      return fmtDay(watchedAt);
+    }
+
+    // Episodes of one show logged back to back (a binge, or a bulk "mark
+    // season") are folded into a single row instead of filling the screen.
+    String? showKeyOf(Map<String, dynamic> event) {
+      final media = asMap(event['media']);
+      if (media.s('type') != 'episode') return null;
+      final key = '${media.i('show_tmdb_id') ?? media.s('show_title') ?? ''}';
+      return key.isEmpty ? null : key;
+    }
+
+    Widget tileFor(Map<String, dynamic> event, {bool compact = false}) {
+      return _HistoryTile(
+        event: event,
+        compact: compact,
+        onTap: () => openMedia(context, asMap(event['media'])),
+        onDelete: () {
+          final id = event.i('id');
+          if (id != null) _deleteEvent(id);
+        },
+        onUnwatch: () => _confirmUnwatch(asMap(event['media'])),
+      );
+    }
+
     String? lastDate;
     final children = <Widget>[];
-    for (final event in feed.events) {
-      final watchedAt = AppTime.parse(event.s('watched_at'));
-      final date = watchedAt == null
-          ? 'Unknown date'
-          : DateTime(watchedAt.year, watchedAt.month, watchedAt.day) == today
-              ? 'Today'
-              : DateTime(watchedAt.year, watchedAt.month, watchedAt.day) ==
-                      today.subtract(const Duration(days: 1))
-                  ? 'Yesterday'
-                  : fmtDay(watchedAt);
+    final events = feed.events;
+    var i = 0;
+    while (i < events.length) {
+      final event = events[i];
+      final date = dateOf(event);
       if (date != lastDate) {
         children.add(
           Padding(
@@ -305,15 +357,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
         );
         lastDate = date;
       }
-      children.add(_HistoryTile(
-        event: event,
-        onTap: () => openMedia(context, asMap(event['media'])),
-        onDelete: () {
-          final id = event.i('id');
-          if (id != null) _deleteEvent(id);
-        },
-        onUnwatch: () => _unwatch(asMap(event['media'])),
-      ));
+      var end = i + 1;
+      final key = showKeyOf(event);
+      if (key != null) {
+        while (end < events.length &&
+            dateOf(events[end]) == date &&
+            showKeyOf(events[end]) == key) {
+          end++;
+        }
+      }
+      if (end - i >= 3) {
+        final run = events.sublist(i, end);
+        children.add(
+          _HistoryGroupTile(
+            events: run,
+            children: [for (final e in run) tileFor(e, compact: true)],
+          ),
+        );
+      } else {
+        for (var k = i; k < end; k++) {
+          children.add(tileFor(events[k]));
+        }
+      }
+      i = end;
     }
     if (feed.loading) {
       children.add(
@@ -347,7 +413,11 @@ class _HistoryTile extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
     required this.onUnwatch,
+    this.compact = false,
   });
+
+  /// Slimmer variant used inside an expanded group of episodes.
+  final bool compact;
 
   final Map<String, dynamic> event;
   final VoidCallback onTap;
@@ -362,7 +432,8 @@ class _HistoryTile extends StatelessWidget {
     final poster = app.imageUrl(posterPathFor(media), size: 'w185');
     final title = media.s('show_title') ?? media.s('title') ?? '';
     final episode = isEpisode
-        ? 'S${media.i('season_number')}E${media.i('episode_number')} · ${media.s('title') ?? ''}'
+        ? 'S${media.i('season_number')}E${media.i('episode_number')}'
+            '${(media.s('title') ?? '').isEmpty ? '' : ' · ${media.s('title')}'}'
         : yearOf(media.s('release_date'));
     final time = event.s('watched_at') != null
         ? fmtDateTime(event.s('watched_at')).split(', ').last
@@ -388,8 +459,8 @@ class _HistoryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 58,
-              height: 87,
+              width: compact ? 44 : 58,
+              height: compact ? 66 : 87,
               child: Poster(url: poster, title: title, radius: 7),
             ),
             const SizedBox(width: 10),
@@ -432,10 +503,10 @@ class _HistoryTile extends StatelessWidget {
                       if (progress != null && progress > 0 && progress < 95)
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
-                          child: Text(
-                            '${progress.round()}%',
+                            child: Text(
+                            '${progress.round()}% watched',
                             style: const TextStyle(
-                              fontSize: 9,
+                              fontSize: 11,
                               color: kMuted,
                             ),
                           ),
@@ -459,6 +530,133 @@ class _HistoryTile extends StatelessWidget {
           ],
         ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// One row standing in for several consecutive episodes of the same show.
+/// Collapsed: poster, show title, "4 episodes · S1E1–E4" and the time span.
+/// Tap to expand into the individual entries (each keeps its own menu).
+class _HistoryGroupTile extends StatefulWidget {
+  const _HistoryGroupTile({required this.events, required this.children});
+
+  final List<Map<String, dynamic>> events;
+  final List<Widget> children;
+
+  @override
+  State<_HistoryGroupTile> createState() => _HistoryGroupTileState();
+}
+
+class _HistoryGroupTileState extends State<_HistoryGroupTile> {
+  bool _open = false;
+
+  String _range() {
+    final codes = <(int, int)>[];
+    for (final event in widget.events) {
+      final media = asMap(event['media']);
+      final season = media.i('season_number');
+      final episode = media.i('episode_number');
+      if (season != null && episode != null) codes.add((season, episode));
+    }
+    if (codes.isEmpty) return '';
+    codes.sort((a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2));
+    final first = codes.first;
+    final last = codes.last;
+    if (first.$1 == last.$1) {
+      return 'S${first.$1}E${first.$2}–E${last.$2}';
+    }
+    return 'S${first.$1}E${first.$2} – S${last.$1}E${last.$2}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = ScrobScope.of(context);
+    final media = asMap(widget.events.first['media']);
+    final title = media.s('show_title') ?? media.s('title') ?? '';
+    final poster = app.imageUrl(posterPathFor(media), size: 'w185');
+    final count = widget.events.length;
+    final range = _range();
+    final subtitle = [
+      '$count episodes',
+      if (range.isNotEmpty) range,
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: kSurface,
+          borderRadius: BorderRadius.circular(kRadius),
+          border: Border.all(color: kBorder),
+        ),
+        child: Column(
+          children: [
+            Semantics(
+              button: true,
+              expanded: _open,
+              label: '$title, $subtitle. ${_open ? 'Collapse' : 'Expand'}',
+              excludeSemantics: true,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(kRadius),
+                onTap: () => setState(() => _open = !_open),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 58,
+                        height: 87,
+                        child: Poster(url: poster, title: title, radius: 7),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: kBody,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        _open
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        color: kMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (_open) ...[
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Column(children: widget.children),
+              ),
+            ],
+          ],
         ),
       ),
     );

@@ -7,6 +7,7 @@ import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'list_detail_screen.dart';
+import '../core/friendly_error.dart';
 
 class ListsScreen extends StatefulWidget {
   const ListsScreen({super.key});
@@ -134,7 +135,7 @@ class _ListsScreenState extends State<ListsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not import list: $e')),
+          SnackBar(content: Text('Could not import list: ${friendlyError(e)}')),
         );
       }
     }
@@ -213,7 +214,7 @@ class _ListsScreenState extends State<ListsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not create list: $e')),
+          SnackBar(content: Text('Could not create list: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -282,7 +283,7 @@ class _ListsScreenState extends State<ListsScreen> {
                 }
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message: '${snapshot.error}',
+                    message: friendlyError(snapshot.error),
                     onRetry: _reload,
                   );
                 }
@@ -351,7 +352,7 @@ class _ListsScreenState extends State<ListsScreen> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Could not delete: $e'),
+                                      content: Text('Could not delete: ${friendlyError(e)}'),
                                     ),
                                   );
                                 }

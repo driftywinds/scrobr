@@ -7,6 +7,7 @@ import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'profile_media_screen.dart';
+import '../core/friendly_error.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.userId});
@@ -103,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: _reload,
             );
           }
@@ -185,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update avatar: $e')),
+          SnackBar(content: Text('Could not update avatar: ${friendlyError(e)}')),
         );
       }
     }
@@ -219,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not remove avatar: $e')),
+          SnackBar(content: Text('Could not remove avatar: ${friendlyError(e)}')),
         );
       }
     }
@@ -381,7 +382,7 @@ class _ProfileBody extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update follow: $e')),
+          SnackBar(content: Text('Could not update follow: ${friendlyError(e)}')),
         );
       }
     }

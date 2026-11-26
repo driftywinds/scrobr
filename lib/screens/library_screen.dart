@@ -6,6 +6,7 @@ import '../core/genres.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -87,7 +88,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _error = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -435,7 +436,7 @@ class _FilterSheetState extends State<_FilterSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save filters: $e')),
+          SnackBar(content: Text('Could not save filters: ${friendlyError(e)}')),
         );
       }
     }
@@ -448,7 +449,7 @@ class _FilterSheetState extends State<_FilterSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete filter: $e')),
+          SnackBar(content: Text('Could not delete filter: ${friendlyError(e)}')),
         );
       }
     }

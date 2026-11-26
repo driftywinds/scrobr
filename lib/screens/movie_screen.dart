@@ -11,6 +11,7 @@ import '../widgets/session.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 import 'browse_screen.dart';
+import '../core/friendly_error.dart';
 
 class MovieScreen extends StatefulWidget {
   const MovieScreen({super.key, required this.tmdbId});
@@ -59,7 +60,7 @@ class _MovieScreenState extends State<MovieScreen> {
             return Scaffold(
               appBar: AppBar(),
               body: ErrorView(
-                message: '${snapshot.error}',
+                message: friendlyError(snapshot.error),
                 onRetry: _reload,
               ),
             );

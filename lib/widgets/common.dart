@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
+import '../core/friendly_error.dart';
 
 class Poster extends StatelessWidget {
   const Poster({
@@ -22,31 +24,46 @@ class Poster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF2F2F35), Color(0xFF1C1C20)],
+    // Small posters (list rows, calendar) already sit next to their title, so
+    // repeating it inside a 50px box only wraps it letter by letter. Show the
+    // title only when there is room, and keep it out of the accessibility tree
+    // either way (the visible title next to it is what gets read).
+    final placeholder = ExcludeSemantics(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2F2F35), Color(0xFF1C1C20)],
+          ),
         ),
-      ),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.movie_outlined, color: kMuted, size: 26),
-          if (title != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              truncate(title, 40),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: kMuted),
-            ),
-          ],
-        ],
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(6),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final roomy = constraints.maxWidth >= 96 && constraints.maxHeight >= 120;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.movie_outlined,
+                  color: kMuted,
+                  size: roomy ? 26 : 22,
+                ),
+                if (title != null && roomy) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    truncate(title, 40),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: kMuted),
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
       ),
     );
 
@@ -180,7 +197,10 @@ class MediaCard extends StatelessWidget {
                   Positioned(
                     left: 6,
                     top: 6,
-                    child: Container(
+                    child: Semantics(
+                      label: 'Rating ${fmtRating(rating)}',
+                      excludeSemantics: true,
+                      child: Container(
                       padding:
                           const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
@@ -205,12 +225,16 @@ class MediaCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    ),
                   ),
                 if (watched && !isPerson)
                   Positioned(
                     right: 6,
                     top: 6,
-                    child: Container(
+                    child: Semantics(
+                      label: 'Watched',
+                      excludeSemantics: true,
+                      child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         color: kGreen,
@@ -224,6 +248,7 @@ class MediaCard extends StatelessWidget {
                       ),
                       child: const Icon(Icons.check_rounded, size: 11, color: Colors.black),
                     ),
+                    ),
                   ),
                 if (onWatchToggle != null && !watched && !isPerson)
                   Positioned(
@@ -236,7 +261,10 @@ class MediaCard extends StatelessWidget {
                         message: 'Mark watched',
                         child: InkWell(
                           customBorder: const CircleBorder(),
-                          onTap: () => onWatchToggle!.call(),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            onWatchToggle!.call();
+                          },
                           child: const Padding(
                             padding: EdgeInsets.all(4),
                             child: Icon(
@@ -513,7 +541,10 @@ class ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fraction = (value.clamp(0, 100)) / 100;
-    return ClipRRect(
+    return Semantics(
+      label: '${value.clamp(0, 100).round()} percent complete',
+      excludeSemantics: true,
+      child: ClipRRect(
       borderRadius: BorderRadius.circular(height),
       child: Container(
         height: height,
@@ -522,10 +553,13 @@ class ProgressBar extends StatelessWidget {
         child: FractionallySizedBox(
           widthFactor: fraction.toDouble(),
           child: DecoratedBox(
-            decoration: BoxDecoration(gradient: kAccentGradient),
-            child: SizedBox.expand(),
+            decoration: value >= 100
+                ? const BoxDecoration(color: kGreen)
+                : BoxDecoration(gradient: kAccentGradient),
+            child: const SizedBox.expand(),
           ),
         ),
+      ),
       ),
     );
   }
@@ -666,7 +700,7 @@ class _FollowActionState extends State<FollowAction> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update Following: $e')),
+          SnackBar(content: Text('Could not update Following: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -832,49 +866,87 @@ class ActionPill extends StatelessWidget {
     required this.icon,
     required this.label,
     this.active = false,
+    this.primary = false,
+    this.destructive = false,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+
+  /// The one main action on a page: solid accent fill so it reads first.
+  final bool primary;
+
+  /// Bulk or irreversible actions: danger tint so they never look like a
+  /// neighbour of the safe action.
+  final bool destructive;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? kAccentSolid.withValues(alpha: 0.16) : kSurface,
-      borderRadius: BorderRadius.circular(kRadius),
-      child: InkWell(
+    final Color fill;
+    final Color border;
+    final Color iconColor;
+    final Color textColor;
+    if (primary) {
+      fill = kAccentSolid;
+      border = kAccentSolid;
+      iconColor = kAccentSolidOn;
+      textColor = kAccentSolidOn;
+    } else if (destructive) {
+      fill = kDanger.withValues(alpha: 0.08);
+      border = kDanger.withValues(alpha: 0.4);
+      iconColor = kDanger;
+      textColor = kDanger;
+    } else if (active) {
+      fill = kAccentSolid.withValues(alpha: 0.16);
+      border = kAccentSolid.withValues(alpha: 0.6);
+      iconColor = kAccentSoft;
+      textColor = Colors.white;
+    } else {
+      fill = kSurface;
+      border = kBorder;
+      iconColor = kMuted;
+      textColor = kBody;
+    }
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Material(
+        color: fill,
         borderRadius: BorderRadius.circular(kRadius),
-        onTap: onTap,
-        child: Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(kRadius),
-            border: Border.all(
-              color: active ? kAccentSolid.withValues(alpha: 0.6) : kBorder,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(kRadius),
+          onTap: onTap,
+          child: Container(
+            height: primary ? 50 : 46,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(kRadius),
+              border: Border.all(color: border),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: active ? kAccentSoft : kMuted),
-              const SizedBox(width: 7),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: active ? Colors.white : kBody,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: primary ? 20 : 18, color: iconColor),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: primary ? 14 : 12.5,
+                      fontWeight: primary ? FontWeight.w800 : FontWeight.w700,
+                      color: textColor,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -983,7 +1055,7 @@ class _SegmentCell extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: active ? Colors.white : kMuted,
+                color: active ? kAccentSolidOn : kMuted,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1173,6 +1245,135 @@ class PeopleRow extends StatelessWidget {
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// Skeleton for a detail page (show, season, episode, movie): a hero block,
+/// title, action buttons and a few text lines. Used while the page's own data
+/// loads so the screen is never a bare spinner on black.
+class DetailSkeleton extends StatelessWidget {
+  const DetailSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: const [
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: SkeletonBox(radius: 16),
+        ),
+        SizedBox(height: 16),
+        SkeletonBox(width: 220, height: 24, radius: 6),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            SkeletonBox(width: 56, height: 22, radius: 8),
+            SizedBox(width: 8),
+            SkeletonBox(width: 56, height: 22, radius: 8),
+            SizedBox(width: 8),
+            SkeletonBox(width: 56, height: 22, radius: 8),
+          ],
+        ),
+        SizedBox(height: 18),
+        SkeletonBox(height: 50, radius: 12),
+        SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: SkeletonBox(height: 46, radius: 12)),
+            SizedBox(width: 8),
+            Expanded(child: SkeletonBox(height: 46, radius: 12)),
+          ],
+        ),
+        SizedBox(height: 20),
+        SkeletonBox(height: 12, radius: 4),
+        SizedBox(height: 8),
+        SkeletonBox(height: 12, radius: 4),
+        SizedBox(height: 8),
+        SkeletonBox(width: 240, height: 12, radius: 4),
+      ],
+    );
+  }
+}
+
+/// Skeleton for the Profile tab: avatar + name, stat tiles, a poster row.
+class ProfileSkeleton extends StatelessWidget {
+  const ProfileSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: const [
+        Row(
+          children: [
+            SkeletonBox(width: 76, height: 76, radius: 38),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(width: 140, height: 22, radius: 6),
+                  SizedBox(height: 8),
+                  SkeletonBox(width: 190, height: 12, radius: 4),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: SkeletonBox(height: 46, radius: 12)),
+            SizedBox(width: 8),
+            Expanded(child: SkeletonBox(height: 46, radius: 12)),
+            SizedBox(width: 8),
+            Expanded(child: SkeletonBox(height: 46, radius: 12)),
+          ],
+        ),
+        SizedBox(height: 14),
+        SkeletonBox(height: 72, radius: 14),
+        MediaRowSkeleton(),
+      ],
+    );
+  }
+}
+
+/// Skeleton for poster-left list rows (Progress, History, Lists).
+class ListRowsSkeleton extends StatelessWidget {
+  const ListRowsSkeleton({super.key, this.count = 6});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      itemCount: count,
+      separatorBuilder: (_, __) => const SizedBox(height: 14),
+      itemBuilder: (_, __) => const Row(
+        children: [
+          SkeletonBox(width: 60, height: 90, radius: 8),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBox(width: 160, height: 14, radius: 5),
+                SizedBox(height: 8),
+                SkeletonBox(width: 110, height: 11, radius: 4),
+                SizedBox(height: 12),
+                SkeletonBox(height: 6, radius: 3),
+              ],
             ),
           ),
         ],

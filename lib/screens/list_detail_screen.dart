@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../core/list_sort.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class ListDetailScreen extends StatefulWidget {
   const ListDetailScreen({super.key, required this.listId});
@@ -120,7 +121,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update list: $e')),
+          SnackBar(content: Text('Could not update list: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -153,7 +154,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete list: $e')),
+          SnackBar(content: Text('Could not delete list: ${friendlyError(e)}')),
         );
       }
     }
@@ -167,7 +168,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not remove item: $e')),
+          SnackBar(content: Text('Could not remove item: ${friendlyError(e)}')),
         );
       }
     }
@@ -244,7 +245,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: _reload,
             );
           }

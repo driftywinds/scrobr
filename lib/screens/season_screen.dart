@@ -10,6 +10,7 @@ import '../widgets/comments.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
 import 'episode_screen.dart';
+import '../core/friendly_error.dart';
 
 class SeasonScreen extends StatefulWidget {
   const SeasonScreen({
@@ -197,7 +198,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
         '${watched ? 'Marked' : 'Unmarked'} $changed episode(s)',
       );
     } catch (e) {
-      showSnack(context, 'Could not update episodes: $e');
+      showSnack(context, 'Could not update episodes: ${friendlyError(e)}');
     }
   }
 
@@ -221,7 +222,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: _reload,
             );
           }
@@ -374,7 +375,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Could not update collection: $e'),
+                                content: Text('Could not update collection: ${friendlyError(e)}'),
                               ),
                             );
                           }

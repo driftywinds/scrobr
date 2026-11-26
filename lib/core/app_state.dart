@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'friendly_error.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -134,7 +135,7 @@ class AppState extends ChangeNotifier {
           sessionError = e.message;
         }
       } catch (e) {
-        sessionError = '$e';
+        sessionError = friendlyError(e);
       }
     }
     initialized = true;
@@ -218,7 +219,7 @@ class AppState extends ChangeNotifier {
       sessionError = e.message;
       if (e.isUnauthorized) await _clearCredentials(notify: false);
     } catch (e) {
-      sessionError = '$e';
+      sessionError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -377,6 +378,22 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
+  /// Removes a not-yet-sent watch from the queue (the Undo path). Returns
+  /// false when it is no longer queued, i.e. it is already being sent or has
+  /// been synced, so the caller can say so instead of pretending it worked.
+  bool unqueueWatch(String key) {
+    final index = _watchQueue.indexWhere((action) => action.key == key);
+    if (index < 0) return false;
+    _watchQueue.removeAt(index);
+    if (_watchQueue.isEmpty) {
+      _watchTimer?.cancel();
+      _watchTimer = null;
+      watchFlushAt = null;
+    }
+    notifyListeners();
+    return true;
+  }
+
   void _scheduleWatchFlush() {
     _watchTimer?.cancel();
     watchFlushAt = DateTime.now().add(const Duration(seconds: 5));
@@ -411,7 +428,7 @@ class AppState extends ChangeNotifier {
         _watchSending.remove(action);
         notifyListeners();
       } catch (e) {
-        watchSyncError = '$e';
+        watchSyncError = friendlyError(e);
         failed.addAll(batch.sublist(i));
         break;
       }

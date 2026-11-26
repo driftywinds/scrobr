@@ -7,8 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_state.dart';
 import '../core/concurrency.dart';
 import '../core/format.dart';
+import '../core/friendly_error.dart';
 import '../core/home_shortcuts.dart';
 import '../core/home_sort.dart';
+import '../core/watch_sync.dart';
 import '../core/movie_shelf.dart';
 import '../core/nav.dart';
 import '../widgets/swipe_pages.dart';
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _seenListRevision = -1;
   String _tab = 'shows';
   final Set<int> _checkedMovies = {};
+  final Set<int> _undoneShows = {};
   final Map<int, Map<String, dynamic>?> _showOverrides = {};
   final Map<String, List<Map<String, dynamic>>> _seasonCache = {};
   HomeSort _showSort = HomeSort.lastWatched;
@@ -279,9 +282,33 @@ class _HomeScreenState extends State<HomeScreen> {
     final current = shows ? _showSort : _movieSort;
     final options = shows ? showSortOptions : movieSortOptions;
     return PopupMenuButton<HomeSort>(
-      tooltip: 'Sort',
-      icon: const Icon(Icons.sort_rounded),
+      tooltip: 'Sort: ${current.label}',
       onSelected: (value) => _changeSort(value, shows: shows),
+      // Showing the current sort means the state is visible, not hidden
+      // behind an anonymous icon.
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.sort_rounded, size: 18, color: kMuted),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                current.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: kBody,
+                ),
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down_rounded, size: 20, color: kMuted),
+          ],
+        ),
+      ),
       itemBuilder: (_) => [
         for (final option in options)
           PopupMenuItem(
@@ -330,9 +357,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _markShowWatched(Map<String, dynamic> item) async {
     final app = ScrobScope.of(context);
-    if (!app.queueWatch({...item, 'type': 'episode'})) return;
+    final queued = {...item, 'type': 'episode'};
+    if (!app.queueWatch(queued)) return;
     final showId = item.i('show_tmdb_id') ?? item.i('tmdb_id');
     if (showId == null) return;
+    _undoneShows.remove(showId);
+    _offerUndo(
+      label: watchLabelFor(queued),
+      key: watchKeyFor(queued),
+      onUndone: () {
+        _undoneShows.add(showId);
+        if (mounted) setState(() => _showOverrides.remove(showId));
+      },
+    );
     final season = item.i('season_number') ?? 1;
     final episode = item.i('episode_number') ?? 0;
     // Keep the show visible while the real next episode is looked up. This
@@ -344,22 +381,25 @@ class _HomeScreenState extends State<HomeScreen> {
           'type': 'episode',
           'season_number': season,
           'episode_number': episode + 1,
-          'episode_name': 'Finding next episode…',
-          'title': 'Finding next episode…',
+          'episode_name': null,
+          'title': item.s('show_title') ?? item.s('title'),
           'tmdb_id': null,
           'watched': false,
+          '_loading': true,
         };
       });
     }
     try {
       final next = await _nextEpisode(item);
       if (!mounted) return;
+      if (_undoneShows.remove(showId)) return;
       setState(() {
         // Null means the series has no next episode, so remove the row then.
         _showOverrides[showId] = next;
       });
     } catch (_) {
       if (!mounted) return;
+      if (_undoneShows.remove(showId)) return;
       setState(() {
         _showOverrides[showId] = {
           ...item,
@@ -446,9 +486,56 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _markMovieWatched(Map<String, dynamic> entry) async {
     final media = asMap(entry['media']);
     final app = ScrobScope.of(context);
-    if (!app.queueWatch({...media, 'type': 'movie'})) return;
+    final queued = {...media, 'type': 'movie'};
+    if (!app.queueWatch(queued)) return;
     final id = media.i('tmdb_id');
     if (id != null && mounted) setState(() => _checkedMovies.add(id));
+    _offerUndo(
+      label: watchLabelFor(queued),
+      key: watchKeyFor(queued),
+      onUndone: () {
+        if (id != null && mounted) setState(() => _checkedMovies.remove(id));
+      },
+    );
+  }
+
+  /// Snackbar with Undo for the optimistic watch queue. Undo only works while
+  /// the item is still waiting in the queue (it syncs after a short pause);
+  /// after that the History tab is the place to unwatch it.
+  void _offerUndo({
+    required String label,
+    required String? key,
+    required VoidCallback onUndone,
+  }) {
+    if (!mounted) return;
+    final app = ScrobScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          content: Text('Marked $label as watched'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              if (key != null && app.unqueueWatch(key)) {
+                onUndone();
+              } else {
+                messenger
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Already synced. Remove it from History to undo.',
+                      ),
+                    ),
+                  );
+              }
+            },
+          ),
+        ),
+      );
   }
 
   @override
@@ -515,7 +602,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? (_showsError == null
               ? const _UpNextSkeleton()
               : ErrorView(
-                  message: '$_showsError',
+                  message: friendlyError(_showsError),
                   onRetry: _reload,
                 ))
           : Column(
@@ -549,8 +636,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                             ),
                           ),
-                          const Spacer(),
-                          _sortButton(shows: _tab == 'shows'),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: _sortButton(shows: _tab == 'shows'),
+                            ),
+                          ),
                         ],
                       );
                     },
@@ -558,6 +650,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 if (_sortLoading)
                   const LinearProgressIndicator(minHeight: 2),
+                if (app.watchSyncError != null && app.watchPendingCount > 0)
+                  _SyncErrorBanner(
+                    count: app.watchPendingCount,
+                    message: app.watchSyncError!,
+                    onRetry: app.flushWatchQueue,
+                    onDetails: () => showWatchSyncSheet(context),
+                  ),
                 Expanded(
                   child: SwipePages(
                     index: _tab == 'shows' ? 0 : 1,
@@ -638,7 +737,10 @@ class _HomeScreenState extends State<HomeScreen> {
             size: 'w185',
           ),
           episodeCode: code,
-          subtitle: item.s('episode_name') ?? item.s('title'),
+          subtitle: item.b('_loading')
+              ? null
+              : (item.s('episode_name') ?? item.s('title')),
+          loading: item.b('_loading'),
           watched: stats?.i('episodes_watched'),
           total: stats?.i('episodes_total'),
           progress: stats?.d('watch_pct'),
@@ -656,7 +758,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return const PosterGridSkeleton();
     }
     if (_moviesError != null && _movies.isEmpty) {
-      return ErrorView(message: '$_moviesError', onRetry: _reload);
+      return ErrorView(message: friendlyError(_moviesError), onRetry: _reload);
     }
     final app = ScrobScope.of(context);
     final movies = _movies.where((entry) {
@@ -687,7 +789,7 @@ class _HomeScreenState extends State<HomeScreen> {
         maxCrossAxisExtent: 150,
         mainAxisSpacing: 12,
         crossAxisSpacing: 10,
-        childAspectRatio: 0.54,
+        childAspectRatio: 0.5,
       ),
       itemCount: ordered.length,
       itemBuilder: (context, index) {
@@ -696,10 +798,66 @@ class _HomeScreenState extends State<HomeScreen> {
         return MoviePosterTile(
           title: media.s('title') ?? '',
           posterUrl: app.imageUrl(posterPathFor(media), size: 'w185'),
+          subtitle: () {
+            final year = yearOf(media.s('release_date'));
+            return year.isEmpty ? null : year;
+          }(),
           onTap: () => openMedia(context, media),
           onCheck: () => _markMovieWatched(entry),
         );
       },
+    );
+  }
+}
+
+/// Inline notice when queued watches could not be sent. Without it the only
+/// sign of a failed sync is a small icon change in the app bar.
+class _SyncErrorBanner extends StatelessWidget {
+  const _SyncErrorBanner({
+    required this.count,
+    required this.message,
+    required this.onRetry,
+    required this.onDetails,
+  });
+
+  final int count;
+  final String message;
+  final Future<void> Function() onRetry;
+  final VoidCallback onDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+      decoration: BoxDecoration(
+        color: kDanger.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kDanger.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_rounded, size: 18, color: kDanger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              onTap: onDetails,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  count == 1
+                      ? "1 watched item hasn't synced. $message"
+                      : "$count watched items haven't synced. $message",
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: kBody),
+                ),
+              ),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
     );
   }
 }

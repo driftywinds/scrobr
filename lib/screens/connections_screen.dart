@@ -5,6 +5,7 @@ import '../core/app_state.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class ConnectionsScreen extends StatefulWidget {
   const ConnectionsScreen({super.key});
@@ -51,7 +52,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update connection: $e')),
+          SnackBar(content: Text('Could not update connection: ${friendlyError(e)}')),
         );
       }
     }
@@ -72,7 +73,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not start sync: $e')),
+          SnackBar(content: Text('Could not start sync: ${friendlyError(e)}')),
         );
       }
     }
@@ -89,7 +90,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not start push: $e')),
+          SnackBar(content: Text('Could not start push: ${friendlyError(e)}')),
         );
       }
     }
@@ -224,7 +225,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load libraries: $e')),
+          SnackBar(content: Text('Could not load libraries: ${friendlyError(e)}')),
         );
       }
     }
@@ -254,7 +255,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete: $e')),
+          SnackBar(content: Text('Could not delete: ${friendlyError(e)}')),
         );
       }
     }
@@ -302,7 +303,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
           }
           if (snapshot.hasError) {
             return ErrorView(
-              message: '${snapshot.error}',
+              message: friendlyError(snapshot.error),
               onRetry: _reload,
             );
           }

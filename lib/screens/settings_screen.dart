@@ -22,6 +22,7 @@ import 'connections_screen.dart';
 import 'home_shortcuts_screen.dart';
 import 'time_zone_screen.dart';
 import 'requests_screen.dart';
+import '../core/friendly_error.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -47,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not read the selected file: $e')),
+          SnackBar(content: Text('Could not read the selected file: ${friendlyError(e)}')),
         );
       }
       return;
@@ -77,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not import data: $e')),
+          SnackBar(content: Text('Could not import data: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -98,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not read the selected file: $e')),
+          SnackBar(content: Text('Could not read the selected file: ${friendlyError(e)}')),
         );
       }
       return;
@@ -126,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not import $kind: $e')),
+          SnackBar(content: Text('Could not import $kind: ${friendlyError(e)}')),
         );
       }
     }
@@ -147,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not push to Bingebase: $e')),
+          SnackBar(content: Text('Could not push to Bingebase: ${friendlyError(e)}')),
         );
       }
     }
@@ -174,7 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not export data: $e')),
+          SnackBar(content: Text('Could not export data: ${friendlyError(e)}')),
         );
       }
     } finally {
@@ -189,7 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not save setting: $e')),
+          SnackBar(content: Text('Could not save setting: ${friendlyError(e)}')),
         );
       }
     }
@@ -351,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not regenerate key: $e')),
+          SnackBar(content: Text('Could not regenerate key: ${friendlyError(e)}')),
         );
       }
     }
@@ -454,7 +455,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not set up 2FA: $e')),
+          SnackBar(content: Text('Could not set up 2FA: ${friendlyError(e)}')),
         );
       }
     }
@@ -496,7 +497,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not disable 2FA: $e')),
+            SnackBar(content: Text('Could not disable 2FA: ${friendlyError(e)}')),
           );
         }
       }
@@ -574,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not check device code: $e')),
+          SnackBar(content: Text('Could not check device code: ${friendlyError(e)}')),
         );
       }
     }
@@ -623,7 +624,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load connected apps: $e')),
+          SnackBar(content: Text('Could not load connected apps: ${friendlyError(e)}')),
         );
       }
     }
@@ -708,7 +709,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load sync status: $e')),
+          SnackBar(content: Text('Could not load sync status: ${friendlyError(e)}')),
         );
       }
     }
@@ -726,7 +727,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not start sync: $e')),
+          SnackBar(content: Text('Could not start sync: ${friendlyError(e)}')),
         );
       }
     }

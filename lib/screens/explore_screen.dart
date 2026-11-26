@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../core/genres.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../core/friendly_error.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key, this.initialType = 'movie'});
@@ -83,7 +84,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _page += 1;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
