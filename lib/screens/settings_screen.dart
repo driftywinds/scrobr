@@ -17,6 +17,7 @@ import '../core/format.dart';
 import '../core/nav.dart';
 import '../core/theme.dart';
 import '../core/tracker_imports.dart';
+import '../widgets/common.dart' show EmptyState;
 import 'admin_screen.dart';
 import 'connections_screen.dart';
 import 'home_shortcuts_screen.dart';
