@@ -91,7 +91,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text('Remove avatar'),
                 ),
               ],
-              const PopupMenuItem(value: 'logout', child: Text('Sign out')),
             ],
           ),
         ],
@@ -100,7 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingView();
+            return const ProfileSkeleton();
           }
           if (snapshot.hasError) {
             return ErrorView(

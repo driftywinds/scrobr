@@ -1039,8 +1039,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: _approveDevice,
             ),
             ListTile(
-              leading: const Icon(Icons.logout_rounded),
-              title: const Text('Sign out'),
+              leading: const Icon(Icons.logout_rounded, color: kDanger),
+              title: const Text('Sign out', style: TextStyle(color: kDanger)),
               onTap: () async {
                 final ok = await showDialog<bool>(
                   context: context,

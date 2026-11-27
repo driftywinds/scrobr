@@ -28,6 +28,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _futures.putIfAbsent(_type, () => _load(_type));
+    // Warm the other tab so switching Movies/Shows is instant, not a skeleton.
+    final other = _type == 'movie' ? 'series' : 'movie';
+    _futures.putIfAbsent(other, () => _load(other));
   }
 
   Future<_DiscoverData> _load(String type) async {
@@ -237,17 +240,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       appBar: AppBar(
         title: const Text('Discover'),
         actions: [
-          IconButton(
-            tooltip: 'Explore',
+          TextButton.icon(
             onPressed: () => openExplore(context, type: _type),
-            icon: const Icon(Icons.grid_view_rounded),
+            icon: const Icon(Icons.grid_view_rounded, size: 18),
+            label: const Text('Explore'),
           ),
-          IconButton(
-            tooltip: 'Pick something for me',
+          TextButton.icon(
             onPressed: _pick,
-            icon: const Icon(Icons.casino_outlined),
+            icon: const Icon(Icons.casino_outlined, size: 18),
+            label: const Text('Pick'),
           ),
           IconButton(
+            tooltip: 'Search',
             onPressed: () => openSearch(context),
             icon: const Icon(Icons.search_rounded),
           ),
