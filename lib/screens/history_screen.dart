@@ -118,8 +118,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
     } catch (e) {
       if (mounted) setState(() => feed.error = friendlyError(e));
     } finally {
-      if (mounted) setState(() => feed.loading = false);
+      if (mounted) {
+        setState(() => feed.loading = false);
+        _fillIfShort(type);
+      }
     }
+  }
+
+  /// Infinite scroll only fires when the user scrolls. Grouped rows can make a
+  /// full page of 30 entries shorter than the screen, so nothing is scrollable
+  /// and later pages (older movies, etc.) would never load. Keep fetching while
+  /// the list is too short to scroll and more pages exist.
+  void _fillIfShort(String type) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final feed = _feeds[type]!;
+      if (feed.loading || feed.error != null || !feed.started) return;
+      if (feed.page > feed.totalPages || !feed.scroll.hasClients) return;
+      // Same threshold the scroll listener uses to ask for the next page.
+      if (feed.scroll.position.maxScrollExtent < 500) _load(type);
+    });
   }
 
   void _setType(String value) {
@@ -284,6 +302,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       );
     }
+    _fillIfShort(type);
     final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
     String dateOf(Map<String, dynamic> event) {
