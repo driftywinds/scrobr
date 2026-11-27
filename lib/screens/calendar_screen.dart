@@ -338,7 +338,7 @@ class _CalendarShowGroup extends StatelessWidget {
                             ),
                           ),
                           if (entry.b('following'))
-                            const TagChip(label: 'Following')
+                            const _FollowingBadge()
                           else if (entry.b('watched'))
                             const TagChip(label: 'Watched')
                           else if (entry.b('collected'))
@@ -409,7 +409,7 @@ class _CalendarMovieGroup extends StatelessWidget {
                 ],
               ),
             ),
-            const TagChip(label: 'Following'),
+            const _FollowingBadge(),
           ],
         ),
       ),
@@ -504,6 +504,47 @@ class _DateHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+/// Status marker, not a button: a bell on a soft accent tint, so it no longer
+/// shares the grey tag look of tappable chips.
+class _FollowingBadge extends StatelessWidget {
+  const _FollowingBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'You follow this title',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: kAccentSolid.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.notifications_active_rounded,
+              size: 12,
+              color: kAccentSoft,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Following',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: kAccentSoft,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

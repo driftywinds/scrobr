@@ -40,6 +40,9 @@ class _SeasonScreenState extends State<SeasonScreen> {
   /// Optimistic watched state per episode number while a toggle is in flight.
   final Map<int, bool> _override = {};
 
+  final GlobalKey _nextKey = GlobalKey();
+  bool _didAutoScroll = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -400,10 +403,31 @@ class _SeasonScreenState extends State<SeasonScreen> {
 
           // The first aired, unwatched episode is what to watch next.
           int? nextNumber;
-          for (final episode in episodes) {
+          var nextIndex = -1;
+          for (var i = 0; i < episodes.length; i++) {
+            final episode = episodes[i];
             if (!watchedOf(episode) && _isAired(episode)) {
               nextNumber = episode.i('episode_number');
+              nextIndex = i;
               break;
+            }
+          }
+
+          // In a long, half-watched season the next episode can be far below
+          // the fold. Scroll it into view once, the first time data shows.
+          if (!_didAutoScroll && episodes.isNotEmpty) {
+            _didAutoScroll = true;
+            if (nextIndex >= 3) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final target = _nextKey.currentContext;
+                if (!mounted || target == null) return;
+                Scrollable.ensureVisible(
+                  target,
+                  alignment: 0.2,
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeOutCubic,
+                );
+              });
             }
           }
 
@@ -412,9 +436,11 @@ class _SeasonScreenState extends State<SeasonScreen> {
               _reload();
               await _future;
             },
-            child: ListView(
+            child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 30),
+              child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -529,6 +555,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
                   final aired = _isAired(episode);
                   final isNext = number == nextNumber;
                   return Padding(
+                    key: isNext ? _nextKey : null,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
@@ -706,6 +733,7 @@ class _SeasonScreenState extends State<SeasonScreen> {
                   seasonNumber: widget.seasonNumber,
                 ),
               ],
+              ),
             ),
           );
         },

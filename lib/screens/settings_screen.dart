@@ -21,7 +21,6 @@ import 'admin_screen.dart';
 import 'connections_screen.dart';
 import 'home_shortcuts_screen.dart';
 import 'time_zone_screen.dart';
-import 'requests_screen.dart';
 import '../core/friendly_error.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -32,7 +31,41 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _searchCtl = TextEditingController();
+  String _query = '';
   bool _showKey = false;
+
+  @override
+  void dispose() {
+    _searchCtl.dispose();
+    super.dispose();
+  }
+
+  Widget _buildSearch() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: TextField(
+        controller: _searchCtl,
+        onChanged: (value) => setState(() => _query = value),
+        textInputAction: TextInputAction.search,
+        autocorrect: false,
+        decoration: InputDecoration(
+          hintText: 'Search settings',
+          prefixIcon: const Icon(Icons.search_rounded),
+          suffixIcon: _query.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  onPressed: () {
+                    _searchCtl.clear();
+                    setState(() => _query = '');
+                  },
+                  icon: const Icon(Icons.close_rounded),
+                ),
+        ),
+      ),
+    );
+  }
   bool _exporting = false;
   bool _importing = false;
 
@@ -921,7 +954,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 28),
-        children: groupSettingsTiles(context, [
+        children: [
+          _buildSearch(),
+          ...groupSettingsTiles(context, _filterSettings([
           if (app.isApiKeyMode)
             Container(
               margin: const EdgeInsets.all(16),
@@ -1308,12 +1343,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => pushScreen(context, const AdminScreen()),
             ),
-            ListTile(
-              leading: const Icon(Icons.inbox_outlined),
-              title: const Text('Requests'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => pushScreen(context, const RequestsScreen()),
-            ),
           ],
           const _Section('About'),
           ListTile(
@@ -1330,10 +1359,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => openAbout(context),
           ),
-        ]),
+        ], _query)),
+        ],
       ),
     );
   }
+}
+
+/// Filters the flat settings list by a search query. A tile matches on its
+/// title or subtitle; matching a section name keeps that whole section. Section
+/// headers only appear above tiles that survive.
+List<Widget> _filterSettings(List<Widget> items, String query) {
+  final words = query
+      .trim()
+      .toLowerCase()
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .toList();
+  if (words.isEmpty) return items;
+
+  String textOf(Widget? w) =>
+      w is Text ? (w.data ?? w.textSpan?.toPlainText() ?? '') : '';
+  bool allIn(String text) => words.every((word) => text.contains(word));
+
+  final out = <Widget>[];
+  _Section? pending;
+  var sectionMatches = false;
+  for (final w in items) {
+    if (w is _Section) {
+      pending = w;
+      sectionMatches = allIn(w.title.toLowerCase());
+      continue;
+    }
+    Widget? title;
+    Widget? subtitle;
+    if (w is ListTile) {
+      title = w.title;
+      subtitle = w.subtitle;
+    } else if (w is SwitchListTile) {
+      title = w.title;
+      subtitle = w.subtitle;
+    } else {
+      continue;
+    }
+    final text = '${textOf(title)} ${textOf(subtitle)}'.toLowerCase();
+    if (sectionMatches || allIn(text)) {
+      if (pending != null) {
+        out.add(pending);
+        pending = null;
+      }
+      out.add(w);
+    }
+  }
+  if (out.isEmpty) {
+    return const [
+      Padding(
+        padding: EdgeInsets.only(top: 40),
+        child: EmptyState(
+          title: 'No matching settings',
+          body: 'Try a different word, e.g. "password", "backup" or "theme".',
+          icon: Icons.search_off_rounded,
+        ),
+      ),
+    ];
+  }
+  return out;
 }
 
 class _Section extends StatelessWidget {

@@ -585,15 +585,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          // The shortcut row already offers every visible destination, so the
+          // menu only carries what the row doesn't: shortcuts you have hidden
+          // (so nothing becomes unreachable) and Settings.
           PopupMenuButton<String>(
+            tooltip: 'More',
             onSelected: _openMenu,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'lists', child: Text('Lists')),
-              PopupMenuItem(value: 'calendar', child: Text('Calendar')),
-              PopupMenuItem(value: 'progress', child: Text('Progress')),
-              PopupMenuItem(value: 'dropped', child: Text('Dropped')),
-              PopupMenuItem(value: 'requests', child: Text('Requests')),
-              PopupMenuItem(value: 'settings', child: Text('Settings')),
+            itemBuilder: (_) => [
+              for (final id in app.homeShortcutOrder)
+                if (app.hiddenHomeShortcuts.contains(id))
+                  PopupMenuItem(value: id, child: Text(homeShortcutLabel(id))),
+              const PopupMenuItem(value: 'settings', child: Text('Settings')),
             ],
           ),
         ],
