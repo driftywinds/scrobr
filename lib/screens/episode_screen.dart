@@ -9,6 +9,7 @@ import '../widgets/comments.dart';
 import '../widgets/session.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
+import '../widgets/detail_header.dart';
 import '../core/friendly_error.dart';
 
 class EpisodeScreen extends StatefulWidget {
@@ -169,48 +170,33 @@ class _EpisodeScreenState extends State<EpisodeScreen> {
             bottomNavigationBar: stepBar,
             body: CustomScrollView(
             slivers: [
-              SliverAppBar(
-                pinned: true,
-                // Without a still image the hero would just be a black block,
-                // so collapse to a normal app bar that names the show.
-                expandedHeight: hasStill ? 220 : null,
-                backgroundColor: kBg,
-                title: hasStill
-                    ? null
-                    : Text(
-                        showName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                flexibleSpace: !hasStill
-                    ? null
-                    : FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedArtwork(
-                        url: still,
-                        fit: BoxFit.cover,
-                        placeholder: Container(color: kCard),
-                      ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              kBg.withValues(alpha: 0.5),
-                              kBg,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+              // With a still image: hero that collapses into a bar carrying the
+              // episode title. Without one the hero would just be a black
+              // block, so use a plain pinned bar naming the show.
+              if (hasStill)
+                DetailSliverAppBar(
+                  title: detail.s('title') ?? 'Episode',
+                  imageUrl: still,
+                  expandedHeight: 220,
+                  showTitleOnHero: false,
+                )
+              else
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: kBg,
+                  surfaceTintColor: Colors.transparent,
+                  title: Text(
+                    showName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                    ),
                   ),
                 ),
-              ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),

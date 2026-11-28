@@ -332,8 +332,14 @@ class _SeasonScreenState extends State<SeasonScreen> {
         // the show to avoid saying "Season 1" twice.
         title: Text(
           widget.showTitle ?? 'Season ${widget.seasonNumber}',
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.left,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
+          ),
         ),
         actions: [
           PopupMenuButton<String>(

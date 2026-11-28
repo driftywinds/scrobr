@@ -8,6 +8,7 @@ import '../core/theme.dart';
 import '../widgets/comments.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
+import '../widgets/detail_header.dart';
 import 'season_screen.dart';
 import '../core/friendly_error.dart';
 
@@ -267,10 +268,9 @@ class _ShowBody extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          pinned: true,
-          expandedHeight: 280,
-          backgroundColor: kBg,
+        DetailSliverAppBar(
+          title: title,
+          imageUrl: backdrop,
           actions: [
             PopupMenuButton<String>(
               onSelected: (value) => _menu(context, value, show),
@@ -300,40 +300,6 @@ class _ShowBody extends StatelessWidget {
               ],
             ),
           ],
-          flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.only(left: 72, right: 16, bottom: 14),
-            title: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
-            background: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedArtwork(
-                  url: backdrop,
-                  fit: BoxFit.cover,
-                  placeholder: Container(color: kCard),
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.transparent,
-                        kBg.withValues(alpha: 0.55),
-                        kBg,
-                      ],
-                      stops: const [0, 0.3, 0.75, 1],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
         SliverToBoxAdapter(
           child: Padding(

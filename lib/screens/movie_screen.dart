@@ -10,6 +10,7 @@ import '../widgets/comments.dart';
 import '../widgets/session.dart';
 import '../widgets/trakt_comments.dart';
 import '../widgets/common.dart';
+import '../widgets/detail_header.dart';
 import 'browse_screen.dart';
 import '../core/friendly_error.dart';
 
@@ -127,48 +128,7 @@ class _MovieBody extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          pinned: true,
-          expandedHeight: 280,
-          backgroundColor: kBg,
-          flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.only(left: 72, right: 16, bottom: 14),
-            title: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            background: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedArtwork(
-                  url: backdrop,
-                  fit: BoxFit.cover,
-                  placeholder: Container(color: kCard),
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.transparent,
-                        kBg.withValues(alpha: 0.55),
-                        kBg,
-                      ],
-                      stops: const [0, 0.3, 0.75, 1],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        DetailSliverAppBar(title: title, imageUrl: backdrop),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
